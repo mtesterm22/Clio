@@ -11,4 +11,10 @@ urlpatterns = [
     path('create/', views.script_create, name='create'),
     path('<int:pk>/update/', views.script_update, name='update'),
     path('<int:pk>/delete/', views.script_delete, name='delete'),
+    
+    # System relationship management
+    path('<int:script_pk>/relationship/<int:relationship_pk>/update/', 
+         views.update_system_relationship, name='update_relationship'),
+    path('<int:script_pk>/relationship/<int:relationship_pk>/delete/', 
+         views.delete_system_relationship, name='delete_relationship'),
 ]

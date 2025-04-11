@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}{{ script.name }} - Script Details - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {{ script.name }}
+        </h2>
+        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+            {% if script.author %}
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {{ script.author }}
+            </div>
+            {% endif %}
+            {% if script.programming_language %}
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                {{ script.programming_language }}
+            </div>
+            {% endif %}
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Last updated: {{ script.updated_at|date:"M d, Y" }}
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'scripts:update' script.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Edit
+        </a>
+        <a href="{% url 'scripts:delete' script.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Script Information section -->
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Script Information
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Details about the script.
+        </p>
+    </div>
+    <div class="border-t border-gray-200">
+        <dl>
+            <!-- Basic Info -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Description
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.description|linebreaksbr|default:"No description provided." }}
+                </dd>
+            </div>
+            
+            <!-- Author -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Author
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.author|default:"Not specified" }}
+                </dd>
+            </div>
+            
+            <!-- Programming Language -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Programming Language
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.programming_language|default:"Not specified" }}
+                </dd>
+            </div>
+            
+            <!-- Hosted On -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Hosted On
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if script.hosted_on %}
+                        <a href="{% url 'systems:detail' script.hosted_on.id %}" class="text-blue-600 hover:text-blue-900">
+                            {{ script.hosted_on.name }}
+                        </a>
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <!-- Host Location -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Host Location
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.host_location|default:"Not specified" }}
+                </dd>
+            </div>
+            
+            <!-- Path -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Path
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if script.path %}
+                        <code class="bg-gray-100 px-2 py-1 rounded">{{ script.path }}</code>
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <!-- Schedule Information -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Schedule Information
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.schedule_information|linebreaksbr|default:"No schedule information provided." }}
+                </dd>
+            </div>
+            
+            <!-- Schedule Method -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Schedule Method
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if script.schedule_method %}
+                        {% if script.schedule_method == 'other' %}
+                            {{ script.custom_schedule_method }}
+                        {% else %}
+                            {{ script.get_schedule_method_display }}
+                        {% endif %}
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <!-- Documentation -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Documentation
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ script.documentation|linebreaksbr|default:"No documentation provided." }}
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- System Relationships -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            System Relationships
+        </h3>
+        <button id="addRelationshipBtn" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Add System Relationship
+        </button>
+    </div>
+    
+    <!-- Relationship Form (Hidden by default) -->
+    <div id="relationshipForm" class="mb-6 hidden bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h4>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="relationship_form" value="1">
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-3">
+                        <label for="{{ rel_form.system.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            System
+                        </label>
+                        <div class="mt-1">
+                            {{ rel_form.system }}
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-3">
+                        <label for="{{ rel_form.relationship_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Relationship Type
+                        </label>
+                        <div class="mt-1">
+                            {{ rel_form.relationship_type }}
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label for="{{ rel_form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Description
+                        </label>
+                        <div class="mt-1">
+                            {{ rel_form.description }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-5 sm:mt-6 flex justify-end">
+                    <button id="cancelRelationship" type="button" class="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Add Relationship
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- System Relationships List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% if system_relationships %}
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            System
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Relationship Type
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Description
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for relationship in system_relationships %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                <a href="{% url 'systems:detail' relationship.system.id %}" class="hover:text-blue-600">
+                                    {{ relationship.system.name }}
+                                </a>
+                            </div>
+                            {% if relationship.system.category %}
+                            <div class="mt-1">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                    style="background-color: {{ relationship.system.category.color }}; color: {{ relationship.system.category.text_color }}">
+                                    {{ relationship.system.category.name }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                {% if relationship.relationship_type == 'input' %}bg-blue-100 text-blue-800
+                                {% elif relationship.relationship_type == 'output' %}bg-green-100 text-green-800
+                                {% elif relationship.relationship_type == 'both' %}bg-purple-100 text-purple-800
+                                {% elif relationship.relationship_type == 'utility' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ relationship.get_relationship_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">
+                                {{ relationship.description|linebreaksbr|default:"" }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{% url 'scripts:update_relationship' script.id relationship.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                            <a href="{% url 'scripts:delete_relationship' script.id relationship.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                No system relationships defined for this script. Click "Add System Relationship" to create one.
+            </div>
+        {% endif %}
+    </div>
+</div>
+<!-- Associated Workflows -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Associated Workflows
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% if workflows %}
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Updated
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for workflow in workflows %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                <a href="{% url 'workflows:detail' workflow.id %}" class="hover:text-blue-600">
+                                    {{ workflow.name }}
+                                </a>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if workflow.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif workflow.status == 'draft' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ workflow.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ workflow.updated_at|date:"M d, Y" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                No workflows associated with this script.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Documents Section -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Documents
+        </h3>
+        <button id="uploadDocButton" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Upload Document
+        </button>
+    </div>
+    
+    <!-- Document Upload Form (Hidden by default) -->
+    <div id="uploadDocForm" class="mb-6 hidden bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">Upload Document</h4>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-3">
+                        <label for="{{ doc_form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Name
+                        </label>
+                        <div class="mt-1">
+                            {{ doc_form.name }}
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label for="{{ doc_form.document.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Document
+                        </label>
+                        <div class="mt-1">
+                            {{ doc_form.document }}
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label for="{{ doc_form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Description
+                        </label>
+                        <div class="mt-1">
+                            {{ doc_form.description }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-5 sm:mt-6 flex justify-end">
+                    <button id="cancelUpload" type="button" class="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Document List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% if documents %}
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Description
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Uploaded
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for doc in documents %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ doc.name }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ doc.description|default:"No description" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ doc.uploaded_at|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{{ doc.document.url }}" class="text-blue-600 hover:text-blue-900" target="_blank">
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                No documents uploaded for this script.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Document Upload Form Toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadButton = document.getElementById('uploadDocButton');
+        const uploadForm = document.getElementById('uploadDocForm');
+        const cancelButton = document.getElementById('cancelUpload');
+        
+        if (uploadButton && uploadForm && cancelButton) {
+            uploadButton.addEventListener('click', function() {
+                uploadForm.classList.remove('hidden');
+                uploadButton.classList.add('hidden');
+            });
+            
+            cancelButton.addEventListener('click', function() {
+                uploadForm.classList.add('hidden');
+                uploadButton.classList.remove('hidden');
+            });
+        }
+    });
+</script>
+<script>
+    // Document Upload and Relationship Form Toggles
+    document.addEventListener('DOMContentLoaded', function() {
+        // Document Upload Form Toggle
+        const uploadButton = document.getElementById('uploadDocButton');
+        const uploadForm = document.getElementById('uploadDocForm');
+        const cancelButton = document.getElementById('cancelUpload');
+        
+        if (uploadButton && uploadForm && cancelButton) {
+            uploadButton.addEventListener('click', function() {
+                uploadForm.classList.remove('hidden');
+                uploadButton.classList.add('hidden');
+                
+                // Hide relationship form if it's open
+                if (relationshipForm && !relationshipForm.classList.contains('hidden')) {
+                    relationshipForm.classList.add('hidden');
+                    addRelationshipBtn.classList.remove('hidden');
+                }
+            });
+            
+            cancelButton.addEventListener('click', function() {
+                uploadForm.classList.add('hidden');
+                uploadButton.classList.remove('hidden');
+            });
+        }
+        
+        // Relationship Form Toggle
+        const addRelationshipBtn = document.getElementById('addRelationshipBtn');
+        const relationshipForm = document.getElementById('relationshipForm');
+        const cancelRelationship = document.getElementById('cancelRelationship');
+        
+        if (addRelationshipBtn && relationshipForm && cancelRelationship) {
+            addRelationshipBtn.addEventListener('click', function() {
+                relationshipForm.classList.remove('hidden');
+                addRelationshipBtn.classList.add('hidden');
+                
+                // Hide document upload form if it's open
+                if (uploadForm && !uploadForm.classList.contains('hidden')) {
+                    uploadForm.classList.add('hidden');
+                    uploadButton.classList.remove('hidden');
+                }
+            });
+            
+            cancelRelationship.addEventListener('click', function() {
+                relationshipForm.classList.add('hidden');
+                addRelationshipBtn.classList.remove('hidden');
+            });
+        }
+    });
+</script>
+{% endblock %}
