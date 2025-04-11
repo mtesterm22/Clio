@@ -1,0 +1,541 @@
+<!-- templates/systems/system_detail.html -->
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}{{ system.name }} - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {{ system.name }}
+        </h2>
+        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if system.category == 'core' %}bg-blue-100 text-blue-800
+                    {% elif system.category == 'integration' %}bg-green-100 text-green-800
+                    {% elif system.category == 'custom' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ system.get_category_display }}
+                </span>
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if system.status == 'active' %}bg-green-100 text-green-800
+                    {% elif system.status == 'review' %}bg-yellow-100 text-yellow-800
+                    {% elif system.status == 'deprecation' %}bg-orange-100 text-orange-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ system.get_status_display }}
+                </span>
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+                Last updated: {{ system.updated_at|date:"M d, Y" }}
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'systems:update' system.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Edit
+        </a>
+        <a href="{% url 'systems:delete' system.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            System Information
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Details about the system.
+        </p>
+    </div>
+    <div class="border-t border-gray-200">
+        <dl>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Description
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ system.description|linebreaksbr|default:"No description provided." }}
+                </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Vendor
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ system.vendor|default:"Not specified" }}
+                </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Operating System
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ system.operating_system|default:"Not specified" }}
+                </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Support Information
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ system.support_information|linebreaksbr|default:"No support information provided." }}
+                </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Contact Information
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ system.contact_information|linebreaksbr|default:"No contact information provided." }}
+                </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Cost & Structure
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if system.cost %}
+                        ${{ system.cost }} - {{ system.cost_structure|default:"Structure not specified" }}
+                    {% else %}
+                        Cost not specified
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    SSO Information
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if system.sso_methodology %}
+                        Methodology: {{ system.sso_methodology }}
+                        {% if system.sso_system %}
+                            <br>System: {{ system.sso_system }}
+                        {% endif %}
+                    {% else %}
+                        No SSO information provided.
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Documentation
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if system.documentation_url %}
+                        <a href="{{ system.documentation_url }}" target="_blank" class="text-blue-600 hover:text-blue-900">
+                            {{ system.documentation_url }}
+                        </a>
+                    {% else %}
+                        No documentation URL provided.
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- System Dependencies -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            System Dependencies
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h4 class="text-md leading-6 font-medium text-gray-900">
+                Systems that {{ system.name }} depends on
+            </h4>
+        </div>
+        <div class="border-t border-gray-200">
+            {% if dependencies %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Category
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for dep in dependencies %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'systems:detail' dep.id %}" class="hover:text-blue-600">
+                                        {{ dep.name }}
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if dep.category == 'core' %}bg-blue-100 text-blue-800
+                                    {% elif dep.category == 'integration' %}bg-green-100 text-green-800
+                                    {% elif dep.category == 'custom' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ dep.get_category_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if dep.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif dep.status == 'review' %}bg-yellow-100 text-yellow-800
+                                    {% elif dep.status == 'deprecation' %}bg-orange-100 text-orange-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ dep.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    This system does not depend on any other systems.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mt-4">
+        <div class="px-4 py-5 sm:px-6">
+            <h4 class="text-md leading-6 font-medium text-gray-900">
+                Systems that depend on {{ system.name }}
+            </h4>
+        </div>
+        <div class="border-t border-gray-200">
+            {% if dependents %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Category
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for dep in dependents %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'systems:detail' dep.id %}" class="hover:text-blue-600">
+                                        {{ dep.name }}
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if dep.category == 'core' %}bg-blue-100 text-blue-800
+                                    {% elif dep.category == 'integration' %}bg-green-100 text-green-800
+                                    {% elif dep.category == 'custom' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ dep.get_category_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if dep.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif dep.status == 'review' %}bg-yellow-100 text-yellow-800
+                                    {% elif dep.status == 'deprecation' %}bg-orange-100 text-orange-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ dep.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    No other systems depend on this system.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Related Workflows -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Related Workflows
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="border-t border-gray-200">
+            {% if workflows %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Steps
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Last Updated
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for workflow in workflows %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'workflows:detail' workflow.id %}" class="hover:text-blue-600">
+                                        {{ workflow.name }}
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if workflow.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif workflow.status == 'draft' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ workflow.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ workflow.steps.count }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ workflow.updated_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    No workflows associated with this system.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Associated Scripts -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Associated Scripts
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="border-t border-gray-200">
+            {% if scripts %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Location
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Last Updated
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for script in scripts %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'scripts:detail' script.id %}" class="hover:text-blue-600">
+                                        {{ script.name }}
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ script.location|default:"Not specified" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ script.updated_at|date:"M d, Y" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    No scripts associated with this system.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Documents -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Documents
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="border-t border-gray-200">
+            {% if documents %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Description
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Uploaded
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for doc in documents %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ doc.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ doc.description|default:"No description" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ doc.uploaded_at|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{{ doc.document.url }}" class="text-blue-600 hover:text-blue-900" target="_blank">
+                                    Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    No documents uploaded for this system.
+                </div>
+            {% endif %}
+        </div>
+        </div>
+        <!-- Add this after the Documents section in templates/systems/system_detail.html -->
+
+<!-- Notes -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Notes
+        </h3>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="border-t border-gray-200">
+            {% if notes %}
+                <div class="divide-y divide-gray-200">
+                    {% for note in notes %}
+                    <div class="px-6 py-4">
+                        <div class="flex justify-between items-start">
+                            <h4 class="text-md font-medium text-gray-900">{{ note.title }}</h4>
+                            <div class="flex space-x-2">
+                                {% if user.is_authenticated and user == note.created_by or user.is_superuser %}
+                                <a href="{% url 'systems:edit_note' system.id note.id %}" class="text-blue-600 hover:text-blue-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </a>
+                                <a href="{% url 'systems:delete_note' system.id note.id %}" class="text-red-600 hover:text-red-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-500">
+                            {{ note.content|linebreaksbr }}
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400">
+                            Added by {{ note.created_by|default:"Anonymous" }} on {{ note.created_at|date:"M d, Y H:i" }}
+                            {% if note.updated_at != note.created_at %}
+                            (updated on {{ note.updated_at|date:"M d, Y H:i" }})
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    No notes added for this system.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Add New Note Form -->
+    <div class="mt-4 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-6 py-4">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Add a Note</h4>
+            <form method="post">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ note_form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Title
+                        </label>
+                        <div class="mt-1">
+                            {{ note_form.title|add_class:"shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ note_form.content.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Content
+                        </label>
+                        <div class="mt-1">
+                            {{ note_form.content|add_class:"shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" }}
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Add Note
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+{% endblock %}

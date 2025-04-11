@@ -1,0 +1,1217 @@
+<!-- templates/systems/relationship_diagram.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Relationships - Clio{% endblock %}
+
+{% block extra_css %}
+<style>
+    #diagram-container {
+        position: relative;
+        width: 100%;
+        height: 800px;
+        margin-bottom: 20px;
+    }
+    
+    #diagram {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #ddd;
+        background-color: white;
+        overflow: hidden;
+    }
+    
+    .system-node {
+        stroke-width: 2px;
+        cursor: pointer;
+    }
+    
+    .core {
+        fill: #d5e8f9;
+        stroke: #3498db;
+    }
+    
+    .integration {
+        fill: #e8f6e8;
+        stroke: #27ae60;
+    }
+    
+    .custom {
+        fill: #fdebd0;
+        stroke: #f39c12;
+    }
+    
+    .external {
+        fill: #f0d5d5;
+        stroke: #c0392b;
+    }
+    
+    .system-label {
+        font-size: 10px;
+        text-anchor: middle;
+        pointer-events: none;
+        font-weight: bold;
+    }
+    
+    .label-background {
+        fill: white;
+        fill-opacity: 0.8;
+        stroke: #ddd;
+        stroke-width: 0.5;
+    }
+    
+    .connection {
+        stroke: #999;
+        stroke-width: 1.5px;
+        fill: none;
+        marker-end: url(#arrowhead);
+    }
+    
+    .connection-depends_on {
+        stroke-dasharray: none;
+    }
+    
+    .connection-provides_data_to {
+        stroke-dasharray: 5, 3;
+    }
+    
+    .connection-integrates_with {
+        stroke-dasharray: 1, 3;
+    }
+    
+    .connection-highlighted {
+        stroke: #ff5722;
+        stroke-width: 2.5px;
+    }
+    
+    .highlighted {
+        stroke-width: 3px;
+        stroke: #ff5722;
+    }
+    
+    #infoPanel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background-color: white;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        max-width: 300px;
+        display: none;
+        z-index: 100;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .legend {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin: 0 15px;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        border-radius: 4px;
+    }
+    
+    .controls {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    input {
+        padding: 8px;
+        width: 250px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+    }
+    
+    .button {
+        padding: 8px 15px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .button:hover {
+        background-color: #3367d6;
+    }
+    
+    .mini-map {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 150px;
+        height: 150px;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        overflow: hidden;
+        z-index: 100;
+    }
+    
+    .viewport-indicator {
+        stroke: #ff5722;
+        stroke-width: 2px;
+        fill: none;
+        pointer-events: none;
+    }
+    
+    .offscreen-arrow {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            System Relationships
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'systems:list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to Systems
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 shadow rounded-lg">
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search systems...">
+        <button class="button" id="resetButton">Reset View</button>
+        <button class="button" id="spreadButton">Spread Nodes</button>
+        <button class="button" id="zoomInButton">Zoom In</button>
+        <button class="button" id="zoomOutButton">Zoom Out</button>
+        <button class="button" id="centerButton">Center View</button>
+        <button class="button" id="fullscreenButton">Fullscreen</button>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #d5e8f9; border: 1px solid #3498db;"></div>
+            <span>Core System</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e8f6e8; border: 1px solid #27ae60;"></div>
+            <span>Integration</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #fdebd0; border: 1px solid #f39c12;"></div>
+            <span>Custom Component</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #f0d5d5; border: 1px solid #c0392b;"></div>
+            <span>External System</span>
+        </div>
+    </div>
+    
+    <div id="diagram-container">
+        <div id="diagram"></div>
+        <div id="infoPanel">
+            <h3 id="infoPanelTitle" class="text-lg font-medium"></h3>
+            <div id="infoPanelContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Make the diagram container responsive
+    const diagramContainer = document.getElementById('diagram-container');
+    const containerWidth = diagramContainer.clientWidth;
+    const containerHeight = Math.max(800, window.innerHeight * 0.8); // Use 80% of viewport height
+    
+    diagramContainer.style.height = `${containerHeight}px`;
+    
+    // Fetch the relationships data from the API
+    fetch("{% url 'systems:relationship_data' %}")
+        .then(response => response.json())
+        .then(data => {
+            initializeRelationshipDiagram(data);
+        })
+        .catch(error => {
+            console.error("Error loading relationship data:", error);
+        });
+        
+    function initializeRelationshipDiagram(data) {
+        const width = document.getElementById('diagram').clientWidth;
+        const height = document.getElementById('diagram-container').clientHeight;
+        
+        // Calculate appropriate spacing based on number of nodes
+        const nodeCount = data.systems.length;
+        const areaPerNode = (width * height) / nodeCount;
+        const optimalDistance = Math.sqrt(areaPerNode) * 0.8; // 80% of ideal spacing
+        
+        // Create SVG
+        const svg = d3.select("#diagram")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .call(d3.zoom().scaleExtent([0.1, 4]).on("zoom", function(event) {
+                g.attr("transform", event.transform);
+                // Update mini-map viewport indicator if it exists
+                if (document.querySelector('.viewport-indicator')) {
+                    updateMiniMapViewport(event.transform);
+                }
+            }));
+            
+        // Define arrow markers for the connections
+        svg.append("defs").append("marker")
+            .attr("id", "arrowhead")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 20)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("fill", "#999");
+            
+        const g = svg.append("g");
+        
+        // Calculate dependencies
+        const dependencies = {};
+        data.systems.forEach(system => {
+            dependencies[system.id] = 0;
+        });
+        
+        data.links.forEach(link => {
+            if (dependencies[link.target] !== undefined) {
+                dependencies[link.target]++;
+            }
+        });
+        
+        // Create force-directed layout with spacing based on node count
+        const simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(optimalDistance))
+            .force("charge", d3.forceManyBody().strength(-optimalDistance * 2))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => {
+                // Base radius on dependencies and type
+                const baseRadius = 20;
+                const typeFactor = d.type === "core" ? 1.3 : 1;
+                const depFactor = Math.min(dependencies[d.id] * 0.05 + 1, 1.5);
+                return (baseRadius * typeFactor * depFactor) + 10; // +10 for label space
+            }));
+            
+        // Create links
+        const link = g.selectAll(".connection")
+            .data(data.links)
+            .enter().append("path")
+            .attr("class", d => `connection connection-${d.type}`)
+            .attr("id", d => `connection-${d.source}-${d.target}`);
+            
+        // Add label backgrounds
+        const labelBackground = g.selectAll(".label-background")
+            .data(data.systems)
+            .enter().append("rect")
+            .attr("class", "label-background")
+            .attr("id", d => `bg-${d.id}`);
+            
+        // Create nodes
+        const node = g.selectAll(".system-node")
+            .data(data.systems)
+            .enter().append("circle")
+            .attr("class", d => `system-node ${d.type}`)
+            .attr("id", d => `system-${d.id}`)
+            .attr("r", d => {
+                // Scale radius based on dependencies
+                const baseRadius = 20;
+                const typeFactor = d.type === "core" ? 1.3 : 1;
+                const depFactor = Math.min(dependencies[d.id] * 0.05 + 1, 1.5);
+                return baseRadius * typeFactor * depFactor;
+            })
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut)
+            .on("click", handleClick)
+            .call(d3.drag()
+                .on("start", dragStarted)
+                .on("drag", dragged)
+                .on("end", dragEnded));
+                
+        // Add labels to nodes
+        const label = g.selectAll(".system-label")
+            .data(data.systems)
+            .enter().append("text")
+            .attr("class", "system-label")
+            .text(d => d.name)
+            .attr("id", d => `label-${d.id}`)
+            .style("font-size", d => {
+                // Larger font for more important systems
+                return dependencies[d.id] > 5 ? "12px" : 
+                    d.type === "core" ? "11px" : "10px";
+            })
+            .style("font-weight", d => {
+                // Bold for key systems
+                return d.type === "core" ? "bold" : "normal";
+            })
+            .each(function(d) {
+                // Get the size of the text to correctly size the background
+                d.bbox = this.getBBox();
+            });
+            
+        // Update background rectangles based on text size
+        labelBackground
+            .attr("width", d => d.bbox.width + 8)
+            .attr("height", d => d.bbox.height + 4)
+            .attr("x", d => d.bbox.x - 4)
+            .attr("y", d => d.bbox.y - 2);
+            
+        // Set up the simulation
+        simulation.nodes(data.systems)
+            .on("tick", ticked);
+            
+        simulation.force("link")
+            .links(data.links);
+            
+        // Create mini-map
+        createMiniMap();
+        
+        // Add indicators for off-screen nodes
+        createOffscreenIndicators();
+            
+        function ticked() {
+            // Prevent too much movement
+            const maxIterations = 300;
+            if (simulation.alpha() < 0.01 && simulation.alphaTarget() === 0) {
+                simulation.stop();
+            }
+            
+            link.attr("d", d => {
+                const dx = d.target.x - d.source.x;
+                const dy = d.target.y - d.source.y;
+                const dr = Math.sqrt(dx * dx + dy * dy);
+                
+                // Calculate radius
+                let sourceRadius, targetRadius;
+                if (d.source) {
+                    const baseSourceRadius = 20;
+                    const typeFactor = d.source.type === "core" ? 1.3 : 1;
+                    const depFactor = Math.min(dependencies[d.source.id] * 0.05 + 1, 1.5);
+                    sourceRadius = baseSourceRadius * typeFactor * depFactor;
+                } else {
+                    sourceRadius = 20;
+                }
+                
+                if (d.target) {
+                    const baseTargetRadius = 20;
+                    const typeFactor = d.target.type === "core" ? 1.3 : 1;
+                    const depFactor = Math.min(dependencies[d.target.id] * 0.05 + 1, 1.5);
+                    targetRadius = baseTargetRadius * typeFactor * depFactor;
+                } else {
+                    targetRadius = 20;
+                }
+                
+                // Only draw if we have valid positions
+                if (isNaN(d.source.x) || isNaN(d.source.y) || isNaN(d.target.x) || isNaN(d.target.y)) {
+                    return "M0,0L0,0";
+                }
+                
+                // Calculate points that account for the radius
+                const ratio = targetRadius / dr;
+                const endX = d.target.x - dx * ratio;
+                const endY = d.target.y - dy * ratio;
+                
+                const startRatio = sourceRadius / dr;
+                const startX = d.source.x + dx * startRatio;
+                const startY = d.source.y + dy * startRatio;
+                
+                // Use curved paths for clearer visualization
+                const curveFactor = 1.2;
+                
+                return `M${startX},${startY}A${dr*curveFactor},${dr*curveFactor} 0 0,1 ${endX},${endY}`;
+            });
+            
+            // Keep nodes within bounds with padding
+            const padding = Math.min(width, height) * 0.1; // 10% padding
+            node.attr("cx", d => {
+                return d.x = Math.max(padding, Math.min(width - padding, d.x));
+            })
+            .attr("cy", d => {
+                return d.y = Math.max(padding, Math.min(height - padding, d.y));
+            });
+            
+            // Update label and background positions
+            label.attr("x", d => d.x)
+                .attr("y", d => d.y);
+                
+            labelBackground
+                .attr("x", d => d.x - (d.bbox.width / 2) - 4)
+                .attr("y", d => d.y - (d.bbox.height / 2) - 2);
+                
+            // Update mini-map
+            updateMiniMap();
+            
+            // Update off-screen indicators
+            updateOffscreenIndicators();
+        }
+        
+        // Drag functions
+        function dragStarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragEnded(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            // Keep nodes fixed after dragging to maintain user's arrangement
+            // d.fx = null;
+            // d.fy = null;
+        }
+        
+        // Mouse event handlers
+        function handleMouseOver(event, d) {
+            // Highlight the node
+            d3.select(this).classed("highlighted", true);
+            
+            // Highlight connected links and fade others
+            link.each(function(l) {
+                if (l.source.id === d.id || l.target.id === d.id) {
+                    d3.select(this).classed("connection-highlighted", true);
+                } else {
+                    d3.select(this).style("opacity", 0.1);
+                }
+            });
+            
+            // Highlight connected nodes and fade others
+            node.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id === d.id && l.target.id === n.id) || 
+                    (l.target.id === d.id && l.source.id === n.id));
+                
+                if (n.id === d.id || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            // Also fade unconnected labels
+            label.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id === d.id && l.target.id === n.id) || 
+                    (l.target.id === d.id && l.source.id === n.id));
+                
+                if (n.id === d.id || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            labelBackground.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id === d.id && l.target.id === n.id) || 
+                    (l.target.id === d.id && l.source.id === n.id));
+                
+                if (n.id === d.id || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            // Show info panel
+            showInfoPanel(d);
+        }
+        
+        function handleMouseOut(event, d) {
+            // Only reset if not clicked
+            if (!d3.select(this).classed("clicked")) {
+                // Remove highlight from the node
+                d3.select(this).classed("highlighted", false);
+                
+                // Reset all opacities
+                link.style("opacity", 0.6).classed("connection-highlighted", false);
+                node.style("opacity", 1);
+                label.style("opacity", 1);
+                labelBackground.style("opacity", 1);
+                
+                // Hide info panel
+                hideInfoPanel();
+            }
+        }
+        
+        function handleClick(event, d) {
+            // Toggle clicked state
+            const wasClicked = d3.select(this).classed("clicked");
+            
+            // Reset all clicked states and highlights
+            node.classed("clicked", false).classed("highlighted", false);
+            link.classed("connection-highlighted", false).style("opacity", 0.6);
+            node.style("opacity", 1);
+            label.style("opacity", 1);
+            labelBackground.style("opacity", 1);
+            
+            if (!wasClicked) {
+                // Set this node as clicked
+                d3.select(this).classed("clicked", true).classed("highlighted", true);
+                
+                // Highlight connected links and fade others
+                link.each(function(l) {
+                    if (l.source.id === d.id || l.target.id === d.id) {
+                        d3.select(this).classed("connection-highlighted", true);
+                    } else {
+                        d3.select(this).style("opacity", 0.1);
+                    }
+                });
+                
+                // Highlight connected nodes and fade others
+                node.each(function(n) {
+                    const isConnected = data.links.some(l => 
+                        (l.source.id === d.id && l.target.id === n.id) || 
+                        (l.target.id === d.id && l.source.id === n.id));
+                    
+                    if (n.id === d.id || isConnected) {
+                        d3.select(this).style("opacity", 1);
+                    } else {
+                        d3.select(this).style("opacity", 0.2);
+                    }
+                });
+                
+                // Also fade unconnected labels
+                label.each(function(n) {
+                    const isConnected = data.links.some(l => 
+                        (l.source.id === d.id && l.target.id === n.id) || 
+                        (l.target.id === d.id && l.source.id === n.id));
+                    
+                    if (n.id === d.id || isConnected) {
+                        d3.select(this).style("opacity", 1);
+                    } else {
+                        d3.select(this).style("opacity", 0.2);
+                    }
+                });
+                
+                labelBackground.each(function(n) {
+                    const isConnected = data.links.some(l => 
+                        (l.source.id === d.id && l.target.id === n.id) || 
+                        (l.target.id === d.id && l.source.id === n.id));
+                    
+                    if (n.id === d.id || isConnected) {
+                        d3.select(this).style("opacity", 1);
+                    } else {
+                        d3.select(this).style("opacity", 0.2);
+                    }
+                });
+                
+                // Show info panel
+                showInfoPanel(d);
+            } else {
+                // Hide info panel if already clicked
+                hideInfoPanel();
+            }
+        }
+        
+        // Info panel functions
+        function showInfoPanel(system) {
+            const panel = document.getElementById('infoPanel');
+            const title = document.getElementById('infoPanelTitle');
+            const content = document.getElementById('infoPanelContent');
+            
+            title.textContent = system.name;
+            
+            // Find system details
+            let html = `<p><strong>Category:</strong> ${system.type}</p>`;
+            html += `<p><strong>Status:</strong> ${system.status || 'Active'}</p>`;
+            
+            // Link to system detail page
+            html += `<p class="mt-2"><a href="/systems/${system.id}/" class="text-blue-600 hover:underline">View System Details</a></p>`;
+            
+            // Find systems that depend on this one (systems where this system is the source in a depends_on relationship)
+            const dependents = [];
+            data.links.forEach(link => {
+                if (link.source.id === system.id && link.type === 'depends_on') {
+                    dependents.push(link.target);
+                }
+            });
+            
+            if (dependents.length > 0) {
+                html += `<p class="mt-4 font-semibold">Systems that depend on this:</p>`;
+                html += '<ul class="list-disc pl-5 mt-2">';
+                dependents.forEach(dependent => {
+                    html += `<li><a href="#" class="text-blue-600 hover:underline node-link" data-node-id="${dependent.id}">${dependent.name}</a></li>`;
+                });
+                html += '</ul>';
+            }
+            
+            // Find systems this one depends on (systems where this system is the target in a depends_on relationship)
+            const dependencies = [];
+            data.links.forEach(link => {
+                if (link.target.id === system.id && link.type === 'depends_on') {
+                    dependencies.push(link.source);
+                }
+            });
+            
+            if (dependencies.length > 0) {
+                html += `<p class="mt-4 font-semibold">This system depends on:</p>`;
+                html += '<ul class="list-disc pl-5 mt-2">';
+                dependencies.forEach(dependency => {
+                    html += `<li><a href="#" class="text-blue-600 hover:underline node-link" data-node-id="${dependency.id}">${dependency.name}</a></li>`;
+                });
+                html += '</ul>';
+            }
+            
+            content.innerHTML = html;
+            panel.style.display = 'block';
+            
+            // Add event listeners for node links
+            setTimeout(() => {
+                document.querySelectorAll('.node-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const nodeId = this.getAttribute('data-node-id');
+                        highlightNode(nodeId);
+                    });
+                });
+            }, 100);
+        }
+        
+        function hideInfoPanel() {
+            document.getElementById('infoPanel').style.display = 'none';
+        }
+        
+        function highlightNode(nodeId) {
+            // Find the node by ID
+            const targetNode = data.systems.find(n => n.id == nodeId);
+            if (!targetNode) return;
+            
+            // Reset existing highlights
+            node.classed("clicked", false).classed("highlighted", false);
+            link.classed("connection-highlighted", false).style("opacity", 0.6);
+            node.style("opacity", 1);
+            label.style("opacity", 1);
+            labelBackground.style("opacity", 1);
+            
+            // Highlight the target node
+            const nodeElement = d3.select(`#system-${nodeId}`);
+            nodeElement.classed("highlighted", true).classed("clicked", true);
+            
+            // Highlight connected links and fade others
+            link.each(function(l) {
+                if (l.source.id == nodeId || l.target.id == nodeId) {
+                    d3.select(this).classed("connection-highlighted", true);
+                } else {
+                    d3.select(this).style("opacity", 0.1);
+                }
+            });
+            
+            // Highlight connected nodes and fade others
+            node.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id == nodeId && l.target.id === n.id) || 
+                    (l.target.id == nodeId && l.source.id === n.id));
+                
+                if (n.id == nodeId || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            // Also fade unconnected labels
+            label.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id == nodeId && l.target.id === n.id) || 
+                    (l.target.id == nodeId && l.source.id === n.id));
+                
+                if (n.id == nodeId || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            labelBackground.each(function(n) {
+                const isConnected = data.links.some(l => 
+                    (l.source.id == nodeId && l.target.id === n.id) || 
+                    (l.target.id == nodeId && l.source.id === n.id));
+                
+                if (n.id == nodeId || isConnected) {
+                    d3.select(this).style("opacity", 1);
+                } else {
+                    d3.select(this).style("opacity", 0.2);
+                }
+            });
+            
+            // Show info panel for this node
+            showInfoPanel(targetNode);
+            
+            // Center view on this node
+            const transform = d3.zoomIdentity
+                .translate(width/2 - targetNode.x, height/2 - targetNode.y)
+                .scale(1);
+            svg.transition().duration(750).call(
+                d3.zoom().transform, transform
+            );
+        }
+        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            if (searchTerm.length < 2) {
+                // Reset all highlights if search is cleared
+                node.style("opacity", 1).classed("clicked", false).classed("highlighted", false);
+                link.style("opacity", 0.6).classed("connection-highlighted", false);
+                label.style("opacity", 1);
+                labelBackground.style("opacity", 1);
+                hideInfoPanel();
+                return;
+            }
+            
+            // Fade out all nodes and links
+            node.style("opacity", 0.2);
+            label.style("opacity", 0.2);
+            labelBackground.style("opacity", 0.2);
+            link.style("opacity", 0.1);
+            
+            // Highlight matching nodes and their connections
+            const matchingNodes = data.systems.filter(system => 
+                system.name.toLowerCase().includes(searchTerm));
+                
+            matchingNodes.forEach(system => {
+                // Highlight the node
+                d3.select(`#system-${system.id}`).style("opacity", 1);
+                d3.select(`#label-${system.id}`).style("opacity", 1);
+                d3.select(`#bg-${system.id}`).style("opacity", 1);
+                
+                // Highlight connections
+                data.links.forEach(link => {
+                    if (link.source.id === system.id || link.target.id === system.id) {
+                        const linkId = `connection-${link.source.id}-${link.target.id}`;
+                        d3.select(`#${linkId}`).style("opacity", 0.8);
+                        
+                        // Highlight connected nodes
+                        const connectedId = link.source.id === system.id ? link.target.id : link.source.id;
+                        d3.select(`#system-${connectedId}`).style("opacity", 0.7);
+                        d3.select(`#label-${connectedId}`).style("opacity", 0.7);
+                        d3.select(`#bg-${connectedId}`).style("opacity", 0.7);
+                    }
+                });
+            });
+            
+            // If only one match, highlight it fully
+            if (matchingNodes.length === 1) {
+                highlightNode(matchingNodes[0].id);
+            }
+        });
+        
+        // Button functionality
+        document.getElementById('resetButton').addEventListener('click', function() {
+            // Clear search
+            document.getElementById('searchInput').value = '';
+            if (document.getElementById('categoryFilter')) {
+                document.getElementById('categoryFilter').value = '';
+            }
+            if (document.getElementById('statusFilter')) {
+                document.getElementById('statusFilter').value = '';
+            }
+            
+            // Reset all highlights
+            node.style("opacity", 1).classed("clicked", false).classed("highlighted", false);
+            link.style("opacity", 0.6).classed("connection-highlighted", false);
+            label.style("opacity", 1);
+            labelBackground.style("opacity", 1);
+            
+            // Hide info panel
+            hideInfoPanel();
+            
+            // Reset zoom and position
+            svg.transition().duration(750).call(
+                d3.zoom().transform, d3.zoomIdentity
+            );
+            
+            // Release fixed positions
+            data.systems.forEach(system => {
+                system.fx = null;
+                system.fy = null;
+            });
+            
+            // Restart simulation
+            simulation.alpha(0.3).restart();
+        });
+        
+        // Filter by category (if present)
+        if (document.getElementById('categoryFilter')) {
+            document.getElementById('categoryFilter').addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+        
+        // Filter by status (if present)
+        if (document.getElementById('statusFilter')) {
+            document.getElementById('statusFilter').addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+        
+        function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            
+            if (!categoryFilter && !statusFilter) {
+                // Reset all nodes and links if no filters
+                node.style("opacity", 1);
+                label.style("opacity", 1);
+                labelBackground.style("opacity", 1);
+                link.style("opacity", 0.6);
+                return;
+            }
+            
+            // Fade out all nodes and links
+            node.style("opacity", 0.2);
+            label.style("opacity", 0.2);
+            labelBackground.style("opacity", 0.2);
+            link.style("opacity", 0.1);
+            
+            // Find matching nodes
+            const matchingNodes = data.systems.filter(system => {
+                const matchesCategory = !categoryFilter || system.type === categoryFilter;
+                const matchesStatus = !statusFilter || system.status === statusFilter;
+                return matchesCategory && matchesStatus;
+            });
+            
+            // Highlight matching nodes
+            matchingNodes.forEach(system => {
+                d3.select(`#system-${system.id}`).style("opacity", 1);
+                d3.select(`#label-${system.id}`).style("opacity", 1);
+                d3.select(`#bg-${system.id}`).style("opacity", 1);
+                
+                // Highlight connections between matching nodes
+                data.links.forEach(link => {
+                    if ((link.source.id === system.id || link.target.id === system.id) &&
+                        matchingNodes.some(n => n.id === link.source.id) && 
+                        matchingNodes.some(n => n.id === link.target.id)) {
+                        
+                        const linkId = `connection-${link.source.id}-${link.target.id}`;
+                        d3.select(`#${linkId}`).style("opacity", 0.8);
+                    }
+                });
+            });
+        }
+        
+        // Create off-screen indicators
+        function createOffscreenIndicators() {
+            // Create container for indicators
+            const indicators = svg.append("g")
+                .attr("class", "offscreen-indicators");
+                
+            // Add indicator arrows
+            indicators.selectAll(".offscreen-arrow")
+                .data(["top", "right", "bottom", "left"])
+                .enter()
+                .append("path")
+                .attr("class", "offscreen-arrow")
+                .attr("id", d => `offscreen-${d}`)
+                .attr("d", d => {
+                    // Create arrows pointing in from edges
+                    switch(d) {
+                        case "top": return "M10,0L20,15L0,15Z"; // Down arrow
+                        case "right": return "M30,10L15,20L15,0Z"; // Left arrow
+                        case "bottom": return "M10,30L0,15L20,15Z"; // Up arrow
+                        case "left": return "M0,10L15,0L15,20Z"; // Right arrow
+                    }
+                })
+                .attr("fill", "#ff5722")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1)
+                .style("opacity", 0) // Hidden by default
+                .style("pointer-events", "none");
+                
+            // Position the arrows
+            updateOffscreenIndicatorPositions();
+        }
+        
+        function updateOffscreenIndicatorPositions() {
+            const topArrow = d3.select("#offscreen-top");
+            const rightArrow = d3.select("#offscreen-right");
+            const bottomArrow = d3.select("#offscreen-bottom");
+            const leftArrow = d3.select("#offscreen-left");
+            
+            topArrow.attr("transform", `translate(${width/2 - 10}, 15)`);
+            rightArrow.attr("transform", `translate(${width - 30}, ${height/2 - 10})`);
+            bottomArrow.attr("transform", `translate(${width/2 - 10}, ${height - 30})`);
+            leftArrow.attr("transform", `translate(15, ${height/2 - 10})`);
+        }
+        
+        function updateOffscreenIndicators() {
+            // Get current view bounds
+            const transform = d3.zoomTransform(svg.node());
+            const scale = transform.k;
+            
+            const visibleMinX = -transform.x / scale;
+            const visibleMaxX = (-transform.x + width) / scale;
+            const visibleMinY = -transform.y / scale;
+            const visibleMaxY = (-transform.y + height) / scale;
+            
+            // Check for nodes in each direction
+            // Check for nodes in each direction
+            let hasTop = false;
+            let hasRight = false;
+            let hasBottom = false;
+            let hasLeft = false;
+            
+            data.systems.forEach(system => {
+                // Check if node is outside of viewable area
+                if (system.x < visibleMinX) hasLeft = true;
+                if (system.x > visibleMaxX) hasRight = true;
+                if (system.y < visibleMinY) hasTop = true;
+                if (system.y > visibleMaxY) hasBottom = true;
+            });
+            
+            // Show/hide offscreen indicators
+            d3.select("#offscreen-top").style("opacity", hasTop ? 0.8 : 0);
+            d3.select("#offscreen-right").style("opacity", hasRight ? 0.8 : 0);
+            d3.select("#offscreen-bottom").style("opacity", hasBottom ? 0.8 : 0);
+            d3.select("#offscreen-left").style("opacity", hasLeft ? 0.8 : 0);
+        }
+        
+        document.getElementById('zoomInButton').addEventListener('click', function() {
+            const currentTransform = d3.zoomTransform(svg.node());
+            svg.transition().duration(300).call(
+                d3.zoom().transform, 
+                d3.zoomIdentity
+                    .translate(currentTransform.x, currentTransform.y)
+                    .scale(currentTransform.k * 1.3)
+            );
+        });
+        
+        document.getElementById('zoomOutButton').addEventListener('click', function() {
+            const currentTransform = d3.zoomTransform(svg.node());
+            svg.transition().duration(300).call(
+                d3.zoom().transform, 
+                d3.zoomIdentity
+                    .translate(currentTransform.x, currentTransform.y)
+                    .scale(currentTransform.k / 1.3)
+            );
+        });
+        
+        document.getElementById('centerButton').addEventListener('click', function() {
+            svg.transition().duration(750).call(
+                d3.zoom().transform, d3.zoomIdentity
+            );
+        });
+        
+        document.getElementById('spreadButton').addEventListener('click', function() {
+            // Adopt a scalable approach based on node count
+            const nodeCount = data.systems.length;
+            const optimalSpread = Math.sqrt((width * height) / nodeCount) * 1.5;
+            
+            // Increase repulsion temporarily to spread nodes apart
+            simulation.force("charge", d3.forceManyBody().strength(-optimalSpread * 3));
+            
+            // Increase link distance temporarily
+            simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalSpread).links(data.links));
+            
+            // Run simulation at high temperature
+            simulation.alpha(1).restart();
+            
+            // Reset forces after some time
+            setTimeout(() => {
+                simulation.force("charge", d3.forceManyBody().strength(-optimalDistance * 2));
+                simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalDistance).links(data.links));
+                simulation.alpha(0.3).restart();
+            }, 2000);
+        });
+        
+        // Fullscreen functionality
+        document.getElementById('fullscreenButton').addEventListener('click', function() {
+            const diagramContainer = document.getElementById('diagram-container');
+            
+            if (diagramContainer.requestFullscreen) {
+                diagramContainer.requestFullscreen();
+            } else if (diagramContainer.webkitRequestFullscreen) {
+                diagramContainer.webkitRequestFullscreen();
+            } else if (diagramContainer.msRequestFullscreen) {
+                diagramContainer.msRequestFullscreen();
+            }
+        });
+        
+        // Handle fullscreen changes with proper sizing
+        document.addEventListener('fullscreenchange', function() {
+            if (document.fullscreenElement === document.getElementById('diagram-container')) {
+                // Get actual fullscreen dimensions
+                const fsWidth = window.innerWidth;
+                const fsHeight = window.innerHeight;
+                
+                // Update SVG dimensions for fullscreen
+                svg.attr('width', fsWidth)
+                   .attr('height', fsHeight);
+                
+                // Update offscreen indicators for new size
+                updateOffscreenIndicatorPositions();
+                
+                // Update simulation center force
+                simulation.force('center', d3.forceCenter(fsWidth/2, fsHeight/2));
+                simulation.alpha(0.3).restart();
+            } else {
+                // Reset to original dimensions
+                svg.attr('width', width)
+                   .attr('height', height);
+                
+                // Reset offscreen indicators
+                updateOffscreenIndicatorPositions();
+                
+                // Reset simulation center
+                simulation.force('center', d3.forceCenter(width/2, height/2));
+                simulation.alpha(0.3).restart();
+            }
+            
+            // Update mini-map
+            updateMiniMap();
+        });
+        
+        // Mini-map functionality
+        function createMiniMap() {
+            const miniMapSize = 150;
+            const miniMap = d3.select("#diagram-container")
+                .append("div")
+                .attr("class", "mini-map");
+                
+            const miniSvg = miniMap.append("svg")
+                .attr("width", miniMapSize)
+                .attr("height", miniMapSize);
+                
+            // Add a border around the viewable area
+            miniSvg.append("rect")
+                .attr("width", miniMapSize)
+                .attr("height", miniMapSize)
+                .attr("fill", "none")
+                .attr("stroke", "#ddd")
+                .attr("stroke-width", 1);
+            
+            // Create a group for the mini nodes
+            const miniG = miniSvg.append("g");
+            
+            // Create mini nodes
+            const miniNodes = miniG.selectAll(".mini-node")
+                .data(data.systems)
+                .enter().append("circle")
+                .attr("class", "mini-node")
+                .attr("r", 2)
+                .attr("fill", d => {
+                    if (d.type === "core") return "#3498db";
+                    if (d.type === "integration") return "#27ae60";
+                    if (d.type === "custom") return "#f39c12";
+                    return "#c0392b"; // external
+                });
+                
+            // Create viewport indicator
+            const viewportIndicator = miniSvg.append("rect")
+                .attr("class", "viewport-indicator")
+                .attr("stroke", "#ff5722")
+                .attr("stroke-width", 2)
+                .attr("fill", "none")
+                .attr("pointer-events", "none");
+                
+            // Make mini-map interactive
+            miniSvg.on("click", function(event) {
+                const bounds = this.getBoundingClientRect();
+                const clickX = event.clientX - bounds.left;
+                const clickY = event.clientY - bounds.top;
+                
+                // Scale the click to main diagram coordinates
+                const mainX = (clickX / miniMapSize) * width;
+                const mainY = (clickY / miniMapSize) * height;
+                
+                // Center the view on the clicked point
+                const transform = d3.zoomIdentity
+                    .translate(width/2 - mainX, height/2 - mainY)
+                    .scale(1);
+                    
+                svg.transition().duration(750).call(
+                    d3.zoom().transform, transform
+                );
+            });
+            
+            // Initial update
+            updateMiniMap();
+        }
+        
+        function updateMiniMap() {
+            // Calculate scale for mini-map
+            const miniMapSize = 150;
+            
+            // Determine the container dimensions (varies in fullscreen)
+            const containerWidth = document.fullscreenElement ? window.innerWidth : width;
+            const containerHeight = document.fullscreenElement ? window.innerHeight : height;
+            
+            const xScale = miniMapSize / containerWidth;
+            const yScale = miniMapSize / containerHeight;
+            const scale = Math.min(xScale, yScale) * 0.9; // 90% to add some padding
+            
+            // Update mini nodes
+            d3.selectAll(".mini-node")
+                .attr("cx", d => d.x * scale + miniMapSize/2 - (containerWidth*scale)/2)
+                .attr("cy", d => d.y * scale + miniMapSize/2 - (containerHeight*scale)/2);
+                
+            // Update viewport indicator based on current transform
+            updateMiniMapViewport(d3.zoomTransform(svg.node()));
+        }
+        
+        function updateMiniMapViewport(transform) {
+            const miniMapSize = 150;
+            
+            // Determine the container dimensions (varies in fullscreen)
+            const containerWidth = document.fullscreenElement ? window.innerWidth : width;
+            const containerHeight = document.fullscreenElement ? window.innerHeight : height;
+            
+            const xScale = miniMapSize / containerWidth;
+            const yScale = miniMapSize / containerHeight;
+            const scale = Math.min(xScale, yScale) * 0.9;
+            
+            // Calculate visible area in main view
+            const k = transform.k;
+            const visibleWidth = containerWidth / k;
+            const visibleHeight = containerHeight / k;
+            
+            // Convert to mini-map coordinates
+            const miniX = (transform.x / -k) * scale + miniMapSize/2 - (containerWidth*scale)/2;
+            const miniY = (transform.y / -k) * scale + miniMapSize/2 - (containerHeight*scale)/2;
+            const miniWidth = visibleWidth * scale;
+            const miniHeight = visibleHeight * scale;
+            
+            // Update viewport rectangle
+            d3.select(".viewport-indicator")
+                .attr("x", miniX)
+                .attr("y", miniY)
+                .attr("width", miniWidth)
+                .attr("height", miniHeight);
+        }
+        
+        // Initially run simulation with appropriate alpha
+        simulation.alpha(0.8).restart();
+    }
+});
+</script>
+{% endblock %}
