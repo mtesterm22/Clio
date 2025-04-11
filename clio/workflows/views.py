@@ -5,6 +5,8 @@ from django.contrib import messages
 from .models import Workflow, WorkflowStep, WorkflowDocument
 from .forms import WorkflowForm, WorkflowStepForm, WorkflowDocumentForm
 from systems.models import System
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 def workflow_list(request):
     """View to list all workflows"""
@@ -38,6 +40,16 @@ def workflow_detail(request, pk):
     
     # Get associated scripts
     scripts = workflow.scripts.all()
+    
+    # Handle document upload
+    if request.method == 'POST' and request.FILES:
+        form = WorkflowDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.workflow = workflow
+            document.save()
+            messages.success(request, f'Document "{document.name}" was uploaded successfully.')
+            return redirect('workflows:detail', pk=workflow.pk)
     
     context = {
         'workflow': workflow,
@@ -158,3 +170,41 @@ def delete_workflow_step(request, pk):
         'step': step,
         'workflow': workflow
     })
+
+@require_POST
+def reorder_workflow_step(request, pk):
+    """Reorder a workflow step (move up or down)"""
+    step = get_object_or_404(WorkflowStep, pk=pk)
+    workflow = step.workflow
+    direction = request.POST.get('direction')
+    
+    if direction not in ['up', 'down']:
+        return JsonResponse({'success': False, 'error': 'Invalid direction'})
+    
+    # Get current order
+    current_order = step.order
+    
+    if direction == 'up' and current_order > 1:
+        # Find the step above
+        prev_step = WorkflowStep.objects.get(workflow=workflow, order=current_order - 1)
+        # Swap orders
+        prev_step.order = current_order
+        step.order = current_order - 1
+        prev_step.save()
+        step.save()
+        return JsonResponse({'success': True})
+    
+    elif direction == 'down':
+        # Check if this is the last step
+        try:
+            next_step = WorkflowStep.objects.get(workflow=workflow, order=current_order + 1)
+            # Swap orders
+            next_step.order = current_order
+            step.order = current_order + 1
+            next_step.save()
+            step.save()
+            return JsonResponse({'success': True})
+        except WorkflowStep.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Already at the bottom'})
+    
+    return JsonResponse({'success': False, 'error': 'Cannot reorder'})

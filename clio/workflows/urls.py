@@ -14,4 +14,5 @@ urlpatterns = [
     path('<int:pk>/add_step/', views.add_workflow_step, name='add_step'),
     path('step/<int:pk>/update/', views.update_workflow_step, name='update_step'),
     path('step/<int:pk>/delete/', views.delete_workflow_step, name='delete_step'),
+    path('step/<int:pk>/reorder/', views.reorder_workflow_step, name='reorder_step'),
 ]

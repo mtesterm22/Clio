@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Workflows - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Workflows
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'workflows:create' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Add Workflow
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6 p-4">
+    <form method="get" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+            <select id="status" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <option value="">All Statuses</option>
+                {% for status_value, status_label in status_choices %}
+                <option value="{{ status_value }}" {% if status_value == status_filter %}selected{% endif %}>{{ status_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium">
+                Filter
+            </button>
+            {% if status_filter %}
+            <a href="{% url 'workflows:list' %}" class="ml-2 text-sm text-gray-600 hover:text-gray-800">
+                Clear Filters
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Workflows List -->
+<div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    {% for workflow in workflows %}
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg hover:shadow-lg transition-shadow duration-300">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 truncate">
+                    <a href="{% url 'workflows:detail' workflow.id %}" class="hover:text-blue-600">
+                        {{ workflow.name }}
+                    </a>
+                </h3>
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                    {% if workflow.status == 'active' %}bg-green-100 text-green-800
+                    {% elif workflow.status == 'draft' %}bg-blue-100 text-blue-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ workflow.get_status_display }}
+                </span>
+            </div>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500 line-clamp-2">
+                {{ workflow.description|default:"No description" }}
+            </p>
+        </div>
+        <div class="px-4 py-4 sm:px-6 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <!-- Step count -->
+                    <div class="flex items-center mr-4">
+                        <svg class="h-5 w-5 text-gray-400 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm text-gray-500">{{ workflow.steps.count }} Steps</span>
+                    </div>
+                    
+                    <!-- System count -->
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-gray-400 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-sm text-gray-500">{{ workflow.systems.count }} Systems</span>
+                    </div>
+                </div>
+                
+                <div class="flex">
+                    <a href="{% url 'workflows:update' workflow.id %}" class="text-blue-600 hover:text-blue-900 mr-3">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </a>
+                    <a href="{% url 'workflows:delete' workflow.id %}" class="text-red-600 hover:text-red-900">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6 text-center">
+            <p class="text-gray-500 text-sm">No workflows found.</p>
+            <a href="{% url 'workflows:create' %}" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Create Your First Workflow
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

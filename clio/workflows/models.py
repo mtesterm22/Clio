@@ -26,6 +26,14 @@ class WorkflowStep(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField()
+    
+    # New fields for enhanced documentation
+    inputs = models.TextField(blank=True, help_text="Inputs required for this step")
+    outputs = models.TextField(blank=True, help_text="Outputs produced by this step")
+    personnel = models.TextField(blank=True, help_text="Personnel or roles involved in this step")
+    estimated_time = models.CharField(max_length=100, blank=True, help_text="Estimated time to complete this step")
+    notes = models.TextField(blank=True, help_text="Additional notes for this step")
+    
     system = models.ForeignKey(System, on_delete=models.SET_NULL, null=True, blank=True, related_name='workflow_steps')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
