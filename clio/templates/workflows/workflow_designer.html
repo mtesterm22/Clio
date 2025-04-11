@@ -5,10 +5,11 @@
 
 {% block extra_css %}
 <style>
+    /* Minimum necessary styles - kept simple to avoid conflicts */
     .workflow-designer-container {
         height: calc(100vh - 160px);
         overflow: hidden;
-        background-color: #f9fafb;
+        position: relative;
     }
     
     /* Hide the standard footer when in designer mode for more space */
@@ -52,17 +53,29 @@
 {% endblock %}
 
 {% block content %}
+<!-- Include CSRF Token for AJAX requests -->
+{% csrf_token %}
+
+<!-- Workflow Designer Root Element -->
 <div 
     class="workflow-designer-container" 
     id="workflow-designer-root" 
-    data-workflow-data="{{ workflow_data|escapejs }}"
-    data-systems="{{ systems|safe }}"
-    data-scripts="{{ scripts|safe }}"
+    data-workflow-data='{"name": "{{ workflow.name|escapejs }}", "nodes": [], "edges": [], "version": {{ workflow.version }}}'
+    data-systems='{{ systems|safe }}'
+    data-scripts='{{ scripts|safe }}'
     data-save-url="{% url 'workflows:save_workflow' workflow.id %}"
     data-detail-url="{% url 'workflows:detail' workflow.id %}"
 >
-    {% csrf_token %}
+    <!-- Workflow Designer React component will render here -->
+    <div class="h-full flex justify-center items-center">
+        <div class="text-gray-500">Loading workflow designer...</div>
+    </div>
 </div>
 
+<!-- Load React and ReactDOM from CDN -->
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+<!-- Load the workflow designer script -->
 <script src="{% static 'workflows/js/workflow-designer.js' %}"></script>
 {% endblock %}

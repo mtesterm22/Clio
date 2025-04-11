@@ -147,13 +147,41 @@ def workflow_designer(request, pk):
     systems = System.objects.all().values('id', 'name', 'category__name', 'category__color', 'category__text_color')
     scripts = Script.objects.all().values('id', 'name', 'programming_language')
     
+    # Convert QuerySets to lists
+    systems_list = list(systems)
+    scripts_list = list(scripts)
+    
+    # Get stored workflow definition or initialize empty
+    workflow_nodes = []
+    workflow_edges = []
+    
+    if workflow.nodes:
+        if isinstance(workflow.nodes, dict) or isinstance(workflow.nodes, list):
+            workflow_nodes = workflow.nodes
+        else:
+            try:
+                workflow_nodes = json.loads(workflow.nodes)
+            except (json.JSONDecodeError, TypeError):
+                workflow_nodes = []
+    
+    if workflow.edges:
+        if isinstance(workflow.edges, dict) or isinstance(workflow.edges, list):
+            workflow_edges = workflow.edges
+        else:
+            try:
+                workflow_edges = json.loads(workflow.edges)
+            except (json.JSONDecodeError, TypeError):
+                workflow_edges = []
+    
+    # Prepare data for the frontend
     context = {
         'workflow': workflow,
-        'systems': list(systems),
-        'scripts': list(scripts),
+        'systems': json.dumps(systems_list),
+        'scripts': json.dumps(scripts_list),
         'workflow_data': json.dumps({
-            'nodes': workflow.nodes,
-            'edges': workflow.edges,
+            'name': workflow.name,
+            'nodes': workflow_nodes,
+            'edges': workflow_edges,
             'version': workflow.version
         })
     }
