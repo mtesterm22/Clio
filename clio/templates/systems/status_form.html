@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title|default:"Manage Status" }} - Clio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .preview-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {{ title|default:"Manage Status" }}
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'systems:status_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to Statuses
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <form method="post">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-3">
+                    {{ form.name|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-3">
+                    {{ form.slug|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-6">
+                    {{ form.description|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-3">
+                    {{ form.color|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-3">
+                    {{ form.text_color|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-3">
+                    {{ form.icon|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-3">
+                    {{ form.order|as_crispy_field }}
+                </div>
+                
+                <div class="sm:col-span-6">
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="{{ form.is_active.id_for_label }}" class="font-medium text-gray-700">Active</label>
+                            <p class="text-gray-500">Whether systems with this status are considered active</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sm:col-span-6">
+                    <label class="block text-sm font-medium text-gray-700">Preview</label>
+                    <div class="mt-2">
+                        <span id="preview-badge" class="preview-badge">Status Preview</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-5">
+                <div class="flex justify-end">
+                    <a href="{% url 'systems:status_list' %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </a>
+                    <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorInput = document.getElementById('id_color');
+        const textColorInput = document.getElementById('id_text_color');
+        const nameInput = document.getElementById('id_name');
+        const previewBadge = document.getElementById('preview-badge');
+        
+        function updatePreview() {
+            const color = colorInput.value;
+            const textColor = textColorInput.value;
+            const name = nameInput.value || 'Status Preview';
+            
+            previewBadge.style.backgroundColor = color;
+            previewBadge.style.color = textColor;
+            previewBadge.textContent = name;
+        }
+        
+        // Initial preview
+        updatePreview();
+        
+        // Update preview when inputs change
+        colorInput.addEventListener('input', updatePreview);
+        textColorInput.addEventListener('input', updatePreview);
+        nameInput.addEventListener('input', updatePreview);
+    });
+</script>
+{% endblock %}

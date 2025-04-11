@@ -25,11 +25,13 @@ class SystemForm(forms.ModelForm):
         
         # Limit sso_system choices to exclude self and show only active systems
         instance = kwargs.get('instance')
-        sso_systems = System.objects.filter(status='active').exclude(id=instance.id if instance else None)
+        # Correct approach:
+        sso_systems = System.objects.filter(status__slug='active').exclude(id=instance.id if instance else None)
         self.fields['sso_system'].queryset = sso_systems
         
         # Limit hosting_system choices to exclude self and show only server category
-        hosting_systems = System.objects.filter(category='server').exclude(id=instance.id if instance else None)
+        # Correct approach:
+        hosting_systems = System.objects.filter(category__slug='server').exclude(id=instance.id if instance else None)
         self.fields['hosting_system'].queryset = hosting_systems
 
 

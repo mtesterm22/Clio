@@ -408,19 +408,23 @@ def relationship_data(request):
     links = []
     
     # Get all systems
-    all_systems = System.objects.all()
+    all_systems = System.objects.all().select_related('category', 'status')  # Add select_related for efficiency
     
     for system in all_systems:
+        # Safely get category and status values
+        category_slug = system.category.slug if system.category else "unknown"
+        status_slug = system.status.slug if system.status else "unknown"
+        
         systems.append({
             'id': system.id,
             'name': system.name,
-            'category': system.category,
-            'status': system.status,
-            'type': system.category,  # Using category as type for visualization
+            'category': category_slug,
+            'status': status_slug,
+            'type': category_slug,  # Using category_slug for type
         })
     
     # Get all relationships
-    relationships = SystemRelationship.objects.all()
+    relationships = SystemRelationship.objects.all().select_related('source_system', 'target_system')
     
     for rel in relationships:
         links.append({
