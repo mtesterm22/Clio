@@ -15,6 +15,7 @@ from .forms import (
     SystemForm, SystemRelationshipForm, SystemDocumentForm, SystemNoteForm,
     SystemAdministratorForm, SystemCategoryForm, SystemStatusForm  
 )
+from scripts.models import Script, ScriptSystemRelationship
 
 # Continued from previous system_list view
 def system_list(request):
@@ -104,7 +105,7 @@ def system_detail(request, pk):
     workflows = system.workflows.all() if hasattr(system, 'workflows') else []
     
     # Get scripts associated with this system
-    scripts = system.scripts.all() if hasattr(system, 'scripts') else []
+    scripts = system.related_scripts.all()
     
     # Get notes for this system
     notes = system.notes.all()

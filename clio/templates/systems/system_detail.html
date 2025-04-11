@@ -1,4 +1,3 @@
-<!-- templates/systems/system_detail.html -->
 {% extends "base.html" %}
 {% include "systems/widgets/relationship_manager.html" %}
 {% load widget_tweaks %}
@@ -46,8 +45,60 @@
 {% endblock %}
 
 {% block content %}
+<!-- Side Navigation Menu -->
+<div class="relative">
+    <!-- Side Navigation Menu - Fixed position on larger screens -->
+    <div class="hidden lg:block fixed right-4 top-32 w-48 bg-white rounded-lg shadow-lg p-4 z-10">
+        <h3 class="text-sm font-medium text-gray-900 mb-3 pb-2 border-b">On This Page</h3>
+        <nav class="space-y-1 text-sm">
+            <a href="#system-info" class="block py-1 text-blue-600 hover:text-blue-800">System Information</a>
+            <a href="#system-admins" class="block py-1 text-gray-600 hover:text-blue-800">System Administrators</a>
+            <a href="#system-relationships" class="block py-1 text-gray-600 hover:text-blue-800">System Relationships</a>
+            <a href="#system-dependencies" class="block py-1 text-gray-600 hover:text-blue-800">System Dependencies</a>
+            <a href="#related-workflows" class="block py-1 text-gray-600 hover:text-blue-800">Related Workflows</a>
+            <a href="#associated-scripts" class="block py-1 text-gray-600 hover:text-blue-800">Associated Scripts</a>
+            <a href="#documents" class="block py-1 text-gray-600 hover:text-blue-800">Documents</a>
+            <a href="#notes" class="block py-1 text-gray-600 hover:text-blue-800">Notes</a>
+        </nav>
+    </div>
+
+    <!-- Button to show mobile navigation modal on small screens -->
+    <button id="show-nav-modal" class="lg:hidden fixed right-4 bottom-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+    </button>
+
+    <!-- Mobile navigation modal -->
+    <div id="nav-modal" class="hidden fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Navigate to Section</h3>
+                        <nav class="space-y-2 text-md">
+                            <a href="#system-info" class="block py-2 text-blue-600 hover:text-blue-800">System Information</a>
+                            <a href="#system-admins" class="block py-2 text-gray-600 hover:text-blue-800">System Administrators</a>
+                            <a href="#system-relationships" class="block py-2 text-gray-600 hover:text-blue-800">System Relationships</a>
+                            <a href="#system-dependencies" class="block py-2 text-gray-600 hover:text-blue-800">System Dependencies</a>
+                            <a href="#related-workflows" class="block py-2 text-gray-600 hover:text-blue-800">Related Workflows</a>
+                            <a href="#associated-scripts" class="block py-2 text-gray-600 hover:text-blue-800">Associated Scripts</a>
+                            <a href="#documents" class="block py-2 text-gray-600 hover:text-blue-800">Documents</a>
+                            <a href="#notes" class="block py-2 text-gray-600 hover:text-blue-800">Notes</a>
+                        </nav>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" id="close-nav-modal" class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- System Information section with SSO and Hosting -->
-<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+<div id="system-info" class="bg-white shadow overflow-hidden sm:rounded-lg">
     <div class="px-4 py-5 sm:px-6">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             System Information
@@ -174,7 +225,7 @@
 </div>
 
 <!-- System Administrators Section -->
-<div class="mt-8">
+<div id="system-admins" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             System Administrators
@@ -316,64 +367,8 @@
     </div>
 </div>
 
-<!-- JavaScript for Administrator Modals -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Open Add Admin Modal
-        document.getElementById('openAddAdminModal').addEventListener('click', function() {
-            // Reset form for new admin
-            document.getElementById('adminForm').reset();
-            document.getElementById('adminId').value = '';
-            document.getElementById('adminModalTitle').textContent = 'Add System Administrator';
-            document.getElementById('adminModal').classList.remove('hidden');
-        });
-        
-        // Cancel Admin Modal
-        document.getElementById('cancelAdminModal').addEventListener('click', function() {
-            document.getElementById('adminModal').classList.add('hidden');
-        });
-        
-        // Open Edit Admin Modal
-        document.querySelectorAll('.edit-admin').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const adminId = this.getAttribute('data-id');
-                
-                // Get admin data via fetch API
-                fetch(`/systems/administrators/${adminId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('adminId').value = data.id;
-                        document.getElementById('user').value = data.user_id;
-                        document.getElementById('isPrimary').checked = data.is_primary;
-                        document.getElementById('notes').value = data.notes;
-                        
-                        document.getElementById('adminModalTitle').textContent = 'Edit System Administrator';
-                        document.getElementById('adminModal').classList.remove('hidden');
-                    })
-                    .catch(error => {
-                        console.error('Error fetching administrator data:', error);
-                    });
-            });
-        });
-        
-        // Open Delete Admin Modal
-        document.querySelectorAll('.delete-admin').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const adminId = this.getAttribute('data-id');
-                document.getElementById('deleteAdminId').value = adminId;
-                document.getElementById('deleteAdminModal').classList.remove('hidden');
-            });
-        });
-        
-        // Cancel Delete Admin Modal
-        document.getElementById('cancelDeleteAdmin').addEventListener('click', function() {
-            document.getElementById('deleteAdminModal').classList.add('hidden');
-        });
-    });
-</script>
-
 <!-- System Relationship Manager Widget -->
-<div class="mt-8">
+<div id="system-relationships" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             System Relationships
@@ -385,7 +380,7 @@
 </div>
 
 <!-- System Dependencies -->
-<div class="mt-8">
+<div id="system-dependencies" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             System Dependencies
@@ -491,7 +486,6 @@
                                     {{ dep.status.name }}
                                 </span>
                             </td>
-                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -505,10 +499,8 @@
     </div>
 </div>
 
-
-
 <!-- Related Workflows -->
-<div class="mt-8">
+<div id="related-workflows" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Related Workflows
@@ -572,7 +564,7 @@
 </div>
 
 <!-- Associated Scripts -->
-<div class="mt-8">
+<div id="associated-scripts" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Associated Scripts
@@ -588,7 +580,7 @@
                                 Name
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Location
+                                Hosted On
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Last Updated
@@ -606,7 +598,15 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ script.location|default:"Not specified" }}
+                                {% if script.hosted_on %}
+                                    <a href="{% url 'systems:detail' script.hosted_on.id %}" class="text-blue-600 hover:text-blue-900">
+                                        {{ script.hosted_on.name }}
+                                    </a>
+                                {% elif script.host_location %}
+                                    {{ script.host_location }}
+                                {% else %}
+                                    <span class="text-gray-400">Not specified</span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ script.updated_at|date:"M d, Y" }}
@@ -625,7 +625,7 @@
 </div>
 
 <!-- Documents -->
-<div class="mt-8">
+<div id="documents" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Documents
@@ -680,10 +680,11 @@
                 </div>
             {% endif %}
         </div>
-        </div>
+    </div>
+</div>
 
 <!-- Notes -->
-<div class="mt-8">
+<div id="notes" class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Notes
@@ -765,6 +766,144 @@
         </div>
     </div>
 </div>
-    </div>
-</div>
+
+<!-- JavaScript for Administrator Modals -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open Add Admin Modal
+        document.getElementById('openAddAdminModal').addEventListener('click', function() {
+            // Reset form for new admin
+            document.getElementById('adminForm').reset();
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminModalTitle').textContent = 'Add System Administrator';
+            document.getElementById('adminModal').classList.remove('hidden');
+        });
+        
+        // Cancel Admin Modal
+        document.getElementById('cancelAdminModal').addEventListener('click', function() {
+            document.getElementById('adminModal').classList.add('hidden');
+        });
+        
+        // Open Edit Admin Modal
+        document.querySelectorAll('.edit-admin').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const adminId = this.getAttribute('data-id');
+                
+                // Get admin data via fetch API
+                fetch(`/systems/administrators/${adminId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('adminId').value = data.id;
+                        document.getElementById('user').value = data.user_id;
+                        document.getElementById('isPrimary').checked = data.is_primary;
+                        document.getElementById('notes').value = data.notes;
+                        
+                        document.getElementById('adminModalTitle').textContent = 'Edit System Administrator';
+                        document.getElementById('adminModal').classList.remove('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching administrator data:', error);
+                    });
+            });
+        });
+        
+        // Open Delete Admin Modal
+        document.querySelectorAll('.delete-admin').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const adminId = this.getAttribute('data-id');
+                document.getElementById('deleteAdminId').value = adminId;
+                document.getElementById('deleteAdminModal').classList.remove('hidden');
+            });
+        });
+        
+        // Cancel Delete Admin Modal
+        document.getElementById('cancelDeleteAdmin').addEventListener('click', function() {
+            document.getElementById('deleteAdminModal').classList.add('hidden');
+        });
+    });
+</script>
+
+<!-- JavaScript for side navigation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const showNavModal = document.getElementById('show-nav-modal');
+        const closeNavModal = document.getElementById('close-nav-modal');
+        const navModal = document.getElementById('nav-modal');
+        
+        if (showNavModal && closeNavModal && navModal) {
+            // Show modal
+            showNavModal.addEventListener('click', function() {
+                navModal.classList.remove('hidden');
+            });
+            
+            // Close modal
+            closeNavModal.addEventListener('click', function() {
+                navModal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking on a navigation link
+            navModal.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    navModal.classList.add('hidden');
+                });
+            });
+        }
+        
+        // Highlight the current section in the sidebar based on scroll position
+        const sections = document.querySelectorAll('[id^="system-"], [id^="related-"], [id^="associated-"], [id="documents"], [id="notes"]');
+        const navLinks = document.querySelectorAll('.fixed nav a');
+        
+        function highlightNav() {
+            let scrollPosition = window.scrollY + 100; // Add offset for fixed header
+            
+            // Find the current section
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    // Remove active class from all links
+                    navLinks.forEach(link => {
+                        link.classList.remove('text-blue-600');
+                        link.classList.add('text-gray-600');
+                    });
+                    
+                    // Add active class to current section link
+                    const activeLink = document.querySelector(`.fixed nav a[href="#${section.id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.remove('text-gray-600');
+                        activeLink.classList.add('text-blue-600');
+                    }
+                }
+            });
+        }
+        
+        // Listen for scroll events
+        window.addEventListener('scroll', highlightNav);
+        
+        // Highlight initial section
+        highlightNav();
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    const headerOffset = 80; // Adjust based on your header height
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
