@@ -2,7 +2,7 @@
 
 from django.db import models
 from systems.models import System
-from workflows.models import Workflow
+# from workflows.models import Workflow
 
 class Script(models.Model):
     SCHEDULE_METHOD_CHOICES = [
@@ -53,7 +53,7 @@ class Script(models.Model):
         related_name='related_scripts', 
         blank=True
     )
-    workflows = models.ManyToManyField(Workflow, related_name='scripts', blank=True)
+    workflows = models.ManyToManyField('workflows.Workflow', related_name='related_scripts', blank=True)
     
     # Scheduling information
     schedule_information = models.TextField(blank=True, help_text="When and how often the script runs")

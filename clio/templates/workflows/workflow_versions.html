@@ -1,0 +1,177 @@
+<!-- templates/workflows/workflow_versions.html -->
+{% extends "base.html" %}
+
+{% block title %}Version History - {{ workflow.name }} - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Version History: {{ workflow.name }}
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'workflows:designer' workflow.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to Designer
+        </a>
+        <a href="{% url 'workflows:detail' workflow.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            View Details
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Version History
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            View and restore previous versions of this workflow.
+        </p>
+    </div>
+    
+    <div class="border-t border-gray-200">
+        <ul class="divide-y divide-gray-200">
+            <!-- Current version -->
+            <li class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-blue-600 truncate">
+                            Current Version (v{{ workflow.version }})
+                        </p>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Last updated: {{ workflow.updated_at|date:"M d, Y H:i" }}
+                        </p>
+                    </div>
+                    <div class="ml-2 flex-shrink-0 flex">
+                        <a href="{% url 'workflows:designer' workflow.id %}" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-md">
+                            View Current
+                        </a>
+                    </div>
+                </div>
+            </li>
+            
+            <!-- Previous versions -->
+            {% for version in versions %}
+            <li class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 truncate">
+                            Version {{ version.version }}
+                        </p>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Created: {{ version.created_at|date:"M d, Y H:i" }}
+                            {% if version.created_by %}by {{ version.created_by.get_full_name|default:version.created_by.username }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="ml-2 flex-shrink-0 flex space-x-2">
+                        <a href="#" class="view-version px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-md" data-version="{{ version.version }}" data-workflow="{{ workflow.id }}">
+                            View
+                        </a>
+                        <form method="post" action="{% url 'workflows:restore_version' workflow.id version.version %}" class="inline restore-form">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-md">
+                                Restore
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li class="px-4 py-4 sm:px-6 text-center text-gray-500">
+                No previous versions available.
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Version preview modal -->
+<div id="versionPreviewModal" class="hidden fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            Preview Version <span id="previewVersionNumber"></span>
+                        </h3>
+                        <div class="mt-4">
+                            <div id="versionPreviewContainer" class="bg-gray-50 h-96 rounded-md border overflow-hidden">
+                                <!-- Version preview will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <form method="post" id="restoreVersionForm" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Restore This Version
+                    </button>
+                </form>
+                <button type="button" id="closePreviewButton" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('versionPreviewModal');
+        const versionButtons = document.querySelectorAll('.view-version');
+        const closeButton = document.getElementById('closePreviewButton');
+        const versionNumberSpan = document.getElementById('previewVersionNumber');
+        const restoreForm = document.getElementById('restoreVersionForm');
+        
+        // Confirm before restoring a version
+        document.querySelectorAll('.restore-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Are you sure you want to restore this version? This will create a new version and set it as current.')) {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // Open modal with version preview
+        versionButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const version = this.getAttribute('data-version');
+                const workflowId = this.getAttribute('data-workflow');
+                
+                // Update UI
+                versionNumberSpan.textContent = version;
+                restoreForm.action = `/workflows/${workflowId}/versions/${version}/restore/`;
+                
+                // TODO: Load version preview into versionPreviewContainer
+                // This would typically be a simplified read-only view of the workflow
+                
+                // Show modal
+                modal.classList.remove('hidden');
+            });
+        });
+        
+        // Close modal
+        closeButton.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+        
+        // Close modal if clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    });
+</script>
+{% endblock %}

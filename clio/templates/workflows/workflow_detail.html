@@ -1,61 +1,30 @@
+<!-- templates/workflows/workflow_detail.html (updated) -->
 {% extends "base.html" %}
 
 {% block title %}{{ workflow.name }} - Workflow Details - Clio{% endblock %}
 
 {% block extra_css %}
 <style>
-    .workflow-step {
+    .workflow-preview {
+        height: 400px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        overflow: hidden;
         position: relative;
     }
     
-    .workflow-step:not(:last-child)::after {
-        content: '';
+    .workflow-preview-overlay {
         position: absolute;
-        top: 3rem;
-        bottom: -1rem;
-        left: 1rem;
-        width: 4px;
-        background-color: #e5e7eb;
-        z-index: 0;
-    }
-    
-    .step-number {
-        position: relative;
-        z-index: 1;
-        background-color: white;
-        border: 2px solid #3b82f6;
-        color: #3b82f6;
-        width: 2rem;
-        height: 2rem;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.7);
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 9999px;
-        font-weight: bold;
-    }
-    
-    .step-card {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .step-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-    
-    .step-header {
-        border-bottom: 1px solid #e5e7eb;
-        position: relative;
-    }
-    
-    .step-header::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: -1px;
-        width: 4px;
-        background-color: #3b82f6;
+        z-index: 10;
     }
 </style>
 {% endblock %}
@@ -76,15 +45,17 @@
                 </span>
             </div>
             <div class="mt-2 flex items-center text-sm text-gray-500">
-                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-                Last updated: {{ workflow.updated_at|date:"M d, Y" }}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Version {{ workflow.version }}
+                </span>
             </div>
         </div>
     </div>
     <div class="mt-4 flex md:mt-0 md:ml-4">
-        <a href="{% url 'workflows:update' workflow.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="{% url 'workflows:designer' workflow.id %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Edit in Designer
+        </a>
+        <a href="{% url 'workflows:update' workflow.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             Edit
         </a>
         <a href="{% url 'workflows:delete' workflow.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
@@ -176,122 +147,25 @@
     </div>
 </div>
 
-<!-- Workflow Steps section -->
+<!-- Workflow Diagram section -->
 <div class="mt-8">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
-            Workflow Steps
+            Workflow Diagram
         </h3>
-        <a href="{% url 'workflows:add_step' workflow.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add Step
+        <a href="{% url 'workflows:designer' workflow.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Open in Designer
         </a>
     </div>
     
-    {% if steps %}
-        <div class="pl-10 space-y-4">
-            {% for step in steps %}
-                <div class="workflow-step">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mr-4">
-                            <div class="step-number">{{ step.order }}</div>
-                        </div>
-                        <div class="bg-white shadow rounded-lg step-card w-full">
-                            <div class="px-4 py-3 step-header">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="text-lg font-medium text-gray-900">{{ step.name }}</h4>
-                                    <div class="flex space-x-2">
-                                        <a href="{% url 'workflows:update_step' step.id %}" class="text-blue-600 hover:text-blue-900">
-                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </a>
-                                        <a href="{% url 'workflows:delete_step' step.id %}" class="text-red-600 hover:text-red-900">
-                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </a>
-                                    </div>
-                                </div>
-                                {% if step.system %}
-                                    <div class="mt-1">
-                                        <a href="{% url 'systems:detail' step.system.id %}" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium"
-                                           style="background-color: {{ step.system.category.color }}; color: {{ step.system.category.text_color }};">
-                                           {{ step.system.name }}
-                                        </a>
-                                    </div>
-                                {% endif %}
-                                {% if step.estimated_time %}
-                                    <div class="mt-1 flex items-center text-xs text-gray-500">
-                                        <svg class="flex-shrink-0 mr-1 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        {{ step.estimated_time }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="px-4 py-3">
-                                {% if step.description %}
-                                    <div class="text-sm text-gray-700 mb-3">
-                                        {{ step.description|linebreaksbr }}
-                                    </div>
-                                {% endif %}
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                                    {% if step.inputs %}
-                                        <div class="bg-blue-50 p-3 rounded-md">
-                                            <h5 class="text-sm font-medium text-blue-800 mb-1">Inputs</h5>
-                                            <div class="text-sm text-blue-600">
-                                                {{ step.inputs|linebreaksbr }}
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                    
-                                    {% if step.outputs %}
-                                        <div class="bg-green-50 p-3 rounded-md">
-                                            <h5 class="text-sm font-medium text-green-800 mb-1">Outputs</h5>
-                                            <div class="text-sm text-green-600">
-                                                {{ step.outputs|linebreaksbr }}
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                
-                                {% if step.personnel %}
-                                    <div class="mt-4">
-                                        <h5 class="text-sm font-medium text-gray-700 mb-1">Personnel/Roles</h5>
-                                        <div class="text-sm text-gray-600">
-                                            {{ step.personnel|linebreaksbr }}
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                
-                                {% if step.notes %}
-                                    <div class="mt-4 bg-yellow-50 p-3 rounded-md">
-                                        <h5 class="text-sm font-medium text-yellow-800 mb-1">Notes</h5>
-                                        <div class="text-sm text-yellow-600">
-                                            {{ step.notes|linebreaksbr }}
-                                        </div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+    <div class="workflow-preview">
+        <div id="workflow-preview"></div>
+        <div class="workflow-preview-overlay">
+            <a href="{% url 'workflows:designer' workflow.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Open in Designer
+            </a>
         </div>
-    {% else %}
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:p-6 text-center">
-                <p class="text-gray-500 text-sm">No steps added to this workflow yet.</p>
-                <a href="{% url 'workflows:add_step' workflow.id %}" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Add First Step
-                </a>
-            </div>
-        </div>
-    {% endif %}
+    </div>
 </div>
 
 <!-- Documents Section -->
@@ -420,6 +294,18 @@
                 uploadForm.classList.add('hidden');
                 uploadButton.classList.remove('hidden');
             });
+        }
+        
+        // Simple workflow preview script - just displays a static preview
+        // In a real implementation, you'd render a read-only version of the workflow
+        const workflowPreview = document.getElementById('workflow-preview');
+        if (workflowPreview) {
+            // Add a simplified preview (this is a placeholder)
+            workflowPreview.innerHTML = `
+                <div class="h-full w-full flex items-center justify-center">
+                    <p class="text-gray-500 italic">Workflow preview available in designer</p>
+                </div>
+            `;
         }
     });
 </script>

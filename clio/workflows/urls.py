@@ -11,8 +11,11 @@ urlpatterns = [
     path('create/', views.workflow_create, name='create'),
     path('<int:pk>/update/', views.workflow_update, name='update'),
     path('<int:pk>/delete/', views.workflow_delete, name='delete'),
-    path('<int:pk>/add_step/', views.add_workflow_step, name='add_step'),
-    path('step/<int:pk>/update/', views.update_workflow_step, name='update_step'),
-    path('step/<int:pk>/delete/', views.delete_workflow_step, name='delete_step'),
-    path('step/<int:pk>/reorder/', views.reorder_workflow_step, name='reorder_step'),
+    
+    # New workflow designer URLs
+    path('<int:pk>/designer/', views.workflow_designer, name='designer'),
+    path('<int:pk>/save/', views.save_workflow, name='save_workflow'),
+    path('<int:pk>/versions/', views.workflow_versions, name='versions'),
+    path('<int:pk>/versions/<str:version>/', views.load_workflow_version, name='load_version'),
+    path('<int:pk>/versions/<int:version>/restore/', views.restore_workflow_version, name='restore_version'),
 ]

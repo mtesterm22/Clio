@@ -1,7 +1,10 @@
 # workflows/models.py
 
 from django.db import models
-from systems.models import System
+from django.contrib.auth.models import User
+# from systems.models import System
+# from scripts.models import Script
+import json
 
 class Workflow(models.Model):
     STATUS_CHOICES = [
@@ -12,37 +15,49 @@ class Workflow(models.Model):
     
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    systems = models.ManyToManyField(System, related_name='workflows', blank=True)
+    systems = models.ManyToManyField('systems.System', related_name='workflows', blank=True)
+    scripts = models.ManyToManyField('scripts.Script', related_name='used_in_workflows', blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Store the layout information as JSON
+    nodes = models.JSONField(default=dict, blank=True)
+    edges = models.JSONField(default=dict, blank=True)
     
     def __str__(self):
-        return self.name
+        return f"{self.name} (v{self.version})"
+    
+    def create_new_version(self):
+        """Create a new version record of this workflow"""
+        WorkflowVersion.objects.create(
+            workflow=self,
+            version=self.version,
+            nodes=self.nodes,
+            edges=self.edges
+        )
+        
+        # Increment version
+        self.version += 1
+        self.save(update_fields=['version'])
 
 
-class WorkflowStep(models.Model):
-    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='steps')
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    order = models.PositiveIntegerField()
-    
-    # New fields for enhanced documentation
-    inputs = models.TextField(blank=True, help_text="Inputs required for this step")
-    outputs = models.TextField(blank=True, help_text="Outputs produced by this step")
-    personnel = models.TextField(blank=True, help_text="Personnel or roles involved in this step")
-    estimated_time = models.CharField(max_length=100, blank=True, help_text="Estimated time to complete this step")
-    notes = models.TextField(blank=True, help_text="Additional notes for this step")
-    
-    system = models.ForeignKey(System, on_delete=models.SET_NULL, null=True, blank=True, related_name='workflow_steps')
+class WorkflowVersion(models.Model):
+    """Model to track workflow versions"""
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='versions')
+    version = models.PositiveIntegerField()
+    nodes = models.JSONField(default=dict, blank=True)
+    edges = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     
     class Meta:
-        ordering = ['workflow', 'order']
-        
+        unique_together = ('workflow', 'version')
+        ordering = ['-version']
+    
     def __str__(self):
-        return f"{self.workflow.name} - {self.name}"
+        return f"{self.workflow.name} v{self.version}"
 
 
 class WorkflowDocument(models.Model):
