@@ -1,5 +1,6 @@
 <!-- templates/systems/system_detail.html -->
 {% extends "base.html" %}
+{% include "systems/widgets/relationship_manager.html" %}
 {% load widget_tweaks %}
 
 {% block title %}{{ system.name }} - Clio{% endblock %}
@@ -145,6 +146,18 @@
     </div>
 </div>
 
+<!-- System Relationship Manager Widget -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            System Relationships
+        </h3>
+    </div>
+    
+    {% csrf_token %}
+    {% include "systems/widgets/relationship_manager.html" %}
+</div>
+
 <!-- System Dependencies -->
 <div class="mt-8">
     <div class="flex items-center justify-between mb-4">
@@ -276,6 +289,8 @@
         </div>
     </div>
 </div>
+
+
 
 <!-- Related Workflows -->
 <div class="mt-8">

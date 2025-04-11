@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/relationships/', views.relationship_data, name='relationship_data'),
     path('<int:system_pk>/notes/<int:note_pk>/edit/', views.edit_system_note, name='edit_note'),
     path('<int:system_pk>/notes/<int:note_pk>/delete/', views.delete_system_note, name='delete_note'),
+    path('<int:pk>/save_relationships/', views.save_system_relationships, name='save_relationships'),
 ]

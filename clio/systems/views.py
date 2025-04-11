@@ -1,11 +1,13 @@
 # systems/views.py
 
+
+import json
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.http import JsonResponse
-from .models import System, SystemRelationship, SystemNote
-from .forms import SystemForm, SystemRelationshipForm, SystemDocumentForm, SystemNoteForm
 from django.contrib.auth.decorators import login_required
+from .models import System, SystemRelationship, SystemDocument, SystemNote
+from .forms import SystemForm, SystemRelationshipForm, SystemDocumentForm, SystemNoteForm
 
 
 def system_list(request):
@@ -30,6 +32,7 @@ def system_list(request):
     }
     
     return render(request, 'systems/system_list.html', context)
+
 
 def system_detail(request, pk):
     """View details of a system"""
@@ -65,6 +68,43 @@ def system_detail(request, pk):
     else:
         note_form = SystemNoteForm()
     
+    # Get all systems for relationship management
+    all_systems = System.objects.all()
+    
+    # Get relationships for this system
+    system_relationships = (
+        SystemRelationship.objects.filter(source_system=system) | 
+        SystemRelationship.objects.filter(target_system=system)
+    ).select_related('source_system', 'target_system')
+    
+    # Format relationships for JSON
+    relationships_json = []
+    for rel in system_relationships:
+        relationships_json.append({
+            'id': rel.id,
+            'source_system': {
+                'id': rel.source_system.id,
+                'name': rel.source_system.name,
+                'category': rel.source_system.category
+            },
+            'target_system': {
+                'id': rel.target_system.id,
+                'name': rel.target_system.name,
+                'category': rel.target_system.category
+            },
+            'relationship_type': rel.relationship_type,
+            'description': rel.description
+        })
+    
+    # Format all systems for JSON
+    all_systems_json = []
+    for sys in all_systems:
+        all_systems_json.append({
+            'id': sys.id,
+            'name': sys.name,
+            'category': sys.category
+        })
+    
     context = {
         'system': system,
         'documents': documents,
@@ -74,9 +114,115 @@ def system_detail(request, pk):
         'scripts': scripts,
         'notes': notes,
         'note_form': note_form,
+        'all_systems': all_systems,
+        'relationships_json': json.dumps(relationships_json),
+        'all_systems_json': json.dumps(all_systems_json)
     }
     
     return render(request, 'systems/system_detail.html', context)
+
+# @login_required
+def save_system_relationships(request, pk):
+    """API endpoint to save system relationships"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+    
+    system = get_object_or_404(System, pk=pk)
+    
+    try:
+        data = json.loads(request.body)
+        relationships_data = data.get('relationships', [])
+        
+        # Get current relationships
+        current_relationships = SystemRelationship.objects.filter(
+            source_system=system
+        ) | SystemRelationship.objects.filter(
+            target_system=system
+        )
+        
+        # Track which relationships to keep
+        relationship_ids_to_keep = []
+        
+        # Create or update relationships
+        for rel_data in relationships_data:
+            rel_id = rel_data.get('id')
+            source_id = rel_data.get('source_system_id')
+            target_id = rel_data.get('target_system_id')
+            rel_type = rel_data.get('relationship_type')
+            description = rel_data.get('description', '')
+            
+            # Skip if missing required fields
+            if not all([source_id, target_id, rel_type]):
+                continue
+                
+            # Get the related systems
+            source_system = get_object_or_404(System, pk=source_id)
+            target_system = get_object_or_404(System, pk=target_id)
+            
+            if rel_id:
+                # Update existing relationship
+                try:
+                    relationship = SystemRelationship.objects.get(pk=rel_id)
+                    relationship.source_system = source_system
+                    relationship.target_system = target_system
+                    relationship.relationship_type = rel_type
+                    relationship.description = description
+                    relationship.save()
+                    relationship_ids_to_keep.append(relationship.id)
+                except SystemRelationship.DoesNotExist:
+                    # If the relationship doesn't exist, create a new one
+                    relationship = SystemRelationship.objects.create(
+                        source_system=source_system,
+                        target_system=target_system,
+                        relationship_type=rel_type,
+                        description=description
+                    )
+                    relationship_ids_to_keep.append(relationship.id)
+            else:
+                # Create new relationship
+                relationship = SystemRelationship.objects.create(
+                    source_system=source_system,
+                    target_system=target_system,
+                    relationship_type=rel_type,
+                    description=description
+                )
+                relationship_ids_to_keep.append(relationship.id)
+        
+        # Delete relationships that weren't in the submitted data
+        current_relationships.exclude(id__in=relationship_ids_to_keep).delete()
+        
+        # Get updated relationships
+        updated_relationships = SystemRelationship.objects.filter(
+            source_system=system
+        ) | SystemRelationship.objects.filter(
+            target_system=system
+        )
+        
+        # Format updated relationships for response
+        updated_relationships_json = []
+        for rel in updated_relationships:
+            updated_relationships_json.append({
+                'id': rel.id,
+                'source_system': {
+                    'id': rel.source_system.id,
+                    'name': rel.source_system.name,
+                    'category': rel.source_system.category
+                },
+                'target_system': {
+                    'id': rel.target_system.id,
+                    'name': rel.target_system.name,
+                    'category': rel.target_system.category
+                },
+                'relationship_type': rel.relationship_type,
+                'description': rel.description
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'relationships': updated_relationships_json
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 def system_create(request):
     """Create a new system"""

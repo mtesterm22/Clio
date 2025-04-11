@@ -1,0 +1,892 @@
+<!-- templates/systems/widgets/relationship_manager.html -->
+{% load static %}
+
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6" id="relationship-manager-widget">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Manage System Relationships</h3>
+        <div>
+            <button type="button" id="add-relationship-btn" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Add Relationship
+            </button>
+            <button type="button" id="delete-all-btn" class="ml-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Delete All
+            </button>
+            <button type="button" id="auto-layout-btn" class="ml-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                Auto Layout
+            </button>
+            <button type="button" id="save-relationships-btn" class="ml-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                Save Changes
+            </button>
+        </div>
+    </div>
+    <div class="border-t border-gray-200">
+        <div class="px-4 py-5 sm:p-6">
+            <div id="relationship-editor" class="bg-gray-50 p-4 rounded-md min-h-[400px]">
+                <!-- Relationship editor will be rendered here with D3.js -->
+            </div>
+            
+            <!-- Add relationship modal -->
+            <div id="add-relationship-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h3>
+                    <form id="add-relationship-form">
+                        <div class="mb-4">
+                            <label for="relationship-type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
+                            <select id="relationship-type" name="relationship_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="depends_on">Depends On</option>
+                                <option value="provides_data_to">Provides Data To</option>
+                                <option value="integrates_with">Integrates With</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex items-center">
+                                <div class="flex-1">
+                                    <label for="source-system" class="block text-sm font-medium text-gray-700">Source System</label>
+                                    <select id="source-system" name="source_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <option value="{{ system.id }}" selected>{{ system.name }}</option>
+                                        {% for other_system in all_systems %}
+                                            {% if other_system.id != system.id %}
+                                                <option value="{{ other_system.id }}">{{ other_system.name }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mx-4 pt-6">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <label for="target-system" class="block text-sm font-medium text-gray-700">Target System</label>
+                                    <select id="target-system" name="target_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <option value="{{ system.id }}">{{ system.name }}</option>
+                                        {% for other_system in all_systems %}
+                                            {% if other_system.id != system.id %}
+                                                <option value="{{ other_system.id }}">{{ other_system.name }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-500">
+                                In "Depends On" relationships, the Target System depends on the Source System.
+                            </p>
+                        </div>
+                        <div class="mb-4">
+                            <label for="relationship-description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                            <textarea id="relationship-description" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+                        <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                            <button type="button" id="cancel-add-relationship" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancel
+                            </button>
+                            <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Add Relationship
+                            </button>
+                            
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="relationship-loader" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-5 rounded-lg shadow-lg flex items-center space-x-4">
+                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-gray-700">Saving relationships...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const systemId = {{ system.id }};
+    const systemName = "{{ system.name }}";
+    let relationships = {{ relationships_json|safe }};
+    let allSystems = {{ all_systems_json|safe }};
+    
+    // Initialize the D3.js visualization
+    initializeRelationshipEditor(systemId, systemName, relationships, allSystems);
+    
+    // Setup event listeners
+    document.getElementById('add-relationship-btn').addEventListener('click', function() {
+        document.getElementById('add-relationship-modal').classList.remove('hidden');
+    });
+    
+    document.getElementById('cancel-add-relationship').addEventListener('click', function() {
+        document.getElementById('add-relationship-modal').classList.add('hidden');
+    });
+    
+    document.getElementById('add-relationship-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const relationshipType = document.getElementById('relationship-type').value;
+        const sourceSystemId = parseInt(document.getElementById('source-system').value);
+        const targetSystemId = parseInt(document.getElementById('target-system').value);
+        const description = document.getElementById('relationship-description').value;
+        
+        // Validate
+        if (sourceSystemId === targetSystemId) {
+            alert('Source and target systems cannot be the same');
+            return;
+        }
+        
+        // Find system objects
+        const sourceSystem = allSystems.find(s => s.id === sourceSystemId);
+        const targetSystem = allSystems.find(s => s.id === targetSystemId);
+        
+        if (!sourceSystem || !targetSystem) {
+            console.error('Systems not found');
+            return;
+        }
+        
+        // Check if this relationship already exists
+        const existingRelationship = relationships.find(r => 
+            r.source_system.id === sourceSystemId && 
+            r.target_system.id === targetSystemId &&
+            r.relationship_type === relationshipType);
+        
+        if (existingRelationship) {
+            alert('This relationship already exists');
+            return;
+        }
+        
+        // Add new relationship
+        const newRelationship = {
+            id: `temp-${Date.now()}`, // Temporary ID until saved
+            source_system: sourceSystem,
+            target_system: targetSystem,
+            relationship_type: relationshipType,
+            description: description
+        };
+        
+        relationships.push(newRelationship);
+        
+        // Update visualization
+        updateRelationshipVisualization(systemId, relationships);
+        
+        // Close modal
+        document.getElementById('add-relationship-modal').classList.add('hidden');
+        
+        // Reset form
+        document.getElementById('add-relationship-form').reset();
+        
+        // Show notification
+        showToast("Relationship added", "green");
+    });
+    
+    document.getElementById('auto-layout-btn').addEventListener('click', function() {
+        optimizeLayout();
+    });
+    
+    document.getElementById('delete-all-btn').addEventListener('click', function() {
+        if (relationships.length === 0) {
+            alert('No relationships to delete.');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to delete all ${relationships.length} relationships?`)) {
+            // Clear all relationships
+            relationships = [];
+            
+            // Update visualization
+            updateRelationshipVisualization(systemId, relationships);
+            
+            // Show notification
+            showToast("All relationships deleted", "blue");
+        }
+    });
+    
+    document.getElementById('save-relationships-btn').addEventListener('click', function() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        if (relationships.length === 0) {
+            if (confirm('There are no relationships to save. Do you want to delete all existing relationships?')) {
+                // Continue with save (which will delete all)
+            } else {
+                return; // Cancel the save
+            }
+        }
+        
+        // Show loader
+        document.getElementById('relationship-loader').classList.remove('hidden');
+        
+        // Convert relationships to simple format for API
+        const relationshipsToSave = relationships.map(rel => ({
+            id: rel.id.toString().startsWith('temp-') ? null : rel.id,
+            source_system_id: rel.source_system.id,
+            target_system_id: rel.target_system.id,
+            relationship_type: rel.relationship_type,
+            description: rel.description || ''
+        }));
+        
+        // Save using fetch API
+        fetch(`/systems/${systemId}/save_relationships/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                relationships: relationshipsToSave
+            })
+        })
+        .then(response => {
+            if (response.redirected) {
+                // Handle redirect (likely to login)
+                window.location.href = response.url;
+                throw new Error('Redirected to login');
+            }
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'An error occurred while saving');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Hide loader
+            document.getElementById('relationship-loader').classList.add('hidden');
+            
+            // Update relationships with saved data
+            relationships = data.relationships;
+            updateRelationshipVisualization(systemId, relationships);
+            
+            // Show success message
+            showToast("Relationships saved successfully", "green");
+        })
+        .catch(error => {
+            // Hide loader
+            document.getElementById('relationship-loader').classList.add('hidden');
+            
+            console.error('Error saving relationships:', error);
+            
+            if (error.message !== 'Redirected to login') {
+                // Show error message
+                showToast(error.message || "Error saving relationships", "red");
+            }
+        });
+    });
+});
+
+function initializeRelationshipEditor(systemId, systemName, relationships, allSystems) {
+    // D3.js code to create and manage the relationship visualization
+    const width = document.getElementById('relationship-editor').clientWidth;
+    const height = 400;
+    
+    const svg = d3.select("#relationship-editor")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+        
+    // Add a definitions section for arrow markers
+    const defs = svg.append("defs");
+    
+    // Add arrow marker for "depends_on" relationship
+    defs.append("marker")
+        .attr("id", "arrow-depends_on")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", 0)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "#3498db");
+        
+    // Add arrow marker for "provides_data_to" relationship
+    defs.append("marker")
+        .attr("id", "arrow-provides_data_to")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", 0)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "#27ae60");
+        
+    // Add arrow marker for "integrates_with" relationship
+    defs.append("marker")
+        .attr("id", "arrow-integrates_with")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", 0)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "#f39c12");
+    
+    // Create a group for the visualization
+    const g = svg.append("g");
+    
+    // Update the visualization with initial data
+    updateRelationshipVisualization(systemId, relationships);
+}
+
+function updateRelationshipVisualization(systemId, relationships) {
+    const width = document.getElementById('relationship-editor').clientWidth;
+    const height = 400;
+    const svg = d3.select("#relationship-editor svg");
+    const g = svg.select("g");
+    
+    // Clear existing elements
+    g.selectAll("*").remove();
+    
+    // Prepare data for visualization
+    // Extract all systems involved in the relationships
+    const systems = [];
+    const systemsMap = new Map();
+    
+    // Always include the main system
+    const mainSystem = {
+        id: systemId,
+        name: document.querySelector(`option[value="${systemId}"]`).textContent,
+        category: 'core',  // Default for main system
+        isMainSystem: true
+    };
+    systems.push(mainSystem);
+    systemsMap.set(systemId, mainSystem);
+    
+    // Add systems from relationships
+    relationships.forEach(rel => {
+        if (!systemsMap.has(rel.source_system.id)) {
+            const system = {
+                id: rel.source_system.id,
+                name: rel.source_system.name,
+                category: rel.source_system.category || 'unknown',
+                isMainSystem: rel.source_system.id === systemId
+            };
+            systems.push(system);
+            systemsMap.set(system.id, system);
+        }
+        
+        if (!systemsMap.has(rel.target_system.id)) {
+            const system = {
+                id: rel.target_system.id,
+                name: rel.target_system.name,
+                category: rel.target_system.category || 'unknown',
+                isMainSystem: rel.target_system.id === systemId
+            };
+            systems.push(system);
+            systemsMap.set(system.id, system);
+        }
+    });
+    
+    // Calculate positions based on position around the central node
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.35;
+    
+    // Position each system
+    systems.forEach((system, i) => {
+        if (system.isMainSystem) {
+            // Main system goes in the center
+            system.x = centerX;
+            system.y = centerY;
+        } else {
+            // Other systems are positioned in a circle around the main one
+            const angle = ((i - 1) / (systems.length - 1)) * 2 * Math.PI;
+            system.x = centerX + radius * Math.cos(angle);
+            system.y = centerY + radius * Math.sin(angle);
+        }
+    });
+    
+    // Create links with better delete functionality
+    const links = g.selectAll(".link")
+        .data(relationships)
+        .enter()
+        .append("path")
+        .attr("class", "link relationship-link")
+        .attr("d", d => {
+            const sourceSystem = systemsMap.get(d.source_system.id);
+            const targetSystem = systemsMap.get(d.target_system.id);
+            
+            // Calculate path
+            const dx = targetSystem.x - sourceSystem.x;
+            const dy = targetSystem.y - sourceSystem.y;
+            const dr = Math.sqrt(dx * dx + dy * dy);
+            
+            // Adjust for node radius (depends on node type)
+            const nodeRadius = 25;
+            
+            // Calculate the points for start and end, adjusting for node radius
+            const ratio = nodeRadius / dr;
+            const endX = targetSystem.x - dx * ratio;
+            const endY = targetSystem.y - dy * ratio;
+            
+            const startRatio = nodeRadius / dr;
+            const startX = sourceSystem.x + dx * startRatio;
+            const startY = sourceSystem.y + dy * startRatio;
+            
+            // Use curved paths for clearer visualization
+            const curveFactor = 1.2;
+            
+            return `M${startX},${startY}A${dr*curveFactor},${dr*curveFactor} 0 0,1 ${endX},${endY}`;
+        })
+        .attr("fill", "none")
+        .attr("stroke", d => {
+            // Color based on relationship type
+            switch (d.relationship_type) {
+                case 'depends_on': return "#3498db";
+                case 'provides_data_to': return "#27ae60";
+                case 'integrates_with': return "#f39c12";
+                default: return "#999";
+            }
+        })
+        .attr("stroke-width", 2)
+        .attr("stroke-opacity", 0.7)
+        .attr("stroke-dasharray", d => {
+            // Style based on relationship type
+            switch (d.relationship_type) {
+                case 'depends_on': return "none";
+                case 'provides_data_to': return "5,3";
+                case 'integrates_with': return "1,3";
+                default: return "none";
+            }
+        })
+        .attr("marker-end", d => `url(#arrow-${d.relationship_type})`)
+        .attr("cursor", "pointer");
+
+    // Add explicit delete buttons for each relationship
+    const deleteButtons = g.selectAll(".delete-button")
+        .data(relationships)
+        .enter()
+        .append("g")
+        .attr("class", "delete-button")
+        .attr("opacity", 0)
+        .style("cursor", "pointer")
+        .on("click", function(event, d) {
+            event.stopPropagation();
+            deleteRelationship(d);
+        });
+
+    // Add circle for delete button
+    deleteButtons.append("circle")
+        .attr("r", 8)
+        .attr("fill", "#e74c3c")
+        .attr("stroke", "white")
+        .attr("stroke-width", 1);
+
+    // Add X to delete button
+    deleteButtons.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.3em")
+        .attr("fill", "white")
+        .attr("font-size", "10px")
+        .attr("font-weight", "bold")
+        .text("×");
+
+    // Position delete buttons at the midpoint of each link
+    links.each(function(d, i) {
+        const path = d3.select(this);
+        const pathNode = path.node();
+        
+        // Skip if path is invalid
+        if (!pathNode) return;
+        
+        // Get the midpoint of the path
+        try {
+            const pathLength = pathNode.getTotalLength();
+            if (isNaN(pathLength)) return;
+            
+            const midPoint = pathNode.getPointAtLength(pathLength / 2);
+            
+            // Position delete button at midpoint
+            deleteButtons.filter((_, j) => i === j)
+                .attr("transform", `translate(${midPoint.x}, ${midPoint.y})`);
+        } catch (e) {
+            console.error("Error positioning delete button:", e);
+        }
+    });
+
+    // Show delete button on link hover
+    links.on("mouseover", function(event, d) {
+        const linkIndex = relationships.indexOf(d);
+        d3.select(this)
+            .attr("stroke-width", 3)
+            .attr("stroke-opacity", 1);
+        
+        deleteButtons.filter((_, i) => i === linkIndex)
+            .attr("opacity", 1);
+    })
+    .on("mouseout", function(event, d) {
+        const linkIndex = relationships.indexOf(d);
+        d3.select(this)
+            .attr("stroke-width", 2)
+            .attr("stroke-opacity", 0.7);
+        
+        // Don't hide immediately to allow clicking the button
+        setTimeout(() => {
+            if (!deleteButtons.filter((_, i) => i === linkIndex).datum().isHovered) {
+                deleteButtons.filter((_, i) => i === linkIndex)
+                    .attr("opacity", 0);
+            }
+        }, 100);
+    });
+
+    // Keep delete button visible when hovering over it
+    deleteButtons.on("mouseover", function(event, d) {
+        d.isHovered = true;
+        d3.select(this).attr("opacity", 1);
+    })
+    .on("mouseout", function(event, d) {
+        d.isHovered = false;
+        d3.select(this).attr("opacity", 0);
+    });
+        
+    // Add tooltips to links
+    links.append("title")
+        .text(d => {
+            let relationshipText = "";
+            
+            switch (d.relationship_type) {
+                case 'depends_on':
+                    relationshipText = `${d.target_system.name} depends on ${d.source_system.name}`;
+                    break;
+                case 'provides_data_to':
+                    relationshipText = `${d.source_system.name} provides data to ${d.target_system.name}`;
+                    break;
+                case 'integrates_with':
+                    relationshipText = `${d.source_system.name} integrates with ${d.target_system.name}`;
+                    break;
+                default:
+                    relationshipText = `${d.source_system.name} is connected to ${d.target_system.name}`;
+            }
+            
+            if (d.description) {
+                relationshipText += `\nDescription: ${d.description}`;
+            }
+            
+            return relationshipText + "\n(Hover to show delete button)";
+        });
+    
+    // Create nodes for each system
+    const nodes = g.selectAll(".node")
+        .data(systems)
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform", d => `translate(${d.x}, ${d.y})`)
+        .call(d3.drag()
+            .on("start", dragStarted)
+            .on("drag", dragged)
+            .on("end", dragEnded));
+    
+    // Draw system circles
+    nodes.append("circle")
+        .attr("r", 25)
+        .attr("fill", d => {
+            // Color based on system category and whether it's the main system
+            if (d.isMainSystem) {
+                return "#ffd700"; // Gold for main system
+            }
+            
+            switch (d.category) {
+                case 'core': return "#d5e8f9";
+                case 'integration': return "#e8f6e8";
+                case 'custom': return "#fdebd0";
+                case 'external': return "#f0d5d5";
+                default: return "#f5f5f5";
+            }
+        })
+        .attr("stroke", d => {
+            // Border color based on system category
+            if (d.isMainSystem) {
+                return "#ff8c00"; // Dark orange for main system
+            }
+            
+            switch (d.category) {
+                case 'core': return "#3498db";
+                case 'integration': return "#27ae60";
+                case 'custom': return "#f39c12";
+                case 'external': return "#c0392b";
+                default: return "#999";
+            }
+        })
+        .attr("stroke-width", d => d.isMainSystem ? 3 : 2);
+    
+    // Add system labels
+    nodes.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.3em")
+        .attr("font-size", "10px")
+        .attr("font-weight", d => d.isMainSystem ? "bold" : "normal")
+        .text(d => d.name.length > 15 ? d.name.substring(0, 12) + "..." : d.name);
+    
+    // Add visual feedback for draggable nodes
+    nodes.on("mouseover", function() {
+        d3.select(this).select("circle")
+            .attr("stroke-width", d => d.isMainSystem ? 4 : 3);
+    })
+    .on("mouseout", function() {
+        d3.select(this).select("circle")
+            .attr("stroke-width", d => d.isMainSystem ? 3 : 2);
+    });
+    
+    // Add tooltips to nodes
+    nodes.append("title")
+        .text(d => {
+            let tooltip = d.name;
+            if (d.isMainSystem) {
+                tooltip += " (Current System)";
+            }
+            return tooltip + "\n(Drag to reposition)";
+        });
+        
+    // Additional visual enhancements for the main system
+    nodes.filter(d => d.isMainSystem)
+        .select("circle")
+        .attr("stroke-dasharray", "none");
+    
+    // Drag functions
+    function dragStarted(event, d) {
+        d3.select(this).raise().classed("active", true);
+    }
+    
+    function dragged(event, d) {
+        // Update position
+        d.x = event.x;
+        d.y = event.y;
+        
+        // Update node position
+        d3.select(this).attr("transform", `translate(${d.x}, ${d.y})`);
+        
+        // Update connected links
+        links.attr("d", rel => {
+            const sourceSystem = systemsMap.get(rel.source_system.id);
+            const targetSystem = systemsMap.get(rel.target_system.id);
+            
+            // Calculate path
+            const dx = targetSystem.x - sourceSystem.x;
+            const dy = targetSystem.y - sourceSystem.y;
+            const dr = Math.sqrt(dx * dx + dy * dy);
+            
+            // Adjust for node radius
+            const nodeRadius = 25;
+            
+            // Calculate the points for start and end, adjusting for node radius
+            const ratio = nodeRadius / dr;
+            const endX = targetSystem.x - dx * ratio;
+            const endY = targetSystem.y - dy * ratio;
+            
+            const startRatio = nodeRadius / dr;
+            const startX = sourceSystem.x + dx * startRatio;
+            const startY = sourceSystem.y + dy * startRatio;
+            
+            // Use curved paths for clearer visualization
+            const curveFactor = 1.2;
+            
+            return `M${startX},${startY}A${dr*curveFactor},${dr*curveFactor} 0 0,1 ${endX},${endY}`;
+        });
+        
+        // Update delete buttons position
+        links.each(function(rel, i) {
+            const path = d3.select(this);
+            const pathNode = path.node();
+            
+            if (!pathNode) return;
+            
+            try {
+                // Get the midpoint of the path for positioning the delete button
+                const pathLength = pathNode.getTotalLength();
+                if (isNaN(pathLength)) return;
+                
+                const midPoint = pathNode.getPointAtLength(pathLength / 2);
+                
+                // Update delete button position
+                deleteButtons.filter((_, j) => i === j)
+                    .attr("transform", `translate(${midPoint.x}, ${midPoint.y})`);
+            } catch (e) {
+                console.error("Error updating delete button position:", e);
+            }
+        });
+    }
+    
+    function dragEnded(event, d) {
+        d3.select(this).classed("active", false);
+    }
+}
+
+function optimizeLayout() {
+    const width = document.getElementById('relationship-editor').clientWidth;
+    const height = 400;
+    
+    // Get all systems from the relationships
+    const systems = [];
+    const systemsMap = new Map();
+    const systemId = parseInt(document.getElementById('source-system').options[0].value);
+    
+    // Always include the main system
+    const mainSystem = {
+        id: systemId,
+        name: document.querySelector(`option[value="${systemId}"]`).textContent,
+        category: 'core',  // Default for main system
+        isMainSystem: true,
+        x: width / 2,
+        y: height / 2,
+        fx: width / 2,  // Fixed position for main system
+        fy: height / 2
+    };
+    systems.push(mainSystem);
+    systemsMap.set(systemId, mainSystem);
+    
+    // Add systems from relationships
+    relationships.forEach(rel => {
+        if (!systemsMap.has(rel.source_system.id)) {
+            const system = {
+                id: rel.source_system.id,
+                name: rel.source_system.name,
+                category: rel.source_system.category || 'unknown',
+                isMainSystem: rel.source_system.id === systemId
+            };
+            systems.push(system);
+            systemsMap.set(system.id, system);
+        }
+        
+        if (!systemsMap.has(rel.target_system.id)) {
+            const system = {
+                id: rel.target_system.id,
+                name: rel.target_system.name,
+                category: rel.target_system.category || 'unknown',
+                isMainSystem: rel.target_system.id === systemId
+            };
+            systems.push(system);
+            systemsMap.set(system.id, system);
+        }
+    });
+    
+    // Create links for the force simulation
+    const links = relationships.map(rel => ({
+        source: systemsMap.get(rel.source_system.id),
+        target: systemsMap.get(rel.target_system.id),
+        type: rel.relationship_type
+    }));
+    
+    // Create a force simulation
+    const simulation = d3.forceSimulation(systems)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-500))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(30));
+    
+    // Run the simulation synchronously for a fixed number of iterations
+    for (let i = 0; i < 300; i++) {
+        simulation.tick();
+    }
+    
+    // Update system positions in the original data (except main system)
+    systems.forEach(system => {
+        if (!system.isMainSystem) {
+            const original = relationships.find(rel => 
+                rel.source_system.id === system.id || rel.target_system.id === system.id
+            );
+            
+            if (original) {
+                // Ensure positions are within bounds
+                const x = Math.max(50, Math.min(width - 50, system.x));
+                const y = Math.max(50, Math.min(height - 50, system.y));
+                
+                // Update source positions
+                if (original.source_system.id === system.id) {
+                    original.source_system.x = x;
+                    original.source_system.y = y;
+                }
+                
+                // Update target positions
+                if (original.target_system.id === system.id) {
+                    original.target_system.x = x;
+                    original.target_system.y = y;
+                }
+            }
+        }
+    });
+    
+    // Update visualization with new positions
+    updateRelationshipVisualization(systemId, relationships);
+    
+    // Show success toast
+    showToast("Layout optimized", "blue");
+}
+
+// Function to handle relationship deletion
+function deleteRelationship(relationship) {
+    // Ask for confirmation
+    if (confirm(`Delete relationship: ${getRelationshipDescription(relationship)}?`)) {
+        // Remove the relationship from the array
+        const index = relationships.findIndex(r => 
+            r.source_system.id === relationship.source_system.id && 
+            r.target_system.id === relationship.target_system.id &&
+            r.relationship_type === relationship.relationship_type);
+        
+        if (index !== -1) {
+            relationships.splice(index, 1);
+            
+            // If this was the last relationship for a non-main system, remove that system too
+            const systemsToKeep = new Set();
+            systemsToKeep.add(systemId); // Keep the main system
+            
+            // Add all systems that are still connected
+            relationships.forEach(rel => {
+                systemsToKeep.add(rel.source_system.id);
+                systemsToKeep.add(rel.target_system.id);
+            });
+            
+            // Update visualization
+            updateRelationshipVisualization(systemId, relationships);
+            
+            // Show toast notification
+            showToast("Relationship deleted", "blue");
+        }
+    }
+}
+
+// Helper function to get human-readable relationship description
+function getRelationshipDescription(relationship) {
+    switch (relationship.relationship_type) {
+        case 'depends_on':
+            return `${relationship.target_system.name} depends on ${relationship.source_system.name}`;
+        case 'provides_data_to':
+            return `${relationship.source_system.name} provides data to ${relationship.target_system.name}`;
+        case 'integrates_with':
+            return `${relationship.source_system.name} integrates with ${relationship.target_system.name}`;
+        default:
+            return `${relationship.source_system.name} is connected to ${relationship.target_system.name}`;
+    }
+}
+
+// Helper function to show toast notifications
+function showToast(message, color = "green") {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 bg-${color}-100 border border-${color}-400 text-${color}-700 px-4 py-3 rounded shadow-md z-50`;
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <svg class="h-6 w-6 text-${color}-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ${color === "green" ? 
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />' :
+                    color === "red" ? 
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' :
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                }
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
