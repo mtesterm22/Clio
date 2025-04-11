@@ -178,6 +178,72 @@
         opacity: 0;
         transition: opacity 0.3s ease;
     }
+    
+    /* Zoom Controls */
+    .zoom-controls {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        z-index: 100;
+    }
+    
+    .zoom-controls button {
+        display: block;
+        width: 34px;
+        height: 34px;
+        background-color: white;
+        border: none;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+        text-align: center;
+    }
+    
+    .zoom-controls button:last-child {
+        border-bottom: none;
+    }
+    
+    .zoom-controls button:hover {
+        background-color: #f5f5f5;
+    }
+    
+    /* Loading overlay */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        font-size: 18px;
+        font-weight: bold;
+        color: #4285f4;
+    }
+    
+    /* Spinner */
+    .spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(66, 133, 244, 0.3);
+        border-radius: 50%;
+        border-top-color: #4285f4;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 10px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
 {% endblock %}
 
@@ -199,12 +265,9 @@
 {% block content %}
 <div class="bg-white p-6 shadow rounded-lg">
     <div class="controls">
-        <input type="text" id="searchInput" placeholder="Search systems...">
+        <input type="text" id="searchInput" placeholder="Search systems..." autocomplete="off">
         <button class="button" id="resetButton">Reset View</button>
-        <button class="button" id="spreadButton">Spread Nodes</button>
-        <button class="button" id="zoomInButton">Zoom In</button>
-        <button class="button" id="zoomOutButton">Zoom Out</button>
-        <button class="button" id="centerButton">Center View</button>
+        <button class="button" id="spreadButton">Optimal Layout</button>
         <button class="button" id="fullscreenButton">Fullscreen</button>
     </div>
     
@@ -233,9 +296,23 @@
             <h3 id="infoPanelTitle" class="text-lg font-medium"></h3>
             <div id="infoPanelContent"></div>
         </div>
+        
+        <!-- On-screen zoom controls -->
+        <div class="zoom-controls">
+            <button id="zoomInButton" title="Zoom In">+</button>
+            <button id="zoomOutButton" title="Zoom Out">−</button>
+            <button id="centerButton" title="Center View">⌂</button>
+        </div>
+        
+        <!-- Loading overlay -->
+        <div class="loading-overlay">
+            <div class="spinner"></div>
+            <span>Loading system relationships...</span>
+        </div>
     </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -246,37 +323,59 @@
     
     diagramContainer.style.height = `${containerHeight}px`;
     
+    // Initialize variables for zoom and pan
+    let zoomInstance;
+    let simulation;
+    let allSystems = [];
+    let allLinks = [];
+    
     // Fetch the relationships data from the API
     fetch("{% url 'systems:relationship_data' %}")
         .then(response => response.json())
         .then(data => {
+            // Hide loading overlay
+            document.querySelector('.loading-overlay').style.display = 'none';
+            
+            // Store the data for reuse
+            allSystems = data.systems;
+            allLinks = data.links;
+            
+            // Initialize the diagram
             initializeRelationshipDiagram(data);
         })
         .catch(error => {
             console.error("Error loading relationship data:", error);
+            document.querySelector('.loading-overlay').style.display = 'none';
+            document.getElementById('diagram').innerHTML = `
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center p-6 bg-red-50 rounded-lg">
+                        <h3 class="text-lg font-medium text-red-800">Error Loading Data</h3>
+                        <p class="mt-2 text-red-600">${error.message || "Could not load relationship data. Please try again later."}</p>
+                    </div>
+                </div>
+            `;
         });
         
     function initializeRelationshipDiagram(data) {
         const width = document.getElementById('diagram').clientWidth;
         const height = document.getElementById('diagram-container').clientHeight;
         
+        // Calculate viewport dimensions for proper scaling
+        const viewWidth = width;
+        const viewHeight = height;
+        
         // Calculate appropriate spacing based on number of nodes
         const nodeCount = data.systems.length;
-        const areaPerNode = (width * height) / nodeCount;
-        const optimalDistance = Math.sqrt(areaPerNode) * 0.8; // 80% of ideal spacing
+        // Use much more of the available space
+        const totalArea = viewWidth * viewHeight * 0.8; // Use 80% of the total area
+        const areaPerNode = totalArea / nodeCount;
+        const optimalDistance = Math.sqrt(areaPerNode); // Distance between nodes
         
         // Create SVG
         const svg = d3.select("#diagram")
             .append("svg")
             .attr("width", width)
-            .attr("height", height)
-            .call(d3.zoom().scaleExtent([0.1, 4]).on("zoom", function(event) {
-                g.attr("transform", event.transform);
-                // Update mini-map viewport indicator if it exists
-                if (document.querySelector('.viewport-indicator')) {
-                    updateMiniMapViewport(event.transform);
-                }
-            }));
+            .attr("height", height);
             
         // Define arrow markers for the connections
         svg.append("defs").append("marker")
@@ -293,6 +392,21 @@
             
         const g = svg.append("g");
         
+        // Set up zoom behavior with wider bounds
+        zoomInstance = d3.zoom()
+            .scaleExtent([0.1, 8])  // Allow much greater zoom range
+            .on("zoom", function(event) {
+                g.attr("transform", event.transform);
+                // Update mini-map viewport indicator if it exists
+                if (document.querySelector('.viewport-indicator')) {
+                    updateMiniMapViewport(event.transform);
+                }
+                // Update offscreen indicators
+                updateOffscreenIndicators(event.transform);
+            });
+            
+        svg.call(zoomInstance);
+        
         // Calculate dependencies
         const dependencies = {};
         data.systems.forEach(system => {
@@ -305,17 +419,17 @@
             }
         });
         
-        // Create force-directed layout with spacing based on node count
-        const simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(d => d.id).distance(optimalDistance))
-            .force("charge", d3.forceManyBody().strength(-optimalDistance * 2))
+        // Create force-directed layout with improved spacing
+        simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.id).distance(optimalDistance * 1.5)) // Increased link distance
+            .force("charge", d3.forceManyBody().strength(-optimalDistance * 3)) // Stronger repulsion
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collision", d3.forceCollide().radius(d => {
-                // Base radius on dependencies and type
-                const baseRadius = 20;
+                // Base radius on dependencies and type, but larger overall
+                const baseRadius = 25; // Increased from 20
                 const typeFactor = d.type === "core" ? 1.3 : 1;
                 const depFactor = Math.min(dependencies[d.id] * 0.05 + 1, 1.5);
-                return (baseRadius * typeFactor * depFactor) + 10; // +10 for label space
+                return (baseRadius * typeFactor * depFactor) + 20; // Increased padding
             }));
             
         // Create links
@@ -395,12 +509,21 @@
         createOffscreenIndicators();
             
         function ticked() {
-            // Prevent too much movement
-            const maxIterations = 300;
-            if (simulation.alpha() < 0.01 && simulation.alphaTarget() === 0) {
-                simulation.stop();
-            }
+            // Use very minimal bounds (a fraction of overall width/height)
+            // to allow much more spreading
+            const boundingFactor = 2; // Allow nodes to go beyond the viewport
+            const xPadding = width * boundingFactor;
+            const yPadding = height * boundingFactor;
             
+            // Keep nodes within greatly extended bounds
+            node.attr("cx", d => {
+                return d.x = Math.max(-xPadding, Math.min(width + xPadding, d.x));
+            })
+            .attr("cy", d => {
+                return d.y = Math.max(-yPadding, Math.min(height + yPadding, d.y));
+            });
+            
+            // Update links
             link.attr("d", d => {
                 const dx = d.target.x - d.source.x;
                 const dy = d.target.y - d.source.y;
@@ -446,15 +569,6 @@
                 return `M${startX},${startY}A${dr*curveFactor},${dr*curveFactor} 0 0,1 ${endX},${endY}`;
             });
             
-            // Keep nodes within bounds with padding
-            const padding = Math.min(width, height) * 0.1; // 10% padding
-            node.attr("cx", d => {
-                return d.x = Math.max(padding, Math.min(width - padding, d.x));
-            })
-            .attr("cy", d => {
-                return d.y = Math.max(padding, Math.min(height - padding, d.y));
-            });
-            
             // Update label and background positions
             label.attr("x", d => d.x)
                 .attr("y", d => d.y);
@@ -468,6 +582,59 @@
             
             // Update off-screen indicators
             updateOffscreenIndicators();
+        }
+        
+        // Function to identify orphaned nodes and position them at the bottom
+        function identifyAndPositionOrphanedNodes() {
+            // Find nodes with no connections
+            const connectedNodeIds = new Set();
+            
+            // Add all nodes that are part of a relationship
+            data.links.forEach(link => {
+                connectedNodeIds.add(link.source.id || link.source);
+                connectedNodeIds.add(link.target.id || link.target);
+            });
+            
+            // Identify orphaned nodes
+            const orphanedNodes = data.systems.filter(system => !connectedNodeIds.has(system.id));
+            
+            if (orphanedNodes.length > 0) {
+                console.log(`Found ${orphanedNodes.length} orphaned nodes`);
+                
+                // Find the average y position of connected nodes to position orphans below them
+                let sumY = 0;
+                let count = 0;
+                let maxY = -Infinity;
+                
+                data.systems.forEach(system => {
+                    if (connectedNodeIds.has(system.id)) {
+                        sumY += system.y || 0;
+                        count++;
+                        maxY = Math.max(maxY, system.y || 0);
+                    }
+                });
+                
+                const averageY = count > 0 ? sumY / count : height / 2;
+                const bottomY = Math.max(maxY + 100, averageY + 200); // Position below the main group
+                
+                // Position orphaned nodes in a line at the bottom
+                const orphanSpacing = width / (orphanedNodes.length + 1);
+                
+                orphanedNodes.forEach((node, index) => {
+                    node.fx = (index + 1) * orphanSpacing;
+                    node.fy = bottomY;
+                    
+                    // Apply the position to the simulation
+                    const simNode = simulation.nodes().find(n => n.id === node.id);
+                    if (simNode) {
+                        simNode.fx = node.fx;
+                        simNode.fy = node.fy;
+                    }
+                });
+                
+                // Restart simulation to apply changes
+                simulation.alpha(0.3).restart();
+            }
         }
         
         // Drag functions
@@ -484,9 +651,7 @@
         
         function dragEnded(event, d) {
             if (!event.active) simulation.alphaTarget(0);
-            // Keep nodes fixed after dragging to maintain user's arrangement
-            // d.fx = null;
-            // d.fy = null;
+            // Keep position fixed to maintain the user's arrangement
         }
         
         // Mouse event handlers
@@ -623,6 +788,9 @@
                         d3.select(this).style("opacity", 0.2);
                     }
                 });
+                
+                // Center view on this node
+                centerOnNode(d);
                 
                 // Show info panel
                 showInfoPanel(d);
@@ -763,16 +931,23 @@
                 }
             });
             
+            // Center view on this node
+            centerOnNode(targetNode);
+            
             // Show info panel for this node
             showInfoPanel(targetNode);
-            
-            // Center view on this node
+        }
+        
+        // Center the view on a specific node
+        function centerOnNode(node) {
+            const scale = 1.5; // Zoom in a bit when centering
             const transform = d3.zoomIdentity
-                .translate(width/2 - targetNode.x, height/2 - targetNode.y)
-                .scale(1);
-            svg.transition().duration(750).call(
-                d3.zoom().transform, transform
-            );
+                .translate(width/2 - node.x * scale, height/2 - node.y * scale)
+                .scale(scale);
+            
+            svg.transition()
+                .duration(750)
+                .call(zoomInstance.transform, transform);
         }
         
         // Search functionality
@@ -820,7 +995,7 @@
                 });
             });
             
-            // If only one match, highlight it fully
+            // If only one match, highlight it fully and center on it
             if (matchingNodes.length === 1) {
                 highlightNode(matchingNodes[0].id);
             }
@@ -830,12 +1005,6 @@
         document.getElementById('resetButton').addEventListener('click', function() {
             // Clear search
             document.getElementById('searchInput').value = '';
-            if (document.getElementById('categoryFilter')) {
-                document.getElementById('categoryFilter').value = '';
-            }
-            if (document.getElementById('statusFilter')) {
-                document.getElementById('statusFilter').value = '';
-            }
             
             // Reset all highlights
             node.style("opacity", 1).classed("clicked", false).classed("highlighted", false);
@@ -848,248 +1017,111 @@
             
             // Reset zoom and position
             svg.transition().duration(750).call(
-                d3.zoom().transform, d3.zoomIdentity
+                zoomInstance.transform, d3.zoomIdentity
             );
             
+            // Release fixed positions and restart simulation
+            resetSimulation();
+        });
+        
+        // Reset simulation to allow for new layouts
+        function resetSimulation() {
             // Release fixed positions
             data.systems.forEach(system => {
                 system.fx = null;
                 system.fy = null;
             });
             
-            // Restart simulation
-            simulation.alpha(0.3).restart();
-        });
-        
-        // Filter by category (if present)
-        if (document.getElementById('categoryFilter')) {
-            document.getElementById('categoryFilter').addEventListener('change', function() {
-                applyFilters();
-            });
+            // Restart simulation with alpha
+            simulation
+                .alpha(0.8)
+                .restart();
+            
+            // Position orphaned nodes after a slight delay
+            setTimeout(identifyAndPositionOrphanedNodes, 500);
+            
+            // After simulation stabilizes, fit view
+            setTimeout(fitView, 2000);
         }
         
-        // Filter by status (if present)
-        if (document.getElementById('statusFilter')) {
-            document.getElementById('statusFilter').addEventListener('change', function() {
-                applyFilters();
-            });
-        }
-        
-        function applyFilters() {
-            const categoryFilter = document.getElementById('categoryFilter')?.value || '';
-            const statusFilter = document.getElementById('statusFilter')?.value || '';
-            
-            if (!categoryFilter && !statusFilter) {
-                // Reset all nodes and links if no filters
-                node.style("opacity", 1);
-                label.style("opacity", 1);
-                labelBackground.style("opacity", 1);
-                link.style("opacity", 0.6);
-                return;
-            }
-            
-            // Fade out all nodes and links
-            node.style("opacity", 0.2);
-            label.style("opacity", 0.2);
-            labelBackground.style("opacity", 0.2);
-            link.style("opacity", 0.1);
-            
-            // Find matching nodes
-            const matchingNodes = data.systems.filter(system => {
-                const matchesCategory = !categoryFilter || system.type === categoryFilter;
-                const matchesStatus = !statusFilter || system.status === statusFilter;
-                return matchesCategory && matchesStatus;
-            });
-            
-            // Highlight matching nodes
-            matchingNodes.forEach(system => {
-                d3.select(`#system-${system.id}`).style("opacity", 1);
-                d3.select(`#label-${system.id}`).style("opacity", 1);
-                d3.select(`#bg-${system.id}`).style("opacity", 1);
-                
-                // Highlight connections between matching nodes
-                data.links.forEach(link => {
-                    if ((link.source.id === system.id || link.target.id === system.id) &&
-                        matchingNodes.some(n => n.id === link.source.id) && 
-                        matchingNodes.some(n => n.id === link.target.id)) {
-                        
-                        const linkId = `connection-${link.source.id}-${link.target.id}`;
-                        d3.select(`#${linkId}`).style("opacity", 0.8);
-                    }
-                });
-            });
-        }
-        
-        // Create off-screen indicators
-        function createOffscreenIndicators() {
-            // Create container for indicators
-            const indicators = svg.append("g")
-                .attr("class", "offscreen-indicators");
-                
-            // Add indicator arrows
-            indicators.selectAll(".offscreen-arrow")
-                .data(["top", "right", "bottom", "left"])
-                .enter()
-                .append("path")
-                .attr("class", "offscreen-arrow")
-                .attr("id", d => `offscreen-${d}`)
-                .attr("d", d => {
-                    // Create arrows pointing in from edges
-                    switch(d) {
-                        case "top": return "M10,0L20,15L0,15Z"; // Down arrow
-                        case "right": return "M30,10L15,20L15,0Z"; // Left arrow
-                        case "bottom": return "M10,30L0,15L20,15Z"; // Up arrow
-                        case "left": return "M0,10L15,0L15,20Z"; // Right arrow
-                    }
-                })
-                .attr("fill", "#ff5722")
-                .attr("stroke", "#fff")
-                .attr("stroke-width", 1)
-                .style("opacity", 0) // Hidden by default
-                .style("pointer-events", "none");
-                
-            // Position the arrows
-            updateOffscreenIndicatorPositions();
-        }
-        
-        function updateOffscreenIndicatorPositions() {
-            const topArrow = d3.select("#offscreen-top");
-            const rightArrow = d3.select("#offscreen-right");
-            const bottomArrow = d3.select("#offscreen-bottom");
-            const leftArrow = d3.select("#offscreen-left");
-            
-            topArrow.attr("transform", `translate(${width/2 - 10}, 15)`);
-            rightArrow.attr("transform", `translate(${width - 30}, ${height/2 - 10})`);
-            bottomArrow.attr("transform", `translate(${width/2 - 10}, ${height - 30})`);
-            leftArrow.attr("transform", `translate(15, ${height/2 - 10})`);
-        }
-        
-        function updateOffscreenIndicators() {
-            // Get current view bounds
-            const transform = d3.zoomTransform(svg.node());
-            const scale = transform.k;
-            
-            const visibleMinX = -transform.x / scale;
-            const visibleMaxX = (-transform.x + width) / scale;
-            const visibleMinY = -transform.y / scale;
-            const visibleMaxY = (-transform.y + height) / scale;
-            
-            // Check for nodes in each direction
-            // Check for nodes in each direction
-            let hasTop = false;
-            let hasRight = false;
-            let hasBottom = false;
-            let hasLeft = false;
-            
-            data.systems.forEach(system => {
-                // Check if node is outside of viewable area
-                if (system.x < visibleMinX) hasLeft = true;
-                if (system.x > visibleMaxX) hasRight = true;
-                if (system.y < visibleMinY) hasTop = true;
-                if (system.y > visibleMaxY) hasBottom = true;
-            });
-            
-            // Show/hide offscreen indicators
-            d3.select("#offscreen-top").style("opacity", hasTop ? 0.8 : 0);
-            d3.select("#offscreen-right").style("opacity", hasRight ? 0.8 : 0);
-            d3.select("#offscreen-bottom").style("opacity", hasBottom ? 0.8 : 0);
-            d3.select("#offscreen-left").style("opacity", hasLeft ? 0.8 : 0);
-        }
-        
+        // Zoom in button
         document.getElementById('zoomInButton').addEventListener('click', function() {
             const currentTransform = d3.zoomTransform(svg.node());
-            svg.transition().duration(300).call(
-                d3.zoom().transform, 
-                d3.zoomIdentity
-                    .translate(currentTransform.x, currentTransform.y)
-                    .scale(currentTransform.k * 1.3)
-            );
+            const newScale = currentTransform.k * 1.5;
+            
+            if (newScale <= zoomInstance.scaleExtent()[1]) { // Check maximum zoom level
+                svg.transition().duration(300).call(
+                    zoomInstance.transform, 
+                    d3.zoomIdentity
+                        .translate(currentTransform.x, currentTransform.y)
+                        .scale(newScale)
+                );
+            }
         });
         
+        // Zoom out button
         document.getElementById('zoomOutButton').addEventListener('click', function() {
             const currentTransform = d3.zoomTransform(svg.node());
-            svg.transition().duration(300).call(
-                d3.zoom().transform, 
-                d3.zoomIdentity
-                    .translate(currentTransform.x, currentTransform.y)
-                    .scale(currentTransform.k / 1.3)
-            );
+            const newScale = currentTransform.k / 1.5;
+            
+            if (newScale >= zoomInstance.scaleExtent()[0]) { // Check minimum zoom level
+                svg.transition().duration(300).call(
+                    zoomInstance.transform, 
+                    d3.zoomIdentity
+                        .translate(currentTransform.x, currentTransform.y)
+                        .scale(newScale)
+                );
+            }
         });
         
+        // Center view button
         document.getElementById('centerButton').addEventListener('click', function() {
-            svg.transition().duration(750).call(
-                d3.zoom().transform, d3.zoomIdentity
-            );
+            // Reset zoom to show all nodes
+            fitView();
         });
         
-        document.getElementById('spreadButton').addEventListener('click', function() {
+        document.getElementById('spreadButton').addEventListener('click', optimizeLayout);
+        
+        // Function to optimize layout with much better spacing
+        function optimizeLayout() {
+            // Release fixed positions first
+            data.systems.forEach(system => {
+                system.fx = null;
+                system.fy = null;
+            });
+            
             // Adopt a scalable approach based on node count
             const nodeCount = data.systems.length;
-            const optimalSpread = Math.sqrt((width * height) / nodeCount) * 1.5;
+            // Use a much larger multiplier to create more space
+            const optimalSpread = Math.sqrt((width * height * 3) / nodeCount); // 3x the area
             
             // Increase repulsion temporarily to spread nodes apart
-            simulation.force("charge", d3.forceManyBody().strength(-optimalSpread * 3));
+            simulation.force("charge", d3.forceManyBody().strength(-optimalSpread * 5)); // Much stronger repulsion
             
             // Increase link distance temporarily
-            simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalSpread).links(data.links));
+            simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalSpread * 1.5).links(data.links));
             
             // Run simulation at high temperature
             simulation.alpha(1).restart();
             
-            // Reset forces after some time
+            // Position orphaned nodes after the main layout has started
             setTimeout(() => {
-                simulation.force("charge", d3.forceManyBody().strength(-optimalDistance * 2));
-                simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalDistance).links(data.links));
+                identifyAndPositionOrphanedNodes();
+            }, 1000);
+            
+            // Reset forces after some time, but keep stronger spacing
+            setTimeout(() => {
+                simulation.force("charge", d3.forceManyBody().strength(-optimalDistance * 4));
+                simulation.force("link", d3.forceLink().id(d => d.id).distance(optimalDistance * 2).links(data.links));
                 simulation.alpha(0.3).restart();
+                
+                // Position orphaned nodes again after force adjustments
+                identifyAndPositionOrphanedNodes();
+                
+                // Fit all nodes in view
+                setTimeout(fitView, 500);
             }, 2000);
-        });
-        
-        // Fullscreen functionality
-        document.getElementById('fullscreenButton').addEventListener('click', function() {
-            const diagramContainer = document.getElementById('diagram-container');
-            
-            if (diagramContainer.requestFullscreen) {
-                diagramContainer.requestFullscreen();
-            } else if (diagramContainer.webkitRequestFullscreen) {
-                diagramContainer.webkitRequestFullscreen();
-            } else if (diagramContainer.msRequestFullscreen) {
-                diagramContainer.msRequestFullscreen();
-            }
-        });
-        
-        // Handle fullscreen changes with proper sizing
-        document.addEventListener('fullscreenchange', function() {
-            if (document.fullscreenElement === document.getElementById('diagram-container')) {
-                // Get actual fullscreen dimensions
-                const fsWidth = window.innerWidth;
-                const fsHeight = window.innerHeight;
-                
-                // Update SVG dimensions for fullscreen
-                svg.attr('width', fsWidth)
-                   .attr('height', fsHeight);
-                
-                // Update offscreen indicators for new size
-                updateOffscreenIndicatorPositions();
-                
-                // Update simulation center force
-                simulation.force('center', d3.forceCenter(fsWidth/2, fsHeight/2));
-                simulation.alpha(0.3).restart();
-            } else {
-                // Reset to original dimensions
-                svg.attr('width', width)
-                   .attr('height', height);
-                
-                // Reset offscreen indicators
-                updateOffscreenIndicatorPositions();
-                
-                // Reset simulation center
-                simulation.force('center', d3.forceCenter(width/2, height/2));
-                simulation.alpha(0.3).restart();
-            }
-            
-            // Update mini-map
-            updateMiniMap();
-        });
+        }
         
         // Mini-map functionality
         function createMiniMap() {
@@ -1140,17 +1172,30 @@
                 const clickX = event.clientX - bounds.left;
                 const clickY = event.clientY - bounds.top;
                 
+                // Get bounding box of all nodes for scaling
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                data.systems.forEach(system => {
+                    minX = Math.min(minX, system.x || 0);
+                    minY = Math.min(minY, system.y || 0);
+                    maxX = Math.max(maxX, system.x || 0);
+                    maxY = Math.max(maxY, system.y || 0);
+                });
+                
+                const nodeSpaceWidth = maxX - minX + 200; // Add padding
+                const nodeSpaceHeight = maxY - minY + 200;
+                
                 // Scale the click to main diagram coordinates
-                const mainX = (clickX / miniMapSize) * width;
-                const mainY = (clickY / miniMapSize) * height;
+                const scaleFactor = Math.max(nodeSpaceWidth / miniMapSize, nodeSpaceHeight / miniMapSize);
+                const worldX = minX + (clickX * scaleFactor);
+                const worldY = minY + (clickY * scaleFactor);
                 
                 // Center the view on the clicked point
                 const transform = d3.zoomIdentity
-                    .translate(width/2 - mainX, height/2 - mainY)
+                    .translate(width/2 - worldX, height/2 - worldY)
                     .scale(1);
                     
                 svg.transition().duration(750).call(
-                    d3.zoom().transform, transform
+                    zoomInstance.transform, transform
                 );
             });
             
@@ -1159,45 +1204,86 @@
         }
         
         function updateMiniMap() {
-            // Calculate scale for mini-map
             const miniMapSize = 150;
             
-            // Determine the container dimensions (varies in fullscreen)
-            const containerWidth = document.fullscreenElement ? window.innerWidth : width;
-            const containerHeight = document.fullscreenElement ? window.innerHeight : height;
+            // Find the bounding box of all nodes
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            data.systems.forEach(system => {
+                minX = Math.min(minX, system.x || 0);
+                minY = Math.min(minY, system.y || 0);
+                maxX = Math.max(maxX, system.x || 0);
+                maxY = Math.max(maxY, system.y || 0);
+            });
             
-            const xScale = miniMapSize / containerWidth;
-            const yScale = miniMapSize / containerHeight;
+            // Add padding
+            const padding = 50;
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+            
+            // Calculate scale for mini-map
+            const nodeSpaceWidth = maxX - minX;
+            const nodeSpaceHeight = maxY - minY;
+            const xScale = miniMapSize / nodeSpaceWidth;
+            const yScale = miniMapSize / nodeSpaceHeight;
             const scale = Math.min(xScale, yScale) * 0.9; // 90% to add some padding
             
-            // Update mini nodes
+            // Update mini nodes with proper scaling from actual node positions
             d3.selectAll(".mini-node")
-                .attr("cx", d => d.x * scale + miniMapSize/2 - (containerWidth*scale)/2)
-                .attr("cy", d => d.y * scale + miniMapSize/2 - (containerHeight*scale)/2);
+                .attr("cx", d => (d.x - minX) * scale)
+                .attr("cy", d => (d.y - minY) * scale);
                 
             // Update viewport indicator based on current transform
-            updateMiniMapViewport(d3.zoomTransform(svg.node()));
+            updateMiniMapViewport(d3.zoomTransform(svg.node()), minX, minY, scale);
         }
         
-        function updateMiniMapViewport(transform) {
+        function updateMiniMapViewport(transform, minX, minY, scale) {
             const miniMapSize = 150;
-            
-            // Determine the container dimensions (varies in fullscreen)
             const containerWidth = document.fullscreenElement ? window.innerWidth : width;
             const containerHeight = document.fullscreenElement ? window.innerHeight : height;
             
-            const xScale = miniMapSize / containerWidth;
-            const yScale = miniMapSize / containerHeight;
-            const scale = Math.min(xScale, yScale) * 0.9;
+            // If min/max not provided, recalculate
+            if (minX === undefined || minY === undefined || scale === undefined) {
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                data.systems.forEach(system => {
+                    minX = Math.min(minX, system.x || 0);
+                    minY = Math.min(minY, system.y || 0);
+                    maxX = Math.max(maxX, system.x || 0);
+                    maxY = Math.max(maxY, system.y || 0);
+                });
+                
+                // Add padding
+                const padding = 50;
+                minX -= padding;
+                minY -= padding;
+                maxX += padding;
+                maxY += padding;
+                
+                // Calculate scale
+                const nodeSpaceWidth = maxX - minX;
+                const nodeSpaceHeight = maxY - minY;
+                const xScale = miniMapSize / nodeSpaceWidth;
+                const yScale = miniMapSize / nodeSpaceHeight;
+                scale = Math.min(xScale, yScale) * 0.9;
+            }
             
             // Calculate visible area in main view
             const k = transform.k;
             const visibleWidth = containerWidth / k;
             const visibleHeight = containerHeight / k;
             
+            // Calculate center of viewport in world coordinates
+            const viewportCenterX = -transform.x / k + visibleWidth / 2;
+            const viewportCenterY = -transform.y / k + visibleHeight / 2;
+            
+            // Calculate bounds of viewport in world coordinates
+            const viewportMinX = viewportCenterX - visibleWidth / 2;
+            const viewportMinY = viewportCenterY - visibleHeight / 2;
+            
             // Convert to mini-map coordinates
-            const miniX = (transform.x / -k) * scale + miniMapSize/2 - (containerWidth*scale)/2;
-            const miniY = (transform.y / -k) * scale + miniMapSize/2 - (containerHeight*scale)/2;
+            const miniX = (viewportMinX - minX) * scale;
+            const miniY = (viewportMinY - minY) * scale;
             const miniWidth = visibleWidth * scale;
             const miniHeight = visibleHeight * scale;
             
@@ -1209,8 +1295,180 @@
                 .attr("height", miniHeight);
         }
         
+        // Create off-screen indicators
+        function createOffscreenIndicators() {
+            // Create container for indicators
+            const indicators = svg.append("g")
+                .attr("class", "offscreen-indicators");
+                
+            // Add indicator arrows
+            indicators.selectAll(".offscreen-arrow")
+                .data(["top", "right", "bottom", "left"])
+                .enter()
+                .append("path")
+                .attr("class", "offscreen-arrow")
+                .attr("id", d => `offscreen-${d}`)
+                .attr("d", d => {
+                    // Create arrows pointing in from edges
+                    switch(d) {
+                        case "top": return "M10,0L20,15L0,15Z"; // Down arrow
+                        case "right": return "M30,10L15,20L15,0Z"; // Left arrow
+                        case "bottom": return "M10,30L0,15L20,15Z"; // Up arrow
+                        case "left": return "M0,10L15,0L15,20Z"; // Right arrow
+                    }
+                })
+                .attr("fill", "#ff5722")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1)
+                .style("opacity", 0) // Hidden by default
+                .style("pointer-events", "none");
+                
+            // Position the arrows
+            updateOffscreenIndicatorPositions();
+        }
+        
+        function updateOffscreenIndicatorPositions() {
+            const topArrow = d3.select("#offscreen-top");
+            const rightArrow = d3.select("#offscreen-right");
+            const bottomArrow = d3.select("#offscreen-bottom");
+            const leftArrow = d3.select("#offscreen-left");
+            
+            const containerWidth = document.fullscreenElement ? window.innerWidth : width;
+            const containerHeight = document.fullscreenElement ? window.innerHeight : height;
+            
+            topArrow.attr("transform", `translate(${containerWidth/2 - 10}, 15)`);
+            rightArrow.attr("transform", `translate(${containerWidth - 30}, ${containerHeight/2 - 10})`);
+            bottomArrow.attr("transform", `translate(${containerWidth/2 - 10}, ${containerHeight - 30})`);
+            leftArrow.attr("transform", `translate(15, ${containerHeight/2 - 10})`);
+        }
+        
+        function updateOffscreenIndicators(transform) {
+            // If no transform provided, use current
+            if (!transform) {
+                transform = d3.zoomTransform(svg.node());
+            }
+            
+            // Get current view bounds
+            const containerWidth = document.fullscreenElement ? window.innerWidth : width;
+            const containerHeight = document.fullscreenElement ? window.innerHeight : height;
+            
+            const scale = transform.k;
+            
+            const visibleMinX = -transform.x / scale;
+            const visibleMaxX = (-transform.x + containerWidth) / scale;
+            const visibleMinY = -transform.y / scale;
+            const visibleMaxY = (-transform.y + containerHeight) / scale;
+            
+            // Check for nodes in each direction
+            let hasTop = false;
+            let hasRight = false;
+            let hasBottom = false;
+            let hasLeft = false;
+            
+            data.systems.forEach(system => {
+                // Check if node is outside of viewable area
+                if (system.x < visibleMinX) hasLeft = true;
+                if (system.x > visibleMaxX) hasRight = true;
+                if (system.y < visibleMinY) hasTop = true;
+                if (system.y > visibleMaxY) hasBottom = true;
+            });
+            
+            // Show/hide offscreen indicators
+            d3.select("#offscreen-top").style("opacity", hasTop ? 0.8 : 0);
+            d3.select("#offscreen-right").style("opacity", hasRight ? 0.8 : 0);
+            d3.select("#offscreen-bottom").style("opacity", hasBottom ? 0.8 : 0);
+            d3.select("#offscreen-left").style("opacity", hasLeft ? 0.8 : 0);
+        }
+        
+        // Fit the view to show all nodes
+        function fitView() {
+            // Find the bounding box of all nodes
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            
+            data.systems.forEach(system => {
+                minX = Math.min(minX, system.x || 0);
+                minY = Math.min(minY, system.y || 0);
+                maxX = Math.max(maxX, system.x || 0);
+                maxY = Math.max(maxY, system.y || 0);
+            });
+            
+            // Add padding
+            const padding = 50;
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+            
+            // Calculate scale to fit all nodes
+            const dx = maxX - minX;
+            const dy = maxY - minY;
+            const scale = Math.min(width / dx, height / dy, 0.8); // Use no more than 80% zoom
+            
+            // Calculate center of the bounding box
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            // Create transform
+            const transform = d3.zoomIdentity
+                .translate(width/2 - centerX * scale, height/2 - centerY * scale)
+                .scale(scale);
+                
+            // Apply transform with animation
+            svg.transition()
+                .duration(750)
+                .call(zoomInstance.transform, transform);
+        }
+        
+        // Fullscreen functionality
+        document.getElementById('fullscreenButton').addEventListener('click', function() {
+            const diagramContainer = document.getElementById('diagram-container');
+            
+            if (diagramContainer.requestFullscreen) {
+                diagramContainer.requestFullscreen();
+            } else if (diagramContainer.webkitRequestFullscreen) {
+                diagramContainer.webkitRequestFullscreen();
+            } else if (diagramContainer.msRequestFullscreen) {
+                diagramContainer.msRequestFullscreen();
+            }
+        });
+        
+        // Handle fullscreen changes with proper sizing
+        document.addEventListener('fullscreenchange', function() {
+            if (document.fullscreenElement === document.getElementById('diagram-container')) {
+                // Get actual fullscreen dimensions
+                const fsWidth = window.innerWidth;
+                const fsHeight = window.innerHeight;
+                
+                // Update SVG dimensions for fullscreen
+                svg.attr('width', fsWidth)
+                   .attr('height', fsHeight);
+                
+                // Update simulation center force
+                simulation.force('center', d3.forceCenter(fsWidth/2, fsHeight/2));
+                simulation.alpha(0.3).restart();
+            } else {
+                // Reset to original dimensions
+                svg.attr('width', width)
+                   .attr('height', height);
+                
+                // Reset simulation center
+                simulation.force('center', d3.forceCenter(width/2, height/2));
+                simulation.alpha(0.3).restart();
+            }
+            
+            // Update mini-map and indicators
+            updateMiniMap();
+            updateOffscreenIndicatorPositions();
+        });
+        
+        // Find and position orphaned nodes on initial layout
+        setTimeout(identifyAndPositionOrphanedNodes, 500);
+        
         // Initially run simulation with appropriate alpha
         simulation.alpha(0.8).restart();
+        
+        // Fit all nodes in view after initial layout
+        setTimeout(fitView, 1500);
     }
 });
 </script>

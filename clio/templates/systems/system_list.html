@@ -1,4 +1,4 @@
-<!-- templates/systems/system_list.html -->
+<!-- templates/systems/system_list.html (updated for dynamic categories and statuses) -->
 {% extends "base.html" %}
 
 {% block title %}Systems - Clio{% endblock %}
@@ -29,8 +29,8 @@
             <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
             <select id="status" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                 <option value="">All Statuses</option>
-                {% for value, display in status_choices %}
-                <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ display }}</option>
+                {% for status in all_statuses %}
+                <option value="{{ status.id }}" {% if status.id|stringformat:"i" == status_filter %}selected{% endif %}>{{ status.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -38,17 +38,40 @@
             <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
             <select id="category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
                 <option value="">All Categories</option>
-                {% for value, display in category_choices %}
-                <option value="{{ value }}" {% if value == category_filter %}selected{% endif %}>{{ display }}</option>
+                {% for category in all_categories %}
+                <option value="{{ category.id }}" {% if category.id|stringformat:"i" == category_filter %}selected{% endif %}>{{ category.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div>
+            <label for="sso_system" class="block text-sm font-medium text-gray-700">SSO System</label>
+            <select id="sso_system" name="sso_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <option value="">All SSO Systems</option>
+                <option value="none" {% if sso_filter == "none" %}selected{% endif %}>No SSO</option>
+                {% for sso in sso_systems %}
+                <option value="{{ sso.id }}" {% if sso.id|stringformat:"i" == sso_filter %}selected{% endif %}>{{ sso.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="hosting_system" class="block text-sm font-medium text-gray-700">Hosting System</label>
+            <select id="hosting_system" name="hosting_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                <option value="">All Hosting Systems</option>
+                <option value="none" {% if hosting_filter == "none" %}selected{% endif %}>No Hosting</option>
+                {% for host in hosting_systems %}
+                <option value="{{ host.id }}" {% if host.id|stringformat:"i" == hosting_filter %}selected{% endif %}>{{ host.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Hidden fields for preserving sort parameters when filters are applied -->
+        <input type="hidden" name="sort" value="{{ request.GET.sort|default:'' }}">
+        <input type="hidden" name="direction" value="{{ request.GET.direction|default:'' }}">
+        <div>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium">
                 Filter
             </button>
-            {% if status_filter or category_filter %}
-            <a href="{% url 'systems:list' %}" class="ml-2 text-sm text-gray-600 hover:text-gray-800">
+            {% if status_filter or category_filter or sso_filter or hosting_filter %}
+            <a href="{% url 'systems:list' %}{% if request.GET.sort %}?sort={{ request.GET.sort }}&direction={{ request.GET.direction }}{% endif %}" class="ml-2 text-sm text-gray-600 hover:text-gray-800">
                 Clear Filters
             </a>
             {% endif %}
@@ -62,15 +85,42 @@
         <thead class="bg-gray-50">
             <tr>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    <a href="?sort=name&direction={% if request.GET.sort == 'name' and request.GET.direction == 'asc' %}desc{% else %}asc{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if sso_filter %}&sso_system={{ sso_filter }}{% endif %}{% if hosting_filter %}&hosting_system={{ hosting_filter }}{% endif %}" 
+                       class="group inline-flex items-center">
+                        Name
+                        {% if request.GET.sort == 'name' %}
+                            {% if request.GET.direction == 'asc' %}
+                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                </svg>
+                            {% else %}
+                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            {% endif %}
+                        {% endif %}
+                    </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Category
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vendor
+                    <a href="?sort=vendor&direction={% if request.GET.sort == 'vendor' and request.GET.direction == 'asc' %}desc{% else %}asc{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if sso_filter %}&sso_system={{ sso_filter }}{% endif %}{% if hosting_filter %}&hosting_system={{ hosting_filter }}{% endif %}" 
+                       class="group inline-flex items-center">
+                        Vendor
+                        {% if request.GET.sort == 'vendor' %}
+                            {% if request.GET.direction == 'asc' %}
+                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                </svg>
+                            {% else %}
+                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            {% endif %}
+                        {% endif %}
+                    </a>
                 </th>
-                <!-- templates/systems/system_list.html (continued) -->
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                 </th>
@@ -93,24 +143,18 @@
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        {% if system.category == 'core' %}bg-blue-100 text-blue-800
-                        {% elif system.category == 'integration' %}bg-green-100 text-green-800
-                        {% elif system.category == 'custom' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-red-100 text-red-800{% endif %}">
-                        {{ system.get_category_display }}
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          style="background-color: {{ system.category.color }}; color: {{ system.category.text_color }}">
+                        {{ system.category.name }}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ system.vendor|default:"-" }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        {% if system.status == 'active' %}bg-green-100 text-green-800
-                        {% elif system.status == 'review' %}bg-yellow-100 text-yellow-800
-                        {% elif system.status == 'deprecation' %}bg-orange-100 text-orange-800
-                        {% else %}bg-red-100 text-red-800{% endif %}">
-                        {{ system.get_status_display }}
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          style="background-color: {{ system.status.color }}; color: {{ system.status.text_color }}">
+                        {{ system.status.name }}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

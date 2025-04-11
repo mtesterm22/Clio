@@ -12,23 +12,19 @@
             {{ system.name }}
         </h2>
         <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-            <div class="mt-2 flex items-center text-sm text-gray-500">
-                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    {% if system.category == 'core' %}bg-blue-100 text-blue-800
-                    {% elif system.category == 'integration' %}bg-green-100 text-green-800
-                    {% elif system.category == 'custom' %}bg-yellow-100 text-yellow-800
-                    {% else %}bg-red-100 text-red-800{% endif %}">
-                    {{ system.get_category_display }}
-                </span>
-            </div>
-            <div class="mt-2 flex items-center text-sm text-gray-500">
-                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    {% if system.status == 'active' %}bg-green-100 text-green-800
-                    {% elif system.status == 'review' %}bg-yellow-100 text-yellow-800
-                    {% elif system.status == 'deprecation' %}bg-orange-100 text-orange-800
-                    {% else %}bg-red-100 text-red-800{% endif %}">
-                    {{ system.get_status_display }}
-                </span>
+            <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+                <div class="mt-2 flex items-center text-sm text-gray-500">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          style="background-color: {{ system.category.color }}; color: {{ system.category.text_color }}">
+                        {{ system.category.name }}
+                    </span>
+                </div>
+                <div class="mt-2 flex items-center text-sm text-gray-500">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          style="background-color: {{ system.status.color }}; color: {{ system.status.text_color }}">
+                        {{ system.status.name }}
+                    </span>
+                </div>
             </div>
             <div class="mt-2 flex items-center text-sm text-gray-500">
                 <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -50,6 +46,7 @@
 {% endblock %}
 
 {% block content %}
+<!-- System Information section with SSO and Hosting -->
 <div class="bg-white shadow overflow-hidden sm:rounded-lg">
     <div class="px-4 py-5 sm:px-6">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
@@ -61,6 +58,7 @@
     </div>
     <div class="border-t border-gray-200">
         <dl>
+            <!-- Basic Info -->
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Description
@@ -69,6 +67,8 @@
                     {{ system.description|linebreaksbr|default:"No description provided." }}
                 </dd>
             </div>
+            
+            <!-- Vendor -->
             <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Vendor
@@ -77,6 +77,8 @@
                     {{ system.vendor|default:"Not specified" }}
                 </dd>
             </div>
+            
+            <!-- Operating System -->
             <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Operating System
@@ -85,7 +87,25 @@
                     {{ system.operating_system|default:"Not specified" }}
                 </dd>
             </div>
+            
+            <!-- Hosting System -->
             <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Hosting System
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if system.hosting_system %}
+                        <a href="{% url 'systems:detail' system.hosting_system.id %}" class="text-blue-600 hover:text-blue-900">
+                            {{ system.hosting_system.name }}
+                        </a>
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <!-- Support Information -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Support Information
                 </dt>
@@ -93,7 +113,9 @@
                     {{ system.support_information|linebreaksbr|default:"No support information provided." }}
                 </dd>
             </div>
-            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            
+            <!-- Contact Information -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Contact Information
                 </dt>
@@ -101,7 +123,9 @@
                     {{ system.contact_information|linebreaksbr|default:"No contact information provided." }}
                 </dd>
             </div>
-            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            
+            <!-- Cost & Structure -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Cost & Structure
                 </dt>
@@ -113,22 +137,25 @@
                     {% endif %}
                 </dd>
             </div>
-            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            
+            <!-- SSO System Information -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     SSO Information
                 </dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {% if system.sso_methodology %}
-                        Methodology: {{ system.sso_methodology }}
-                        {% if system.sso_system %}
-                            <br>System: {{ system.sso_system }}
-                        {% endif %}
+                    {% if system.sso_system %}
+                        <a href="{% url 'systems:detail' system.sso_system.id %}" class="text-blue-600 hover:text-blue-900">
+                            {{ system.sso_system.name }}
+                        </a>
                     {% else %}
-                        No SSO information provided.
+                        No SSO system specified
                     {% endif %}
                 </dd>
             </div>
-            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            
+            <!-- Documentation -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">
                     Documentation
                 </dt>
@@ -145,6 +172,205 @@
         </dl>
     </div>
 </div>
+
+<!-- System Administrators Section -->
+<div class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            System Administrators
+        </h3>
+        <button id="openAddAdminModal" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Administrator
+        </button>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Administrator
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Notes
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for admin in system.administrators.all %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ admin.user.get_full_name|default:admin.user.username }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ admin.user.email }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if admin.is_primary %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Primary
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                Secondary
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">
+                            {{ admin.notes|linebreaksbr|default:"" }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 edit-admin" data-id="{{ admin.id }}">
+                            Edit
+                        </button>
+                        <button class="ml-3 text-red-600 hover:text-red-900 delete-admin" data-id="{{ admin.id }}">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No administrators assigned to this system.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Administrator Modal -->
+<div id="adminModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4" id="adminModalTitle">Add System Administrator</h3>
+        <form id="adminForm" method="post" action="{% url 'systems:add_administrator' system.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="admin_id" id="adminId" value="">
+            
+            <div class="mb-4">
+                <label for="user" class="block text-sm font-medium text-gray-700">User</label>
+                <select id="user" name="user" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    {% for user in all_users %}
+                        <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input type="checkbox" id="isPrimary" name="is_primary" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="isPrimary" class="ml-2 block text-sm text-gray-900">
+                        Primary Administrator
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea id="notes" name="notes" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+            </div>
+            
+            <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelAdminModal" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </button>
+                <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Administrator Confirmation Modal -->
+<div id="deleteAdminModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Remove Administrator</h3>
+        <p class="text-sm text-gray-500 mb-4">
+            Are you sure you want to remove this administrator from the system? This action cannot be undone.
+        </p>
+        <form id="deleteAdminForm" method="post" action="{% url 'systems:remove_administrator' system.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="admin_id" id="deleteAdminId" value="">
+            
+            <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelDeleteAdmin" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </button>
+                <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Remove
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript for Administrator Modals -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open Add Admin Modal
+        document.getElementById('openAddAdminModal').addEventListener('click', function() {
+            // Reset form for new admin
+            document.getElementById('adminForm').reset();
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminModalTitle').textContent = 'Add System Administrator';
+            document.getElementById('adminModal').classList.remove('hidden');
+        });
+        
+        // Cancel Admin Modal
+        document.getElementById('cancelAdminModal').addEventListener('click', function() {
+            document.getElementById('adminModal').classList.add('hidden');
+        });
+        
+        // Open Edit Admin Modal
+        document.querySelectorAll('.edit-admin').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const adminId = this.getAttribute('data-id');
+                
+                // Get admin data via fetch API
+                fetch(`/systems/administrators/${adminId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('adminId').value = data.id;
+                        document.getElementById('user').value = data.user_id;
+                        document.getElementById('isPrimary').checked = data.is_primary;
+                        document.getElementById('notes').value = data.notes;
+                        
+                        document.getElementById('adminModalTitle').textContent = 'Edit System Administrator';
+                        document.getElementById('adminModal').classList.remove('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching administrator data:', error);
+                    });
+            });
+        });
+        
+        // Open Delete Admin Modal
+        document.querySelectorAll('.delete-admin').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const adminId = this.getAttribute('data-id');
+                document.getElementById('deleteAdminId').value = adminId;
+                document.getElementById('deleteAdminModal').classList.remove('hidden');
+            });
+        });
+        
+        // Cancel Delete Admin Modal
+        document.getElementById('cancelDeleteAdmin').addEventListener('click', function() {
+            document.getElementById('deleteAdminModal').classList.add('hidden');
+        });
+    });
+</script>
 
 <!-- System Relationship Manager Widget -->
 <div class="mt-8">
@@ -466,7 +692,6 @@
             {% endif %}
         </div>
         </div>
-        <!-- Add this after the Documents section in templates/systems/system_detail.html -->
 
 <!-- Notes -->
 <div class="mt-8">

@@ -1,7 +1,9 @@
 # systems/management/commands/import_system_relationships.py
 
 from django.core.management.base import BaseCommand
-from systems.models import System, SystemRelationship
+from django.db import transaction
+from systems.models import System, SystemRelationship, SystemCategory, SystemStatus
+
 
 class Command(BaseCommand):
     help = 'Import predefined system relationships from mockup'
@@ -424,21 +426,76 @@ class Command(BaseCommand):
             'external': 'external',
         }
         
+        # Get or create the categories and statuses
+        categories = {}
+        for slug in ['core', 'integration', 'custom', 'external', 'server']:
+            try:
+                categories[slug] = SystemCategory.objects.get(slug=slug)
+            except SystemCategory.DoesNotExist:
+                # Create default categories if they don't exist
+                name = {
+                    'core': 'Core System', 
+                    'integration': 'Integration', 
+                    'custom': 'Custom Component', 
+                    'external': 'External System',
+                    'server': 'Server'
+                }[slug]
+                
+                color = {
+                    'core': '#d5e8f9',
+                    'integration': '#e8f6e8',
+                    'custom': '#fdebd0',
+                    'external': '#f0d5d5',
+                    'server': '#e0e0f0'
+                }[slug]
+                
+                text_color = {
+                    'core': '#3498db',
+                    'integration': '#27ae60',
+                    'custom': '#f39c12',
+                    'external': '#c0392b',
+                    'server': '#5c6bc0'
+                }[slug]
+                
+                categories[slug] = SystemCategory.objects.create(
+                    name=name,
+                    slug=slug,
+                    color=color,
+                    text_color=text_color,
+                    order=list(type_mapping.keys()).index(slug) + 1 if slug in type_mapping else 5
+                )
+                self.stdout.write(f"  Created category: {name}")
+        
+        # Get or create active status
+        try:
+            active_status = SystemStatus.objects.get(slug='active')
+        except SystemStatus.DoesNotExist:
+            active_status = SystemStatus.objects.create(
+                name='Going-Concern',
+                slug='active',
+                color='#e8f6e8',
+                text_color='#27ae60',
+                is_active=True,
+                order=1
+            )
+            self.stdout.write(f"  Created status: Going-Concern")
+        
         # Map for system objects
         system_map = {}
         
         self.stdout.write('Creating systems...')
         # Create all systems first
         for name, data in systems_data.items():
-            category = type_mapping.get(data['type'], 'core')
+            category_slug = type_mapping.get(data['type'], 'core')
+            category = categories.get(category_slug, categories['core'])
             
             # Create or get system
             system, created = System.objects.update_or_create(
                 name=name,
                 defaults={
                     'category': category,
+                    'status': active_status,
                     'description': f"Part of {data['group']}",
-                    'status': 'active',  # Default status
                 }
             )
             
