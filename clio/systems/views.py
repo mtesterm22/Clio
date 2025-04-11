@@ -82,7 +82,7 @@ def system_list(request):
     }
     
     return render(request, 'systems/system_list.html', context)
-
+# Modified section of system_detail view in systems/views.py
 def system_detail(request, pk):
     """View details of a system"""
     system = get_object_or_404(System, pk=pk)
@@ -90,15 +90,15 @@ def system_detail(request, pk):
     # Get the documents
     documents = system.documents.all()
     
-    # Get related systems
-    dependencies = system.get_dependencies()
-    dependents = system.get_dependents()
+    # Get related systems with proper select_related for category and status
+    dependencies = [rel.source_system for rel in system.incoming_relationships.filter(relationship_type='depends_on').select_related('source_system__category', 'source_system__status')]
+    dependents = [rel.target_system for rel in system.outgoing_relationships.filter(relationship_type='depends_on').select_related('target_system__category', 'target_system__status')]
     
     # Get systems that use this as SSO
-    sso_dependents = system.sso_dependent_systems.all()
+    sso_dependents = system.sso_dependent_systems.all().select_related('category', 'status')
     
     # Get systems hosted on this system
-    hosted_systems = system.hosted_systems.all()
+    hosted_systems = system.hosted_systems.all().select_related('category', 'status')
     
     # Get workflows that use this system
     workflows = system.workflows.all() if hasattr(system, 'workflows') else []
@@ -136,7 +136,7 @@ def system_detail(request, pk):
     system_relationships = (
         SystemRelationship.objects.filter(source_system=system) | 
         SystemRelationship.objects.filter(target_system=system)
-    ).select_related('source_system', 'target_system')
+    ).select_related('source_system', 'target_system', 'source_system__category', 'target_system__category')
     
     # Format relationships for JSON
     relationships_json = []
@@ -407,20 +407,31 @@ def relationship_data(request):
     systems = []
     links = []
     
-    # Get all systems
-    all_systems = System.objects.all().select_related('category', 'status')  # Add select_related for efficiency
+    # Get all systems with related category and status
+    all_systems = System.objects.all().select_related('category', 'status')
     
     for system in all_systems:
-        # Safely get category and status values
-        category_slug = system.category.slug if system.category else "unknown"
-        status_slug = system.status.slug if system.status else "unknown"
+        # Get category and status information
+        category = {
+            'slug': system.category.slug,
+            'name': system.category.name,
+            'color': system.category.color,
+            'text_color': system.category.text_color,
+        } if system.category else {'slug': 'unknown', 'name': 'Unknown', 'color': '#f2f2f2', 'text_color': '#333333'}
+        
+        status = {
+            'slug': system.status.slug,
+            'name': system.status.name,
+            'color': system.status.color,
+            'text_color': system.status.text_color,
+            'is_active': system.status.is_active,
+        } if system.status else {'slug': 'unknown', 'name': 'Unknown', 'color': '#f2f2f2', 'text_color': '#333333', 'is_active': False}
         
         systems.append({
             'id': system.id,
             'name': system.name,
-            'category': category_slug,
-            'status': status_slug,
-            'type': category_slug,  # Using category_slug for type
+            'category': category,
+            'status': status,
         })
     
     # Get all relationships

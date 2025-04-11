@@ -26,26 +26,6 @@
         cursor: pointer;
     }
     
-    .core {
-        fill: #d5e8f9;
-        stroke: #3498db;
-    }
-    
-    .integration {
-        fill: #e8f6e8;
-        stroke: #27ae60;
-    }
-    
-    .custom {
-        fill: #fdebd0;
-        stroke: #f39c12;
-    }
-    
-    .external {
-        fill: #f0d5d5;
-        stroke: #c0392b;
-    }
-    
     .system-label {
         font-size: 10px;
         text-anchor: middle;
@@ -271,22 +251,11 @@
         <button class="button" id="fullscreenButton">Fullscreen</button>
     </div>
     
-    <div class="legend">
-        <div class="legend-item">
-            <div class="legend-color" style="background-color: #d5e8f9; border: 1px solid #3498db;"></div>
-            <span>Core System</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background-color: #e8f6e8; border: 1px solid #27ae60;"></div>
-            <span>Integration</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background-color: #fdebd0; border: 1px solid #f39c12;"></div>
-            <span>Custom Component</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background-color: #f0d5d5; border: 1px solid #c0392b;"></div>
-            <span>External System</span>
+    <div class="legend" id="categoryLegend">
+        <!-- Legend will be dynamically populated with categories -->
+        <div class="flex items-center justify-center">
+            <div class="spinner"></div>
+            <span>Loading categories...</span>
         </div>
     </div>
     
@@ -328,6 +297,48 @@
     let simulation;
     let allSystems = [];
     let allLinks = [];
+    
+    // Load categories for the legend
+    loadCategoryLegend();
+
+    // Function to load category legend
+    function loadCategoryLegend() {
+        const legendContainer = document.getElementById('categoryLegend');
+        
+        // Fetch data from relationship_data which now includes categories
+        fetch("{% url 'systems:relationship_data' %}")
+            .then(response => response.json())
+            .then(data => {
+                if (!data.systems || data.systems.length === 0) {
+                    legendContainer.innerHTML = '<div class="text-gray-500">No categories found</div>';
+                    return;
+                }
+                
+                // Extract unique categories
+                const categoriesMap = new Map();
+                data.systems.forEach(system => {
+                    if (system.category && !categoriesMap.has(system.category.slug)) {
+                        categoriesMap.set(system.category.slug, system.category);
+                    }
+                });
+                
+                // Create legend items
+                legendContainer.innerHTML = '';
+                categoriesMap.forEach(category => {
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color" style="background-color: ${category.color}; border: 1px solid ${category.text_color};"></div>
+                        <span>${category.name}</span>
+                    `;
+                    legendContainer.appendChild(legendItem);
+                });
+            })
+            .catch(error => {
+                console.error("Error loading categories:", error);
+                legendContainer.innerHTML = '<div class="text-red-500">Error loading categories</div>';
+            });
+    }
     
     // Fetch the relationships data from the API
     fetch("{% url 'systems:relationship_data' %}")
@@ -427,7 +438,8 @@
             .force("collision", d3.forceCollide().radius(d => {
                 // Base radius on dependencies and type, but larger overall
                 const baseRadius = 25; // Increased from 20
-                const typeFactor = d.type === "core" ? 1.3 : 1;
+                // Use category slug for type factors
+                const typeFactor = d.category.slug === "core" ? 1.3 : 1;
                 const depFactor = Math.min(dependencies[d.id] * 0.05 + 1, 1.5);
                 return (baseRadius * typeFactor * depFactor) + 20; // Increased padding
             }));
@@ -450,15 +462,18 @@
         const node = g.selectAll(".system-node")
             .data(data.systems)
             .enter().append("circle")
-            .attr("class", d => `system-node ${d.type}`)
+            .attr("class", d => `system-node`)
             .attr("id", d => `system-${d.id}`)
             .attr("r", d => {
                 // Scale radius based on dependencies
                 const baseRadius = 20;
-                const typeFactor = d.type === "core" ? 1.3 : 1;
+                // Use category slug for type factors
+                const typeFactor = d.category.slug === "core" ? 1.3 : 1;
                 const depFactor = Math.min(dependencies[d.id] * 0.05 + 1, 1.5);
                 return baseRadius * typeFactor * depFactor;
             })
+            .attr("fill", d => d.category.color)
+            .attr("stroke", d => d.category.text_color)
             .on("mouseover", handleMouseOver)
             .on("mouseout", handleMouseOut)
             .on("click", handleClick)
@@ -477,11 +492,11 @@
             .style("font-size", d => {
                 // Larger font for more important systems
                 return dependencies[d.id] > 5 ? "12px" : 
-                    d.type === "core" ? "11px" : "10px";
+                    d.category.slug === "core" ? "11px" : "10px";
             })
             .style("font-weight", d => {
                 // Bold for key systems
-                return d.type === "core" ? "bold" : "normal";
+                return d.category.slug === "core" ? "bold" : "normal";
             })
             .each(function(d) {
                 // Get the size of the text to correctly size the background
@@ -533,7 +548,8 @@
                 let sourceRadius, targetRadius;
                 if (d.source) {
                     const baseSourceRadius = 20;
-                    const typeFactor = d.source.type === "core" ? 1.3 : 1;
+                    // Use category slug for type factors
+                    const typeFactor = d.source.category && d.source.category.slug === "core" ? 1.3 : 1;
                     const depFactor = Math.min(dependencies[d.source.id] * 0.05 + 1, 1.5);
                     sourceRadius = baseSourceRadius * typeFactor * depFactor;
                 } else {
@@ -542,7 +558,8 @@
                 
                 if (d.target) {
                     const baseTargetRadius = 20;
-                    const typeFactor = d.target.type === "core" ? 1.3 : 1;
+                    // Use category slug for type factors
+                    const typeFactor = d.target.category && d.target.category.slug === "core" ? 1.3 : 1;
                     const depFactor = Math.min(dependencies[d.target.id] * 0.05 + 1, 1.5);
                     targetRadius = baseTargetRadius * typeFactor * depFactor;
                 } else {
@@ -809,8 +826,8 @@
             title.textContent = system.name;
             
             // Find system details
-            let html = `<p><strong>Category:</strong> ${system.type}</p>`;
-            html += `<p><strong>Status:</strong> ${system.status || 'Active'}</p>`;
+            let html = `<p><strong>Category:</strong> <span style="background-color: ${system.category.color}; color: ${system.category.text_color}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${system.category.name}</span></p>`;
+            html += `<p><strong>Status:</strong> <span style="background-color: ${system.status.color}; color: ${system.status.text_color}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${system.status.name}</span></p>`;
             
             // Link to system detail page
             html += `<p class="mt-2"><a href="/systems/${system.id}/" class="text-blue-600 hover:underline">View System Details</a></p>`;
@@ -1151,12 +1168,9 @@
                 .enter().append("circle")
                 .attr("class", "mini-node")
                 .attr("r", 2)
-                .attr("fill", d => {
-                    if (d.type === "core") return "#3498db";
-                    if (d.type === "integration") return "#27ae60";
-                    if (d.type === "custom") return "#f39c12";
-                    return "#c0392b"; // external
-                });
+                .attr("fill", d => d.category.color)
+                .attr("stroke", d => d.category.text_color)
+                .attr("stroke-width", 0.5);
                 
             // Create viewport indicator
             const viewportIndicator = miniSvg.append("rect")

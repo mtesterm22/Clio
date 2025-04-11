@@ -424,21 +424,15 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if dep.category == 'core' %}bg-blue-100 text-blue-800
-                                    {% elif dep.category == 'integration' %}bg-green-100 text-green-800
-                                    {% elif dep.category == 'custom' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ dep.get_category_display }}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                      style="background-color: {{ dep.category.color }}; color: {{ dep.category.text_color }}">
+                                    {{ dep.category.name }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if dep.status == 'active' %}bg-green-100 text-green-800
-                                    {% elif dep.status == 'review' %}bg-yellow-100 text-yellow-800
-                                    {% elif dep.status == 'deprecation' %}bg-orange-100 text-orange-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ dep.get_status_display }}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                      style="background-color: {{ dep.status.color }}; color: {{ dep.status.text_color }}">
+                                    {{ dep.status.name }}
                                 </span>
                             </td>
                         </tr>
@@ -486,22 +480,17 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if dep.category == 'core' %}bg-blue-100 text-blue-800
-                                    {% elif dep.category == 'integration' %}bg-green-100 text-green-800
-                                    {% elif dep.category == 'custom' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ dep.get_category_display }}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                      style="background-color: {{ dep.category.color }}; color: {{ dep.category.text_color }}">
+                                    {{ dep.category.name }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if dep.status == 'active' %}bg-green-100 text-green-800
-                                    {% elif dep.status == 'review' %}bg-yellow-100 text-yellow-800
-                                    {% elif dep.status == 'deprecation' %}bg-orange-100 text-orange-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ dep.get_status_display }}
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                      style="background-color: {{ dep.status.color }}; color: {{ dep.status.text_color }}">
+                                    {{ dep.status.name }}
                                 </span>
+                            </td>
                             </td>
                         </tr>
                         {% endfor %}

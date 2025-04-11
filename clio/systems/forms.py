@@ -23,15 +23,39 @@ class SystemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Limit sso_system choices to exclude self and show only active systems
+        # Get current instance if editing
         instance = kwargs.get('instance')
-        # Correct approach:
-        sso_systems = System.objects.filter(status__slug='active').exclude(id=instance.id if instance else None)
+        
+        # Limit sso_system choices to exclude self and show only active systems
+        try:
+            active_status = SystemStatus.objects.get(slug='active')
+            sso_systems = System.objects.filter(status=active_status)
+        except SystemStatus.DoesNotExist:
+            sso_systems = System.objects.all()
+        
+        # Exclude self from choices if instance exists
+        if instance:
+            sso_systems = sso_systems.exclude(id=instance.id)
+        
         self.fields['sso_system'].queryset = sso_systems
         
-        # Limit hosting_system choices to exclude self and show only server category
-        # Correct approach:
-        hosting_systems = System.objects.filter(category__slug='server').exclude(id=instance.id if instance else None)
+        # For hosting_system, initially allow all systems except self
+        hosting_systems = System.objects.all()
+        if instance:
+            hosting_systems = hosting_systems.exclude(id=instance.id)
+        
+        # Try to filter by server category if it exists
+        try:
+            server_category = SystemCategory.objects.get(slug='server')
+            server_systems = hosting_systems.filter(category=server_category)
+            
+            # Only use server filter if it returns some systems, otherwise use all systems
+            if server_systems.exists():
+                hosting_systems = server_systems
+        except SystemCategory.DoesNotExist:
+            # If server category doesn't exist, just use all systems (already set above)
+            pass
+            
         self.fields['hosting_system'].queryset = hosting_systems
 
 
