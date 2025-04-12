@@ -4,7 +4,9 @@ from django.shortcuts import render
 from systems.models import System, SystemCategory, SystemStatus
 from workflows.models import Workflow
 from scripts.models import Script
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def index(request):
     """Dashboard view with overview of all items"""
     
@@ -64,6 +66,7 @@ def index(request):
     }
     return render(request, 'core/index.html', context)
 
+@login_required
 def about(request):
     """About page with information about the app"""
     return render(request, 'core/about.html')

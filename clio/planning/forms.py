@@ -15,6 +15,7 @@ class InitiativeForm(forms.ModelForm):
             'start_date', 'target_completion_date', 
             'budget_allocation', 'resource_requirements',
             'business_justification', 'success_criteria',
+            'actual_completion_date',
             'dependencies', 'owner'
         ]
         widgets = {

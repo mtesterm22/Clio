@@ -17,7 +17,7 @@ from .forms import (
 )
 from scripts.models import Script, ScriptSystemRelationship
 
-# Continued from previous system_list view
+@login_required
 def system_list(request):
     """View to list all systems with sorting and filtering"""
     status_filter = request.GET.get('status')
@@ -83,7 +83,8 @@ def system_list(request):
     }
     
     return render(request, 'systems/system_list.html', context)
-# Modified section of system_detail view in systems/views.py
+
+@login_required
 def system_detail(request, pk):
     """View details of a system"""
     system = get_object_or_404(System, pk=pk)
@@ -187,6 +188,7 @@ def system_detail(request, pk):
     
     return render(request, 'systems/system_detail.html', context)
 
+@login_required
 def system_create(request):
     """Create a new system"""
     if request.method == 'POST':
@@ -206,6 +208,7 @@ def system_create(request):
     
     return render(request, 'systems/system_form.html', {'form': form, 'title': 'Create System'})
 
+@login_required
 def system_update(request, pk):
     """Update an existing system"""
     system = get_object_or_404(System, pk=pk)
@@ -281,6 +284,7 @@ def get_administrator_details(request, admin_pk):
     return JsonResponse(data)
 
 # @login_required  # Commented out for testing, but should be uncommented in production
+@login_required
 def save_system_relationships(request, pk):
     """API endpoint to save system relationships"""
     if request.method != 'POST':
@@ -368,7 +372,7 @@ def save_system_relationships(request, pk):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-
+@login_required
 def system_update(request, pk):
     """Update an existing system"""
     system = get_object_or_404(System, pk=pk)
@@ -384,7 +388,7 @@ def system_update(request, pk):
     
     return render(request, 'systems/system_form.html', {'form': form, 'system': system, 'title': 'Update System'})
 
-
+@login_required
 def system_delete(request, pk):
     """Delete a system"""
     system = get_object_or_404(System, pk=pk)
@@ -397,12 +401,12 @@ def system_delete(request, pk):
     
     return render(request, 'systems/system_confirm_delete.html', {'system': system})
 
-
+@login_required
 def relationship_diagram(request):
     """Show the systems relationship diagram"""
     return render(request, 'systems/relationship_diagram.html')
 
-
+@login_required
 def relationship_data(request):
     """API endpoint to get relationship data for the diagram"""
     systems = []

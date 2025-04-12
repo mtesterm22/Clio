@@ -3,7 +3,7 @@
 from django.urls import path
 from . import views
 
-# Note: No app_name here, using non-namespaced URLs
+app_name = 'planning'
 
 urlpatterns = [
     # Dashboard

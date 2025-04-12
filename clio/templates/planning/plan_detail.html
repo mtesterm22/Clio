@@ -124,16 +124,16 @@
         </div>
     </div>
     <div class="mt-4 flex md:mt-0 md:ml-4">
-        <a href="{% url 'task_create' plan_pk=plan.id %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+        <a href="{% url 'planning:task_create' plan_pk=plan.id %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             Add Task
         </a>
-        <a href="{% url 'milestone_create' plan_pk=plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+        <a href="{% url 'planning:milestone_create' plan_pk=plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
             Add Milestone
         </a>
-        <a href="{% url 'plan_update' plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="{% url 'planning:plan_update' plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             Edit
         </a>
-        <a href="{% url 'plan_delete' plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+        <a href="{% url 'planning:plan_delete' plan.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
             Delete
         </a>
     </div>
@@ -234,7 +234,7 @@
                     Initiative
                 </dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <a href="{% url 'initiative_detail' plan.initiative.id %}" class="text-blue-600 hover:text-blue-900">
+                    <a href="{% url 'planning:initiative_detail' plan.initiative.id %}" class="text-blue-600 hover:text-blue-900">
                         {{ plan.initiative.name }}
                     </a>
                     <span class="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -293,7 +293,7 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Milestones
         </h3>
-        <a href="{% url 'milestone_create' plan_pk=plan.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+        <a href="{% url 'planning:milestone_create' plan_pk=plan.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Add Milestone
         </a>
     </div>
@@ -357,14 +357,14 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'milestone_update' milestone.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                        <a href="{% url 'milestone_delete' milestone.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        <a href="{% url 'planning:milestone_update' milestone.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:milestone_delete' milestone.id %}" class="text-red-600 hover:text-red-900">Delete</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                        No milestones found. <a href="{% url 'milestone_create' plan_pk=plan.id %}" class="text-blue-600 hover:text-blue-900">Add your first milestone</a>.
+                        No milestones found. <a href="{% url 'planning:milestone_create' plan_pk=plan.id %}" class="text-blue-600 hover:text-blue-900">Add your first milestone</a>.
                     </td>
                 </tr>
                 {% endfor %}
@@ -379,7 +379,7 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Tasks
         </h3>
-        <a href="{% url 'task_create' plan_pk=plan.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+        <a href="{% url 'planning:task_create' plan_pk=plan.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Add Task
         </a>
     </div>
@@ -455,7 +455,7 @@
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">
-                                <a href="{% url 'task_detail' task.id %}" class="text-blue-600 hover:text-blue-900">
+                                <a href="{% url 'planning:task_detail' task.id %}" class="text-blue-600 hover:text-blue-900">
                                     {{ task.name }}
                                 </a>
                             </div>
@@ -509,14 +509,14 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{% url 'task_update' task.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                            <a href="{% url 'task_delete' task.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            <a href="{% url 'planning:task_update' task.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                            <a href="{% url 'planning:task_delete' task.id %}" class="text-red-600 hover:text-red-900">Delete</a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                            No tasks found. <a href="{% url 'task_create' plan_pk=plan.id %}" class="text-blue-600 hover:text-blue-900">Add your first task</a>.
+                            No tasks found. <a href="{% url 'planning:task_create' plan_pk=plan.id %}" class="text-blue-600 hover:text-blue-900">Add your first task</a>.
                         </td>
                     </tr>
                     {% endfor %}
@@ -532,7 +532,7 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Resource Allocations
         </h3>
-        <a href="{% url 'resource_allocation_create' initiative_pk=plan.initiative.id %}?plan={{ plan.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+        <a href="{% url 'planning:resource_allocation_create' initiative_pk=plan.initiative.id %}?plan={{ plan.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Add Resource
         </a>
     </div>
@@ -602,14 +602,14 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'resource_allocation_update' resource.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                        <a href="{% url 'resource_allocation_delete' resource.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        <a href="{% url 'planning:resource_allocation_update' resource.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:resource_allocation_delete' resource.id %}" class="text-red-600 hover:text-red-900">Delete</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                        No resource allocations found. <a href="{% url 'resource_allocation_create' initiative_pk=plan.initiative.id %}?plan={{ plan.id }}" class="text-blue-600 hover:text-blue-900">Add resources</a>.
+                        No resource allocations found. <a href="{% url 'planning:resource_allocation_create' initiative_pk=plan.initiative.id %}?plan={{ plan.id }}" class="text-blue-600 hover:text-blue-900">Add resources</a>.
                     </td>
                 </tr>
                 {% endfor %}
@@ -624,7 +624,7 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900">
             Documents
         </h3>
-        <a href="{% url 'document_upload' %}?plan={{ plan.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+        <a href="{% url 'planning:document_upload' %}?plan={{ plan.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Upload Document
         </a>
     </div>
@@ -688,13 +688,13 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a href="{{ document.document.url }}" class="text-blue-600 hover:text-blue-900 mr-3" target="_blank">Download</a>
-                        <a href="{% url 'document_delete' document.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                        <a href="{% url 'planning:document_delete' document.id %}" class="text-red-600 hover:text-red-900">Delete</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                        No documents found. <a href="{% url 'document_upload' %}?plan={{ plan.id }}" class="text-blue-600 hover:text-blue-900">Upload a document</a>.
+                        No documents found. <a href="{% url 'planning:document_upload' %}?plan={{ plan.id }}" class="text-blue-600 hover:text-blue-900">Upload a document</a>.
                     </td>
                 </tr>
                 {% endfor %}

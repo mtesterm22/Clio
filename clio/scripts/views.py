@@ -3,10 +3,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .models import Script, ScriptDocument, ScriptSystemRelationship
 from .forms import ScriptForm, ScriptDocumentForm, ScriptSystemRelationshipForm
 
+@login_required
 def script_list(request):
     """View to list all scripts with filtering options"""
     scripts = Script.objects.all().select_related('hosted_on')
@@ -48,6 +50,7 @@ def script_list(request):
     
     return render(request, 'scripts/script_list.html', context)
 
+@login_required
 def script_detail(request, pk):
     """View details of a script"""
     script = get_object_or_404(Script, pk=pk)
@@ -109,6 +112,7 @@ def script_detail(request, pk):
     
     return render(request, 'scripts/script_detail.html', context)
 
+@login_required
 def script_create(request):
     """Create a new script"""
     if request.method == 'POST':
@@ -122,6 +126,7 @@ def script_create(request):
     
     return render(request, 'scripts/script_form.html', {'form': form, 'title': 'Create Script'})
 
+@login_required
 def script_update(request, pk):
     """Update an existing script"""
     script = get_object_or_404(Script, pk=pk)
@@ -137,6 +142,7 @@ def script_update(request, pk):
     
     return render(request, 'scripts/script_form.html', {'form': form, 'script': script, 'title': 'Update Script'})
 
+@login_required
 def script_delete(request, pk):
     """Delete a script"""
     script = get_object_or_404(Script, pk=pk)
@@ -149,6 +155,7 @@ def script_delete(request, pk):
     
     return render(request, 'scripts/script_confirm_delete.html', {'script': script})
 
+@login_required
 def delete_system_relationship(request, script_pk, relationship_pk):
     """Delete a system relationship"""
     relationship = get_object_or_404(
@@ -168,6 +175,7 @@ def delete_system_relationship(request, script_pk, relationship_pk):
         'script': relationship.script
     })
 
+@login_required
 def update_system_relationship(request, script_pk, relationship_pk):
     """Update a system relationship"""
     relationship = get_object_or_404(

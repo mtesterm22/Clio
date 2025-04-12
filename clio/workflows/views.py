@@ -11,6 +11,7 @@ from .forms import WorkflowForm, WorkflowDocumentForm
 from systems.models import System
 from scripts.models import Script
 
+@login_required
 def workflow_list(request):
     """View to list all workflows"""
     status_filter = request.GET.get('status')
@@ -28,6 +29,7 @@ def workflow_list(request):
     
     return render(request, 'workflows/workflow_list.html', context)
 
+@login_required
 def workflow_detail(request, pk):
     """View details of a workflow"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -60,6 +62,7 @@ def workflow_detail(request, pk):
     
     return render(request, 'workflows/workflow_detail.html', context)
 
+@login_required
 def workflow_create(request):
     """Create a new workflow"""
     if request.method == 'POST':
@@ -112,6 +115,7 @@ def workflow_create(request):
     
     return render(request, 'workflows/workflow_form.html', {'form': form, 'title': 'Create Workflow'})
 
+@login_required
 def workflow_update(request, pk):
     """Update an existing workflow"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -127,6 +131,7 @@ def workflow_update(request, pk):
     
     return render(request, 'workflows/workflow_form.html', {'form': form, 'workflow': workflow, 'title': 'Update Workflow'})
 
+@login_required
 def workflow_delete(request, pk):
     """Delete a workflow"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -139,6 +144,7 @@ def workflow_delete(request, pk):
     
     return render(request, 'workflows/workflow_confirm_delete.html', {'workflow': workflow})
 
+@login_required
 def workflow_designer(request, pk):
     """Visual workflow designer interface"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -188,6 +194,7 @@ def workflow_designer(request, pk):
     
     return render(request, 'workflows/workflow_designer.html', context)
 
+@login_required
 @require_POST
 def save_workflow(request, pk):
     """Save workflow nodes and edges"""
@@ -232,6 +239,7 @@ def save_workflow(request, pk):
     
     return JsonResponse({'success': True, 'message': 'No changes detected'})
 
+@login_required
 def workflow_versions(request, pk):
     """View versions of a workflow"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -244,6 +252,7 @@ def workflow_versions(request, pk):
     
     return render(request, 'workflows/workflow_versions.html', context)
 
+@login_required
 def load_workflow_version(request, pk, version):
     """Load a specific version of a workflow"""
     workflow = get_object_or_404(Workflow, pk=pk)
@@ -264,6 +273,7 @@ def load_workflow_version(request, pk, version):
     
     return JsonResponse(data)
 
+@login_required
 def restore_workflow_version(request, pk, version):
     """Restore a workflow to a previous version"""
     if request.method != 'POST':
