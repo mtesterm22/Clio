@@ -1,0 +1,661 @@
+<!-- templates/core/visualization_hub.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Visualizations - Clio{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Layout */
+    .visualization-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 160px);
+        min-height: 700px;
+        position: relative;
+    }
+    
+    /* Controls section */
+    .viz-controls {
+        background-color: white;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        z-index: 9;
+    }
+    
+    .viz-selector {
+        position: relative;
+        min-width: 240px;
+    }
+    
+    .viz-selector-button {
+        display: flex;
+        align-items: center;
+        background-color: white;
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-weight: 500;
+    }
+    
+    .viz-selector-icon {
+        margin-right: 8px;
+        color: #3b82f6;
+    }
+    
+    .viz-selector-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        margin-top: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+        max-height: 400px;
+        overflow-y: auto;
+        display: none;
+    }
+    
+    .viz-selector-menu.active {
+        display: block;
+    }
+    
+    .viz-selector-category {
+        padding: 8px 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #6b7280;
+        background-color: #f9fafb;
+    }
+    
+    .viz-selector-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+    
+    .viz-selector-item:hover {
+        background-color: #f1f5f9;
+    }
+    
+    .viz-selector-item.active {
+        background-color: #ebf5ff;
+        color: #1d4ed8;
+    }
+    
+    .viz-selector-item-icon {
+        margin-right: 8px;
+        color: #64748b;
+    }
+    
+    .viz-selector-item.active .viz-selector-item-icon {
+        color: #3b82f6;
+    }
+    
+    /* Filter section */
+    .viz-filter-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex: 1;
+        margin-left: 16px;
+    }
+    
+    .viz-action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .viz-button {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .viz-button:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    
+    .viz-button-icon {
+        margin-right: 6px;
+    }
+    
+    .viz-search-container {
+        position: relative;
+        width: 250px;
+        margin-left: auto;
+    }
+    
+    .viz-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        padding-left: 36px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        transition: border-color 0.2s ease;
+    }
+    
+    .viz-search-input:focus {
+        border-color: #3b82f6;
+        outline: none;
+    }
+    
+    .viz-search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+    
+    .viz-filter {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        background-color: white;
+    }
+    
+    .viz-filter-label {
+        padding: 8px 12px;
+        background-color: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+    .viz-filter-select {
+        padding: 8px 28px 8px 12px;
+        border: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 16px;
+    }
+    
+    .viz-filter-select:focus {
+        outline: none;
+    }
+    
+    /* Legend */
+    .viz-legend {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 8px 16px;
+        background-color: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin: 4px 12px 4px 0;
+    }
+    
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        border-radius: 3px;
+    }
+    
+    /* Diagram container */
+    .viz-diagram-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .viz-diagram {
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Info panel */
+    .viz-info-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        padding: 16px;
+        border-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        max-width: 320px;
+        max-height: 400px;
+        overflow-y: auto;
+        display: none;
+        z-index: 100;
+    }
+    
+    /* Zoom controls */
+    .viz-zoom-controls {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        z-index: 100;
+    }
+    
+    .viz-zoom-btn {
+        display: block;
+        width: 34px;
+        height: 34px;
+        background-color: white;
+        border: none;
+        border-bottom: 1px solid #f0f2f5;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+        text-align: center;
+    }
+    
+    .viz-zoom-btn:last-child {
+        border-bottom: none;
+    }
+    
+    .viz-zoom-btn:hover {
+        background-color: #f8fafc;
+    }
+    
+    /* Mini map */
+    .viz-mini-map {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 150px;
+        height: 150px;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+        z-index: 100;
+    }
+    
+    /* Loading overlay */
+    .viz-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    
+    .viz-spinner {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(59, 130, 246, 0.3);
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 10px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* No data state */
+    .viz-no-data {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        padding: 30px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* System nodes */
+    .system-node {
+        stroke-width: 2px;
+        cursor: pointer;
+    }
+    
+    .system-label {
+        font-size: 10px;
+        text-anchor: middle;
+        pointer-events: none;
+        font-weight: bold;
+    }
+    
+    .label-background {
+        fill: white;
+        fill-opacity: 0.8;
+        stroke: #ddd;
+        stroke-width: 0.5;
+    }
+    
+    .connection {
+        stroke: #999;
+        stroke-width: 1.5px;
+        fill: none;
+        marker-end: url(#arrowhead);
+    }
+    
+    .connection-depends_on {
+        stroke-dasharray: none;
+    }
+    
+    .connection-provides_data_to {
+        stroke-dasharray: 5, 3;
+    }
+    
+    .connection-integrates_with {
+        stroke-dasharray: 1, 3;
+    }
+    
+    .connection-highlighted {
+        stroke: #ff5722;
+        stroke-width: 2.5px;
+    }
+    
+    .highlighted {
+        stroke-width: 3px;
+        stroke: #ff5722;
+    }
+    
+    .viewport-indicator {
+        stroke: #ff5722;
+        stroke-width: 2px;
+        fill: none;
+        pointer-events: none;
+    }
+    
+    .offscreen-arrow {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    /* Export dropdown */
+    .viz-export-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .viz-export-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        min-width: 160px;
+        z-index: 10;
+        margin-top: 4px;
+        display: none;
+    }
+    
+    .viz-export-menu.active {
+        display: block;
+    }
+    
+    .viz-export-item {
+        display: block;
+        padding: 8px 16px;
+        cursor: pointer;
+    }
+    
+    .viz-export-item:hover {
+        background-color: #f1f5f9;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Visualizations
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'systems:list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to Systems
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="visualization-container">
+    <!-- Control Bar -->
+    <div class="viz-controls">
+        <!-- Visualization Selector Dropdown -->
+        <div class="viz-selector">
+            <div class="viz-selector-button" id="vizSelectorButton">
+                <span class="viz-selector-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </span>
+                <span id="currentVizName">System Relationships</span>
+                <span style="margin-left: auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </span>
+            </div>
+            
+            <div class="viz-selector-menu" id="vizSelectorMenu">
+                <!-- Systems Category -->
+                <div class="viz-selector-category">Systems</div>
+                <div class="viz-selector-item active" data-viz="system-relationships" data-name="System Relationships">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                            <path d="M10 7h4v10h-4z"></path>
+                            <path d="M7 10v4h10v-4z"></path>
+                        </svg>
+                    </span>
+                    System Relationships
+                </div>
+                
+                <!-- Scripts Category -->
+                <div class="viz-selector-category">Scripts</div>
+                <div class="viz-selector-item" data-viz="system-script-relationships" data-name="System-Script Relationships">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                    </span>
+                    System-Script Relationships
+                </div>
+                <div class="viz-selector-item" data-viz="host-script-relationships" data-name="Host-Script Relationships">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                    </span>
+                    Host-Script Relationships
+                </div>
+                
+                <!-- Planning Category -->
+                <div class="viz-selector-category">Planning</div>
+                <div class="viz-selector-item" data-viz="workflow-plan-timeline" data-name="Workflow-Plan Timeline">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </span>
+                    Workflow-Plan Timeline
+                </div>
+                <div class="viz-selector-item" data-viz="initiative-dependencies" data-name="Initiative Dependencies">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </span>
+                    Initiative Dependencies
+                </div>
+                <div class="viz-selector-item" data-viz="resource-allocation" data-name="Resource Allocation">
+                    <span class="viz-selector-item-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </span>
+                    Resource Allocation
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dynamic Filters -->
+        <div class="viz-filter-section" id="vizFilters">
+            <!-- Dynamic filters will be inserted here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="viz-action-buttons">
+            <!-- Optimal Layout Button -->
+            <button id="optimalLayoutButton" class="viz-button">
+                <span class="viz-button-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <line x1="12" y1="2" x2="12" y2="22"></line>
+                    </svg>
+                </span>
+                Optimal Layout
+            </button>
+            
+            <!-- Reset Button -->
+            <button id="resetButton" class="viz-button">
+                <span class="viz-button-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                    </svg>
+                </span>
+                Reset
+            </button>
+            
+            <!-- Export Button -->
+            <div class="viz-export-dropdown">
+                <button id="exportButton" class="viz-button">
+                    <span class="viz-button-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </span>
+                    Export
+                </button>
+                <div id="exportMenu" class="viz-export-menu">
+                    <div class="viz-export-item" data-format="svg">SVG Image</div>
+                    <div class="viz-export-item" data-format="png">PNG Image</div>
+                    <div class="viz-export-item" data-format="json">JSON Data</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Search Box -->
+        <div class="viz-search-container">
+            <span class="viz-search-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </span>
+            <input type="text" id="searchInput" class="viz-search-input" placeholder="Search...">
+        </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="viz-legend" id="vizLegend">
+        <!-- Legend items will be dynamically inserted here -->
+    </div>
+    
+    <!-- Diagram Container -->
+    <div class="viz-diagram-container">
+        <div id="vizDiagram" class="viz-diagram"></div>
+        
+        <!-- Info Panel -->
+        <div id="infoPanel" class="viz-info-panel">
+            <h3 id="infoPanelTitle" class="text-lg font-medium"></h3>
+            <div id="infoPanelContent"></div>
+        </div>
+        
+        <!-- Zoom Controls -->
+        <div class="viz-zoom-controls">
+            <button id="zoomInButton" class="viz-zoom-btn" title="Zoom In">+</button>
+            <button id="zoomOutButton" class="viz-zoom-btn" title="Zoom Out">−</button>
+            <button id="centerButton" class="viz-zoom-btn" title="Center View">⌂</button>
+            <button id="fullscreenButton" class="viz-zoom-btn" title="Fullscreen">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Mini Map (for node-based visualizations) -->
+        <div id="miniMap" class="viz-mini-map"></div>
+        
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="viz-loading-overlay">
+            <div class="viz-spinner"></div>
+            <span>Loading visualization...</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="{% static 'js/visualizations/viz-hub.js' %}"></script>
+{% endblock %}
