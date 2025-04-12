@@ -11,7 +11,7 @@ urlpatterns = [
     path('systems/', include('systems.urls')),
     path('workflows/', include('workflows.urls')),
     path('scripts/', include('scripts.urls')),
-    
+    path('planning/', include('planning.urls')),
     # Add Django's authentication views
     path('accounts/', include('django.contrib.auth.urls')),
 ]
