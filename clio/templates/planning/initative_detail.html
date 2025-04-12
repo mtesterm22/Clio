@@ -1,0 +1,878 @@
+{% extends "base.html" %}
+
+{% block title %}{{ initiative.name }} - Clio{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const showNavModal = document.getElementById('show-nav-modal');
+        const closeNavModal = document.getElementById('close-nav-modal');
+        const navModal = document.getElementById('nav-modal');
+        
+        if (showNavModal && closeNavModal && navModal) {
+            // Show modal
+            showNavModal.addEventListener('click', function() {
+                navModal.classList.remove('hidden');
+            });
+            
+            // Close modal
+            closeNavModal.addEventListener('click', function() {
+                navModal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking on a navigation link
+            navModal.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    navModal.classList.add('hidden');
+                });
+            });
+        }
+        
+        // Highlight the current section in the sidebar based on scroll position
+        const sections = document.querySelectorAll('[id="initiative-info"], [id="plans"], [id="milestones"], [id="tasks"], [id="resources"], [id="risks"], [id="documents"]');
+        const navLinks = document.querySelectorAll('.fixed nav a');
+        
+        function highlightNav() {
+            let scrollPosition = window.scrollY + 100; // Add offset for fixed header
+            
+            // Find the current section
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    // Remove active class from all links
+                    navLinks.forEach(link => {
+                        link.classList.remove('text-blue-600');
+                        link.classList.add('text-gray-600');
+                    });
+                    
+                    // Add active class to current section link
+                    const activeLink = document.querySelector(`.fixed nav a[href="#${section.id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.remove('text-gray-600');
+                        activeLink.classList.add('text-blue-600');
+                    }
+                }
+            });
+        }
+        
+        // Listen for scroll events
+        window.addEventListener('scroll', highlightNav);
+        
+        // Highlight initial section
+        highlightNav();
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    const headerOffset = 80; // Adjust based on your header height
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {{ initiative.name }}
+        </h2>
+        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if initiative.status == 'proposed' %}bg-blue-100 text-blue-800{% endif %}
+                    {% if initiative.status == 'approved' %}bg-yellow-100 text-yellow-800{% endif %}
+                    {% if initiative.status == 'in_progress' %}bg-purple-100 text-purple-800{% endif %}
+                    {% if initiative.status == 'completed' %}bg-green-100 text-green-800{% endif %}
+                    {% if initiative.status == 'canceled' %}bg-red-100 text-red-800{% endif %}">
+                    {{ initiative.get_status_display }}
+                </span>
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if initiative.priority == 'high' %}bg-red-100 text-red-800{% endif %}
+                    {% if initiative.priority == 'medium' %}bg-yellow-100 text-yellow-800{% endif %}
+                    {% if initiative.priority == 'low' %}bg-green-100 text-green-800{% endif %}">
+                    {{ initiative.get_priority_display }} Priority
+                </span>
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Owner: {% if initiative.owner %}{{ initiative.owner.get_full_name|default:initiative.owner.username }}{% else %}Unassigned{% endif %}
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Updated: {{ initiative.updated_at|date:"M d, Y" }}
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'planning:plan_create' %}?initiative={{ initiative.id }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            Create Plan
+        </a>
+        <a href="{% url 'planning:initiative_update' initiative.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Edit
+        </a>
+        <a href="{% url 'planning:initiative_delete' initiative.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            Delete
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Side Navigation Menu -->
+<div class="relative">
+    <!-- Side Navigation Menu - Fixed position on larger screens -->
+    <div class="hidden lg:block fixed right-4 top-32 w-48 bg-white rounded-lg shadow-lg p-4 z-10">
+        <h3 class="text-sm font-medium text-gray-900 mb-3 pb-2 border-b">On This Page</h3>
+        <nav class="space-y-1 text-sm">
+            <a href="#initiative-info" class="block py-1 text-blue-600 hover:text-blue-800">Initiative Information</a>
+            <a href="#plans" class="block py-1 text-gray-600 hover:text-blue-800">Plans</a>
+            <a href="#milestones" class="block py-1 text-gray-600 hover:text-blue-800">Milestones</a>
+            <a href="#tasks" class="block py-1 text-gray-600 hover:text-blue-800">Tasks</a>
+            <a href="#resources" class="block py-1 text-gray-600 hover:text-blue-800">Resource Allocations</a>
+            <a href="#risks" class="block py-1 text-gray-600 hover:text-blue-800">Risk Register</a>
+            <a href="#documents" class="block py-1 text-gray-600 hover:text-blue-800">Documents</a>
+        </nav>
+    </div>
+
+    <!-- Button to show mobile navigation modal on small screens -->
+    <button id="show-nav-modal" class="lg:hidden fixed right-4 bottom-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+    </button>
+
+    <!-- Mobile navigation modal -->
+    <div id="nav-modal" class="hidden fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Navigate to Section</h3>
+                        <nav class="space-y-2 text-md">
+                            <a href="#initiative-info" class="block py-2 text-blue-600 hover:text-blue-800">Initiative Information</a>
+                            <a href="#plans" class="block py-2 text-gray-600 hover:text-blue-800">Plans</a>
+                            <a href="#milestones" class="block py-2 text-gray-600 hover:text-blue-800">Milestones</a>
+                            <a href="#tasks" class="block py-2 text-gray-600 hover:text-blue-800">Tasks</a>
+                            <a href="#resources" class="block py-2 text-gray-600 hover:text-blue-800">Resource Allocations</a>
+                            <a href="#risks" class="block py-2 text-gray-600 hover:text-blue-800">Risk Register</a>
+                            <a href="#documents" class="block py-2 text-gray-600 hover:text-blue-800">Documents</a>
+                        </nav>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" id="close-nav-modal" class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Initiative Information -->
+<div id="initiative-info" class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Initiative Information
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Details about the initiative.
+        </p>
+    </div>
+    <div class="border-t border-gray-200">
+        <dl>
+            <!-- Description -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Description
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ initiative.description|linebreaksbr|default:"No description provided." }}
+                </dd>
+            </div>
+            
+            <!-- Timeline -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Timeline
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <div class="flex flex-col sm:flex-row sm:space-x-6">
+                        <div>
+                            <span class="font-medium text-gray-600">Start Date:</span> 
+                            {% if initiative.start_date %}
+                            {{ initiative.start_date|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-gray-400">Not set</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-600">Target Completion:</span> 
+                            {% if initiative.target_completion_date %}
+                            {{ initiative.target_completion_date|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-gray-400">Not set</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-600">Actual Completion:</span> 
+                            {% if initiative.actual_completion_date %}
+                            {{ initiative.actual_completion_date|date:"M d, Y" }}
+                            {% else %}
+                            <span class="text-gray-400">Not completed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </dd>
+            </div>
+            
+            <!-- Budget -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Budget Allocation
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if initiative.budget_allocation %}
+                    ${{ initiative.budget_allocation }}
+                    {% else %}
+                    <span class="text-gray-400">No budget allocated</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <!-- Resource Requirements -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Resource Requirements
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ initiative.resource_requirements|linebreaksbr|default:"No resource requirements specified." }}
+                </dd>
+            </div>
+            
+            <!-- Business Justification -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Business Justification
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ initiative.business_justification|linebreaksbr|default:"No business justification provided." }}
+                </dd>
+            </div>
+            
+            <!-- Success Criteria -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Success Criteria
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ initiative.success_criteria|linebreaksbr|default:"No success criteria specified." }}
+                </dd>
+            </div>
+            
+            <!-- Dependencies -->
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Dependencies
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if initiative.dependencies.count > 0 %}
+                    <ul class="list-disc pl-5 space-y-1">
+                        {% for dep in initiative.dependencies.all %}
+                        <li>
+                            <a href="{% url 'planning:initiative_detail' dep.id %}" class="text-blue-600 hover:text-blue-900">
+                                {{ dep.name }}
+                            </a>
+                            <span class="text-gray-500">({{ dep.get_status_display }})</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="text-gray-400">No dependencies</span>
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Plans -->
+<div id="plans" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Plans
+        </h3>
+        <a href="{% url 'planning:plan_create' %}?initiative={{ initiative.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Plan
+        </a>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created By
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Updated
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Progress
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for plan in plans %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            <a href="{% url 'planning:plan_detail' plan.id %}" class="text-blue-600 hover:text-blue-900">
+                                {{ plan.name }}
+                            </a>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ plan.description|truncatechars:50 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if plan.status == 'draft' %}bg-gray-100 text-gray-800{% endif %}
+                            {% if plan.status == 'approved' %}bg-blue-100 text-blue-800{% endif %}
+                            {% if plan.status == 'in_progress' %}bg-purple-100 text-purple-800{% endif %}
+                            {% if plan.status == 'completed' %}bg-green-100 text-green-800{% endif %}
+                            {% if plan.status == 'canceled' %}bg-red-100 text-red-800{% endif %}">
+                            {{ plan.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if plan.created_by %}
+                        {{ plan.created_by.get_full_name|default:plan.created_by.username }}
+                        {% else %}
+                        <span class="text-gray-400">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ plan.updated_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% with completed=plan.tasks.completed.count total=plan.tasks.count %}
+                        {% if total > 0 %}
+                        <div class="flex items-center">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {% widthratio completed total 100 %}%"></div>
+                            </div>
+                            <span class="ml-2 text-sm text-gray-700">{% widthratio completed total 100 %}%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">{{ completed }}/{{ total }} tasks completed</div>
+                        {% else %}
+                        <span class="text-gray-400">No tasks</span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'planning:plan_update' plan.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:plan_delete' plan.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No plans found. <a href="{% url 'planning:plan_create' %}?initiative={{ initiative.id }}" class="text-blue-600 hover:text-blue-900">Create your first plan</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Milestones -->
+<div id="milestones" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Milestones
+        </h3>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Plan
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Due Date
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tasks
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for milestone in milestones %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ milestone.name }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ milestone.description|truncatechars:50 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <a href="{% url 'planning:plan_detail' milestone.plan.id %}" class="text-blue-600 hover:text-blue-900">
+                            {{ milestone.plan.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ milestone.due_date|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if milestone.status == 'pending' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if milestone.status == 'in_progress' %}bg-blue-100 text-blue-800{% endif %}
+                            {% if milestone.status == 'completed' %}bg-green-100 text-green-800{% endif %}
+                            {% if milestone.status == 'missed' %}bg-red-100 text-red-800{% endif %}
+                            {% if milestone.status == 'canceled' %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ milestone.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ milestone.tasks.count }} tasks
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'planning:milestone_update' milestone.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:milestone_delete' milestone.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No milestones found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tasks -->
+<div id="tasks" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Tasks
+        </h3>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Plan
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Priority
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Assigned To
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Due Date
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for task in tasks %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            <a href="{% url 'planning:task_detail' task.id %}" class="text-blue-600 hover:text-blue-900">
+                                {{ task.name }}
+                            </a>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ task.description|truncatechars:50 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <a href="{% url 'planning:plan_detail' task.plan.id %}" class="text-blue-600 hover:text-blue-900">
+                            {{ task.plan.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if task.status == 'not_started' %}bg-gray-100 text-gray-800{% endif %}
+                            {% if task.status == 'in_progress' %}bg-blue-100 text-blue-800{% endif %}
+                            {% if task.status == 'blocked' %}bg-red-100 text-red-800{% endif %}
+                            {% if task.status == 'completed' %}bg-green-100 text-green-800{% endif %}
+                            {% if task.status == 'canceled' %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if task.priority == 'high' %}bg-red-100 text-red-800{% endif %}
+                            {% if task.priority == 'medium' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if task.priority == 'low' %}bg-green-100 text-green-800{% endif %}">
+                            {{ task.get_priority_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if task.assigned_to %}
+                        {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                        {% else %}
+                        <span class="text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if task.due_date %}
+                        {{ task.due_date|date:"M d, Y" }}
+                        {% else %}
+                        <span class="text-gray-400">No due date</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'planning:task_update' task.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:task_delete' task.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No tasks found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Resource Allocations -->
+<div id="resources" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Resource Allocations
+        </h3>
+        <a href="{% url 'planning:resource_allocation_create' initiative.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Resource
+        </a>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Allocation
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Timeline
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cost
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for resource in resources %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ resource.user.get_full_name|default:resource.user.username }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ resource.user.email }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ resource.role }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ resource.allocation_percentage }}%
+                        {% if resource.cost_center %}
+                        <div class="text-xs text-gray-400">
+                            Cost center: {{ resource.cost_center }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div>
+                            <span class="font-medium text-gray-600">From:</span> 
+                            {{ resource.start_date|date:"M d, Y" }}
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-600">To:</span> 
+                            {{ resource.end_date|date:"M d, Y" }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if resource.estimated_cost %}
+                        <div><span class="font-medium text-gray-600">Est:</span> ${{ resource.estimated_cost }}</div>
+                        {% endif %}
+                        {% if resource.actual_cost %}
+                        <div><span class="font-medium text-gray-600">Actual:</span> ${{ resource.actual_cost }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'planning:resource_allocation_update' resource.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:resource_allocation_delete' resource.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No resource allocations found. <a href="{% url 'planning:resource_allocation_create' initiative.id %}" class="text-blue-600 hover:text-blue-900">Add resources</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Risk Register -->
+<div id="risks" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Risk Register
+        </h3>
+        <a href="{% url 'planning:risk_create' initiative.id %}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Risk
+        </a>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Likelihood
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Impact
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Owner
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for risk in risks %}
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">
+                            {{ risk.description|truncatechars:100 }}
+                        </div>
+                        {% if risk.mitigation_strategy %}
+                        <div class="mt-1 text-xs text-gray-500">
+                            <span class="font-medium">Mitigation:</span> {{ risk.mitigation_strategy|truncatechars:80 }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if risk.likelihood == 'high' %}bg-red-100 text-red-800{% endif %}
+                            {% if risk.likelihood == 'medium' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if risk.likelihood == 'low' %}bg-green-100 text-green-800{% endif %}">
+                            {{ risk.get_likelihood_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if risk.impact == 'high' %}bg-red-100 text-red-800{% endif %}
+                            {% if risk.impact == 'medium' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if risk.impact == 'low' %}bg-green-100 text-green-800{% endif %}">
+                            {{ risk.get_impact_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if risk.status == 'identified' %}bg-blue-100 text-blue-800{% endif %}
+                            {% if risk.status == 'mitigating' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if risk.status == 'monitoring' %}bg-purple-100 text-purple-800{% endif %}
+                            {% if risk.status == 'resolved' %}bg-green-100 text-green-800{% endif %}
+                            {% if risk.status == 'accepted' %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ risk.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if risk.owner %}
+                        {{ risk.owner.get_full_name|default:risk.owner.username }}
+                        {% else %}
+                        <span class="text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'planning:risk_update' risk.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
+                        <a href="{% url 'planning:risk_delete' risk.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No risks identified. <a href="{% url 'planning:risk_create' initiative.id %}" class="text-blue-600 hover:text-blue-900">Add risks</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Documents -->
+<div id="documents" class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Documents
+        </h3>
+        <a href="{% url 'planning:document_upload' %}?initiative={{ initiative.id }}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Upload Document
+        </a>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Uploaded By
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Upload Date
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for document in documents %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ document.name }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ document.description|truncatechars:50 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ document.get_document_type_display }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if document.status == 'draft' %}bg-gray-100 text-gray-800{% endif %}
+                            {% if document.status == 'review' %}bg-yellow-100 text-yellow-800{% endif %}
+                            {% if document.status == 'approved' %}bg-green-100 text-green-800{% endif %}
+                            {% if document.status == 'superseded' %}bg-red-100 text-red-800{% endif %}">
+                            {{ document.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if document.created_by %}
+                        {{ document.created_by.get_full_name|default:document.created_by.username }}
+                        {% else %}
+                        <span class="text-gray-400">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ document.created_at|date:"M d, Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{{ document.document.url }}" class="text-blue-600 hover:text-blue-900 mr-3" target="_blank">Download</a>
+                        <a href="{% url 'planning:document_delete' document.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        No documents found. <a href="{% url 'planning:document_upload' %}?initiative={{ initiative.id }}" class="text-blue-600 hover:text-blue-900">Upload a document</a>.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
