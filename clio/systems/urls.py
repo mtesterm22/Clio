@@ -1,4 +1,4 @@
-# systems/urls.py (updated)
+# systems/urls.py
 
 from django.urls import path
 from . import views
@@ -13,6 +13,9 @@ urlpatterns = [
     path('<int:pk>/delete/', views.system_delete, name='delete'),
     path('relationships/', views.relationship_diagram, name='relationship_diagram'),
     path('api/relationships/', views.relationship_data, name='relationship_data'),
+    
+    # API endpoints for quick-edit functionality
+    path('<int:pk>/update-quick/', views.quick_update_system, name='quick_update_system'),
     
     # System notes management
     path('<int:system_pk>/notes/<int:note_pk>/edit/', views.edit_system_note, name='edit_note'),

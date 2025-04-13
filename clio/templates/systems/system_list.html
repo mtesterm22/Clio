@@ -1,7 +1,24 @@
-<!-- templates/systems/system_list.html (updated for dynamic categories and statuses) -->
+<!-- templates/systems/system_list.html (updated) -->
 {% extends "base.html" %}
 
 {% block title %}Systems - Clio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pagination-btn {
+        @apply px-3 py-1 border border-gray-300 rounded-md text-sm;
+    }
+    .pagination-btn.active {
+        @apply bg-blue-600 text-white border-blue-600;
+    }
+    .pagination-btn.disabled {
+        @apply opacity-50 cursor-not-allowed;
+    }
+    .sort-icon {
+        @apply ml-1 h-4 w-4 text-gray-400 group-hover:text-gray-500;
+    }
+</style>
+{% endblock %}
 
 {% block page_header %}
 <div class="md:flex md:items-center md:justify-between">
@@ -10,138 +27,205 @@
             Systems
         </h2>
     </div>
-    <!-- Add to the page_header block in templates/systems/system_list.html -->
-<div class="mt-4 flex md:mt-0 md:ml-4">
-    <a href="{% url 'systems:create' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-        Add System
-    </a>
-    <a href="{% url 'systems:relationship_diagram' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-        View Relationships
-    </a>
-    <div class="ml-3 relative">
-        <button id="settingsDropdown" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <span>Manage Settings</span>
-            <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-        </button>
-        <!-- Dropdown menu -->
-        <div id="settingsMenu" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-            <a href="{% url 'systems:category_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Manage Categories</a>
-            <a href="{% url 'systems:status_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Manage Statuses</a>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'systems:create' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Add System
+        </a>
+        <a href="{% url 'systems:relationship_diagram' %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            View Relationships
+        </a>
+        <div class="ml-3 relative">
+            <button id="settingsDropdown" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <span>Manage Settings</span>
+                <svg class="ml-2 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div id="settingsMenu" class="hidden origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <a href="{% url 'systems:category_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Manage Categories</a>
+                <a href="{% url 'systems:status_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Manage Statuses</a>
+            </div>
         </div>
     </div>
-</div>
-
-
 </div>
 {% endblock %}
 
 {% block content %}
-<!-- Filters -->
-<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6 p-4">
-    <form method="get" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
-        <div>
-            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-            <select id="status" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="">All Statuses</option>
-                {% for status in all_statuses %}
-                <option value="{{ status.id }}" {% if status.id|stringformat:"i" == status_filter %}selected{% endif %}>{{ status.name }}</option>
-                {% endfor %}
-            </select>
+<!-- Search Form -->
+<div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-4 sm:px-6 flex justify-between items-center border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Search & Filter</h3>
+        <button type="button" id="toggleSearchForm" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 toggle-icon-down" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 toggle-icon-up hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+            </svg>
+            <span id="toggleSearchText">Hide Filters</span>
+        </button>
+    </div>
+    <div id="searchFormContent" class="p-4">
+        <form method="get" id="searchForm" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <input type="text" name="search" id="search" class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md" placeholder="Search by name, description..." value="{{ request.GET.search|default:'' }}">
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select id="status" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">All Statuses</option>
+                    {% for status in all_statuses %}
+                    <option value="{{ status.id }}" {% if status.id|stringformat:"i" == status_filter %}selected{% endif %}>{{ status.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
+                <select id="category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">All Categories</option>
+                    {% for category in all_categories %}
+                    <option value="{{ category.id }}" {% if category.id|stringformat:"i" == category_filter %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="vendor" class="block text-sm font-medium text-gray-700">Vendor</label>
+                <select id="vendor" name="vendor" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">All Vendors</option>
+                    {% for vendor in all_vendors %}
+                    <option value="{{ vendor }}" {% if vendor == vendor_filter %}selected{% endif %}>{{ vendor }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-        <div>
-            <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-            <select id="category" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="">All Categories</option>
-                {% for category in all_categories %}
-                <option value="{{ category.id }}" {% if category.id|stringformat:"i" == category_filter %}selected{% endif %}>{{ category.name }}</option>
-                {% endfor %}
-            </select>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label for="sso_system" class="block text-sm font-medium text-gray-700">SSO System</label>
+                <select id="sso_system" name="sso_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">All SSO Systems</option>
+                    <option value="none" {% if sso_filter == "none" %}selected{% endif %}>No SSO</option>
+                    {% for sso in sso_systems %}
+                    <option value="{{ sso.id }}" {% if sso.id|stringformat:"i" == sso_filter %}selected{% endif %}>{{ sso.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="hosting_system" class="block text-sm font-medium text-gray-700">Hosting System</label>
+                <select id="hosting_system" name="hosting_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                    <option value="">All Hosting Systems</option>
+                    <option value="none" {% if hosting_filter == "none" %}selected{% endif %}>No Hosting</option>
+                    {% for host in hosting_systems %}
+                    <option value="{{ host.id }}" {% if host.id|stringformat:"i" == hosting_filter %}selected{% endif %}>{{ host.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <div class="w-full">
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium flex-grow">
+                            Search
+                        </button>
+                        <button type="button" id="resetSearchBtn" class="border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-md text-sm font-medium">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-            <label for="sso_system" class="block text-sm font-medium text-gray-700">SSO System</label>
-            <select id="sso_system" name="sso_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="">All SSO Systems</option>
-                <option value="none" {% if sso_filter == "none" %}selected{% endif %}>No SSO</option>
-                {% for sso in sso_systems %}
-                <option value="{{ sso.id }}" {% if sso.id|stringformat:"i" == sso_filter %}selected{% endif %}>{{ sso.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label for="hosting_system" class="block text-sm font-medium text-gray-700">Hosting System</label>
-            <select id="hosting_system" name="hosting_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                <option value="">All Hosting Systems</option>
-                <option value="none" {% if hosting_filter == "none" %}selected{% endif %}>No Hosting</option>
-                {% for host in hosting_systems %}
-                <option value="{{ host.id }}" {% if host.id|stringformat:"i" == hosting_filter %}selected{% endif %}>{{ host.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+
         <!-- Hidden fields for preserving sort parameters when filters are applied -->
-        <input type="hidden" name="sort" value="{{ request.GET.sort|default:'' }}">
-        <input type="hidden" name="direction" value="{{ request.GET.direction|default:'' }}">
-        <div>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium">
-                Filter
-            </button>
-            {% if status_filter or category_filter or sso_filter or hosting_filter %}
-            <a href="{% url 'systems:list' %}{% if request.GET.sort %}?sort={{ request.GET.sort }}&direction={{ request.GET.direction }}{% endif %}" class="ml-2 text-sm text-gray-600 hover:text-gray-800">
-                Clear Filters
-            </a>
-            {% endif %}
-        </div>
-    </form>
+        <input type="hidden" name="sort" value="{{ request.GET.sort|default:'name' }}">
+        <input type="hidden" name="direction" value="{{ request.GET.direction|default:'asc' }}">
+        <input type="hidden" name="page" value="1">
+        <input type="hidden" name="per_page" value="{{ request.GET.per_page|default:'25' }}">
+            </form>
+    </div>
 </div>
 
 <!-- Systems List -->
 <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <!-- Bulk actions toolbar -->
+    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-700">
+                    {% if paginator.count == 0 %}
+                        No systems found
+                    {% elif paginator.count == 1 %}
+                        1 system found
+                    {% else %}
+                        {{ paginator.count }} systems found
+                    {% endif %}
+                </span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div>
+                    <label for="perPage" class="sr-only">Per Page</label>
+                    <select id="perPage" name="per_page" class="mt-1 block w-full pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="10" {% if per_page == '10' %}selected{% endif %}>10 per page</option>
+                        <option value="25" {% if per_page == '25' %}selected{% endif %}>25 per page</option>
+                        <option value="50" {% if per_page == '50' %}selected{% endif %}>50 per page</option>
+                        <option value="100" {% if per_page == '100' %}selected{% endif %}>100 per page</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <a href="?sort=name&direction={% if request.GET.sort == 'name' and request.GET.direction == 'asc' %}desc{% else %}asc{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if sso_filter %}&sso_system={{ sso_filter }}{% endif %}{% if hosting_filter %}&hosting_system={{ hosting_filter }}{% endif %}" 
-                       class="group inline-flex items-center">
+                    <a href="javascript:void(0);" class="sort-link group inline-flex items-center" data-sort="name">
                         Name
-                        {% if request.GET.sort == 'name' %}
-                            {% if request.GET.direction == 'asc' %}
-                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
-                                </svg>
-                            {% else %}
-                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            {% endif %}
-                        {% endif %}
+                        <svg class="sort-icon {% if request.GET.sort == 'name' %}{% if request.GET.direction == 'asc' %}rotate-180{% endif %}{% else %}hidden{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
                     </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
+                    <a href="javascript:void(0);" class="sort-link group inline-flex items-center" data-sort="category">
+                        Category
+                        <svg class="sort-icon {% if request.GET.sort == 'category' %}{% if request.GET.direction == 'asc' %}rotate-180{% endif %}{% else %}hidden{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <a href="?sort=vendor&direction={% if request.GET.sort == 'vendor' and request.GET.direction == 'asc' %}desc{% else %}asc{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if sso_filter %}&sso_system={{ sso_filter }}{% endif %}{% if hosting_filter %}&hosting_system={{ hosting_filter }}{% endif %}" 
-                       class="group inline-flex items-center">
+                    <a href="javascript:void(0);" class="sort-link group inline-flex items-center" data-sort="vendor">
                         Vendor
-                        {% if request.GET.sort == 'vendor' %}
-                            {% if request.GET.direction == 'asc' %}
-                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
-                                </svg>
-                            {% else %}
-                                <svg class="ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            {% endif %}
-                        {% endif %}
+                        <svg class="sort-icon {% if request.GET.sort == 'vendor' %}{% if request.GET.direction == 'asc' %}rotate-180{% endif %}{% else %}hidden{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
                     </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    <a href="javascript:void(0);" class="sort-link group inline-flex items-center" data-sort="status">
+                        Status
+                        <svg class="sort-icon {% if request.GET.sort == 'status' %}{% if request.GET.direction == 'asc' %}rotate-180{% endif %}{% else %}hidden{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Updated
+                    <a href="javascript:void(0);" class="sort-link group inline-flex items-center" data-sort="updated_at">
+                        Last Updated
+                        <svg class="sort-icon {% if request.GET.sort == 'updated_at' %}{% if request.GET.direction == 'asc' %}rotate-180{% endif %}{% else %}hidden{% endif %}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
                 </th>
                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -150,7 +234,7 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
             {% for system in systems %}
-            <tr>
+            <tr class="hover:bg-gray-50" data-id="{{ system.id }}">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900">
                         <a href="{% url 'systems:detail' system.id %}" class="hover:text-blue-600">
@@ -177,8 +261,8 @@
                     {{ system.updated_at|date:"M d, Y" }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a href="{% url 'systems:update' system.id %}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
-                    <a href="{% url 'systems:delete' system.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                    <button type="button" class="text-blue-600 hover:text-blue-900 mr-3 quick-edit-btn">Edit</button>
+                    <a href="{% url 'systems:detail' system.id %}" class="text-blue-600 hover:text-blue-900">Details</a>
                 </td>
             </tr>
             {% empty %}
@@ -190,11 +274,154 @@
             {% endfor %}
         </tbody>
     </table>
+    
+    <!-- Pagination -->
+    {% if paginator.num_pages > 1 %}
+    <div class="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of <span class="font-medium">{{ paginator.count }}</span> results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <!-- Previous page button -->
+                    <a href="javascript:void(0);" data-page="{% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}" class="pagination-link relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 {% if not page_obj.has_previous %}opacity-50 cursor-not-allowed{% endif %}">
+                        <span class="sr-only">Previous</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    
+                    <!-- Page numbers -->
+                    {% for i in paginator.page_range %}
+                        {% if i == page_obj.number %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ i }}
+                            </span>
+                        {% elif i > page_obj.number|add:"-3" and i < page_obj.number|add:"3" %}
+                            <a href="javascript:void(0);" data-page="{{ i }}" class="pagination-link relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ i }}
+                            </a>
+                        {% elif i == 1 or i == paginator.num_pages %}
+                            <a href="javascript:void(0);" data-page="{{ i }}" class="pagination-link relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ i }}
+                            </a>
+                        {% elif i == page_obj.number|add:"-3" or i == page_obj.number|add:"3" %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- Next page button -->
+                    <a href="javascript:void(0);" data-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.number }}{% endif %}" class="pagination-link relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 {% if not page_obj.has_next %}opacity-50 cursor-not-allowed{% endif %}">
+                        <span class="sr-only">Next</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
+<!-- Quick Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Quick Edit System</h3>
+            <button type="button" id="closeEditModal" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <form id="quickEditForm">
+            {% csrf_token %}
+            <input type="hidden" id="editSystemId" name="id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="editName" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" id="editName" name="name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="editCategory" class="block text-sm font-medium text-gray-700">Category</label>
+                    <select id="editCategory" name="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        {% for category in all_categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="editStatus" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="editStatus" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        {% for status in all_statuses %}
+                        <option value="{{ status.id }}">{{ status.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="editVendor" class="block text-sm font-medium text-gray-700">Vendor</label>
+                    <input type="text" id="editVendor" name="vendor" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+            </div>
+            
+            <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelEdit" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </button>
+                <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md transform translate-y-10 opacity-0 transition-all duration-300 hidden">
+    <div class="flex items-center">
+        <svg class="h-6 w-6 text-green-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <p id="toastMessage"></p>
+    </div>
+</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Toggle search form
+        const toggleSearchFormBtn = document.getElementById('toggleSearchForm');
+        const searchFormContent = document.getElementById('searchFormContent');
+        const toggleSearchText = document.getElementById('toggleSearchText');
+        const toggleIconDown = document.querySelector('.toggle-icon-down');
+        const toggleIconUp = document.querySelector('.toggle-icon-up');
+        
+        if (toggleSearchFormBtn) {
+            toggleSearchFormBtn.addEventListener('click', function() {
+                if (searchFormContent.style.display === 'none') {
+                    searchFormContent.style.display = 'block';
+                    toggleSearchText.textContent = 'Hide Filters';
+                    toggleIconDown.classList.remove('hidden');
+                    toggleIconUp.classList.add('hidden');
+                } else {
+                    searchFormContent.style.display = 'none';
+                    toggleSearchText.textContent = 'Show Filters';
+                    toggleIconDown.classList.add('hidden');
+                    toggleIconUp.classList.remove('hidden');
+                }
+            });
+        }
+
+        // Settings dropdown
         const settingsDropdown = document.getElementById('settingsDropdown');
         const settingsMenu = document.getElementById('settingsMenu');
         
@@ -209,6 +436,214 @@
                     settingsMenu.classList.add('hidden');
                 }
             });
+        }
+        
+        // Per page selector
+        const perPageSelect = document.getElementById('perPage');
+        if (perPageSelect) {
+            perPageSelect.addEventListener('change', function() {
+                const searchForm = document.getElementById('searchForm');
+                const perPageInput = searchForm.querySelector('input[name="per_page"]');
+                perPageInput.value = this.value;
+                searchForm.querySelector('input[name="page"]').value = 1; // Reset to first page
+                searchForm.submit();
+            });
+        }
+        
+        // Reset search button
+        const resetBtn = document.getElementById('resetSearchBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                // Clear all form inputs except sort, direction, and per_page
+                const form = document.getElementById('searchForm');
+                const inputs = form.querySelectorAll('input:not([name="sort"]):not([name="direction"]):not([name="page"]):not([name="per_page"]), select:not([name="per_page"])');
+                inputs.forEach(input => {
+                    if (input.type === 'text' || input.tagName === 'SELECT') {
+                        input.value = '';
+                    } else if (input.type === 'checkbox') {
+                        input.checked = false;
+                    }
+                });
+                
+                // Reset to first page
+                form.querySelector('input[name="page"]').value = 1;
+                
+                // Submit the form
+                form.submit();
+            });
+        }
+        
+        // Sorting
+        const sortLinks = document.querySelectorAll('.sort-link');
+        sortLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const sortField = this.getAttribute('data-sort');
+                const currentSortField = document.querySelector('input[name="sort"]').value;
+                const currentDirection = document.querySelector('input[name="direction"]').value;
+                
+                let newDirection = 'asc';
+                if (sortField === currentSortField) {
+                    newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                }
+                
+                document.querySelector('input[name="sort"]').value = sortField;
+                document.querySelector('input[name="direction"]').value = newDirection;
+                document.getElementById('searchForm').submit();
+            });
+        });
+        
+        // Pagination
+        const paginationLinks = document.querySelectorAll('.pagination-link');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const page = this.getAttribute('data-page');
+                document.querySelector('input[name="page"]').value = page;
+                document.getElementById('searchForm').submit();
+            });
+        });
+        
+        // Quick Edit functionality
+        const quickEditButtons = document.querySelectorAll('.quick-edit-btn');
+        const editModal = document.getElementById('editModal');
+        const quickEditForm = document.getElementById('quickEditForm');
+        const closeEditBtn = document.getElementById('closeEditModal');
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        
+        // Open edit modal
+        quickEditButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const systemId = row.getAttribute('data-id');
+                
+                // Get the data directly from the row instead of using an API call
+                const systemName = row.querySelector('a').textContent.trim();
+                const categoryBadge = row.querySelectorAll('td')[1].querySelector('span');
+                const categoryName = categoryBadge.textContent.trim();
+                const vendorText = row.querySelectorAll('td')[2].textContent.trim();
+                const statusBadge = row.querySelectorAll('td')[3].querySelector('span');
+                const statusName = statusBadge.textContent.trim();
+                
+                // Find the category and status IDs by matching names
+                const categorySelect = document.getElementById('editCategory');
+                const statusSelect = document.getElementById('editStatus');
+                
+                let categoryId = '';
+                let statusId = '';
+                
+                // Find category ID by name
+                for (let i = 0; i < categorySelect.options.length; i++) {
+                    if (categorySelect.options[i].textContent.trim() === categoryName) {
+                        categoryId = categorySelect.options[i].value;
+                        break;
+                    }
+                }
+                
+                // Find status ID by name
+                for (let i = 0; i < statusSelect.options.length; i++) {
+                    if (statusSelect.options[i].textContent.trim() === statusName) {
+                        statusId = statusSelect.options[i].value;
+                        break;
+                    }
+                }
+                
+                // Populate the form
+                document.getElementById('editSystemId').value = systemId;
+                document.getElementById('editName').value = systemName;
+                document.getElementById('editCategory').value = categoryId;
+                document.getElementById('editStatus').value = statusId;
+                document.getElementById('editVendor').value = vendorText === '-' ? '' : vendorText;
+                
+                // Show the modal
+                editModal.classList.remove('hidden');
+            });
+        });
+        
+        // Close edit modal
+        if (closeEditBtn) {
+            closeEditBtn.addEventListener('click', function() {
+                editModal.classList.add('hidden');
+            });
+        }
+        
+        if (cancelEditBtn) {
+            cancelEditBtn.addEventListener('click', function() {
+                editModal.classList.add('hidden');
+            });
+        }
+        
+        // Submit quick edit form
+        if (quickEditForm) {
+            quickEditForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const systemId = formData.get('id');
+                
+                // Send AJAX request to update the system
+                fetch(`/systems/${systemId}/update-quick/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update system');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Close modal
+                    editModal.classList.add('hidden');
+                    
+                    // Show success message
+                    showToast('System updated successfully');
+                    
+                    // Reload the page to show updated data
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error updating system:', error);
+                    showToast('Error updating system', 'error');
+                });
+            });
+        }
+        
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            // Set message
+            toastMessage.textContent = message;
+            
+            // Set color based on type
+            if (type === 'error') {
+                toast.classList.remove('bg-green-100', 'border-green-500', 'text-green-700');
+                toast.classList.add('bg-red-100', 'border-red-500', 'text-red-700');
+                toast.querySelector('svg').classList.remove('text-green-500');
+                toast.querySelector('svg').classList.add('text-red-500');
+            } else {
+                toast.classList.remove('bg-red-100', 'border-red-500', 'text-red-700');
+                toast.classList.add('bg-green-100', 'border-green-500', 'text-green-700');
+                toast.querySelector('svg').classList.remove('text-red-500');
+                toast.querySelector('svg').classList.add('text-green-500');
+            }
+            
+            // Show toast
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+            
+            // Hide toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 3000);
         }
     });
 </script>

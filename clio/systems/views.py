@@ -5,8 +5,11 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User  # Add this import
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Q
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.decorators.http import require_POST, require_http_methods
 from .models import (
     System, SystemRelationship, SystemDocument, SystemNote,
     SystemCategory, SystemStatus, SystemAdministrator
@@ -24,11 +27,30 @@ def system_list(request):
     category_filter = request.GET.get('category')
     sso_filter = request.GET.get('sso_system')
     hosting_filter = request.GET.get('hosting_system')
+    vendor_filter = request.GET.get('vendor')
+    search_query = request.GET.get('search')
+    
+    # Pagination parameters
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 25)
+    
+    # Sorting parameters
     sort_by = request.GET.get('sort', 'name')  # Default sort by name
     sort_direction = request.GET.get('direction', 'asc')  # Default ascending
     
     # Start with all systems
     systems = System.objects.all().select_related('category', 'status', 'sso_system', 'hosting_system')
+    
+    # Apply search filter if provided
+    if search_query:
+        systems = systems.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(vendor__icontains=search_query) |
+            Q(operating_system__icontains=search_query) |
+            Q(contact_information__icontains=search_query) |
+            Q(support_information__icontains=search_query)
+        )
     
     # Apply filters if provided
     if status_filter:
@@ -36,6 +58,10 @@ def system_list(request):
     
     if category_filter:
         systems = systems.filter(category_id=category_filter)
+    
+    # Filter by vendor
+    if vendor_filter:
+        systems = systems.filter(vendor=vendor_filter)
     
     # Filter by SSO system
     if sso_filter:
@@ -51,18 +77,42 @@ def system_list(request):
         else:
             systems = systems.filter(hosting_system_id=hosting_filter)
     
-    # Apply sorting with nulls last
-    if sort_by in ['name', 'vendor']:
-        if sort_by == 'vendor':
-            # When sorting by vendor, put nulls last
-            if sort_direction == 'asc':
-                systems = systems.order_by(models.F(sort_by).asc(nulls_last=True))
-            else:
-                systems = systems.order_by(models.F(sort_by).desc(nulls_last=True))
+    # Apply primary and secondary sorting
+    order_fields = []
+    
+    # Primary sort
+    if sort_by in ['name', 'vendor', 'updated_at']:
+        # These fields are directly on the model and can be sorted with standard methods
+        if sort_direction == 'asc':
+            order_fields.append(sort_by)
         else:
-            # For name or other fields, standard ordering
-            order_prefix = '' if sort_direction == 'asc' else '-'
-            systems = systems.order_by(f'{order_prefix}{sort_by}')
+            order_fields.append(f'-{sort_by}')
+    elif sort_by == 'category':
+        # For category, we need to use annotate to sort by the related field name
+        systems = systems.annotate(
+            category_name=models.F('category__name')
+        )
+        if sort_direction == 'asc':
+            order_fields.append('category_name')
+        else:
+            order_fields.append('-category_name')
+    elif sort_by == 'status':
+        # For status, we need to use annotate to sort by the related field name
+        systems = systems.annotate(
+            status_name=models.F('status__name')
+        )
+        if sort_direction == 'asc':
+            order_fields.append('status_name')
+        else:
+            order_fields.append('-status_name')
+    
+    # Always add name as a secondary sort key if it's not the primary
+    if sort_by != 'name':
+        order_fields.append('name')
+    
+    # Apply the ordering
+    if order_fields:
+        systems = systems.order_by(*order_fields)
     
     # Get all available categories, statuses, and SSO systems for filters
     all_categories = SystemCategory.objects.all().order_by('order', 'name')
@@ -70,19 +120,88 @@ def system_list(request):
     sso_systems = System.objects.filter(sso_dependent_systems__isnull=False).distinct().order_by('name')
     hosting_systems = System.objects.filter(category__slug='server').order_by('name')
     
+    # Get all unique vendors for filtering
+    all_vendors = System.objects.exclude(vendor='').values_list('vendor', flat=True).distinct().order_by('vendor')
+    
+    # Paginate the results
+    paginator = Paginator(systems, per_page)
+    try:
+        systems = paginator.page(page)
+    except PageNotAnInteger:
+        systems = paginator.page(1)
+    except EmptyPage:
+        systems = paginator.page(paginator.num_pages)
+    
     context = {
         'systems': systems,
         'status_filter': status_filter,
         'category_filter': category_filter,
         'sso_filter': sso_filter,
         'hosting_filter': hosting_filter,
+        'vendor_filter': vendor_filter,
         'all_categories': all_categories,
         'all_statuses': all_statuses,
+        'all_vendors': all_vendors,
         'sso_systems': sso_systems,
         'hosting_systems': hosting_systems,
+        'paginator': paginator,
+        'page_obj': systems,
+        'per_page': per_page,
     }
     
     return render(request, 'systems/system_list.html', context)
+
+# API endpoint for getting system details
+@login_required
+def get_system_details(request, pk):
+    """API endpoint to get system details for editing"""
+    system = get_object_or_404(System, pk=pk)
+    
+    data = {
+        'id': system.id,
+        'name': system.name,
+        'category': {
+            'id': system.category.id,
+            'name': system.category.name
+        },
+        'status': {
+            'id': system.status.id,
+            'name': system.status.name
+        },
+        'vendor': system.vendor
+    }
+    
+    return JsonResponse(data)
+
+# API endpoint for quick-updating system details
+@login_required
+@require_POST
+def quick_update_system(request, pk):
+    """API endpoint to quickly update system details"""
+    system = get_object_or_404(System, pk=pk)
+    
+    # Update basic fields
+    name = request.POST.get('name')
+    category_id = request.POST.get('category')
+    status_id = request.POST.get('status')
+    vendor = request.POST.get('vendor')
+    
+    # Validate required fields
+    if not name or not category_id or not status_id:
+        return JsonResponse({'error': 'Missing required fields'}, status=400)
+    
+    # Get category and status objects
+    category = get_object_or_404(SystemCategory, pk=category_id)
+    status = get_object_or_404(SystemStatus, pk=status_id)
+    
+    # Update system
+    system.name = name
+    system.category = category
+    system.status = status
+    system.vendor = vendor
+    system.save()
+    
+    return JsonResponse({'success': True, 'message': 'System updated successfully'})
 
 @login_required
 def system_detail(request, pk):
@@ -224,6 +343,20 @@ def system_update(request, pk):
     
     return render(request, 'systems/system_form.html', {'form': form, 'system': system, 'title': 'Update System'})
 
+# This function is kept but will be removed from the URLs
+@login_required
+def system_delete(request, pk):
+    """Delete a system"""
+    system = get_object_or_404(System, pk=pk)
+    
+    if request.method == 'POST':
+        system_name = system.name
+        system.delete()
+        messages.success(request, f'System "{system_name}" was deleted successfully.')
+        return redirect('systems:list')
+    
+    return render(request, 'systems/system_confirm_delete.html', {'system': system})
+
 @login_required
 def add_system_administrator(request, system_pk):
     """Add or update an administrator for a system"""
@@ -283,7 +416,6 @@ def get_administrator_details(request, admin_pk):
     
     return JsonResponse(data)
 
-# @login_required  # Commented out for testing, but should be uncommented in production
 @login_required
 def save_system_relationships(request, pk):
     """API endpoint to save system relationships"""
@@ -371,41 +503,10 @@ def save_system_relationships(request, pk):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-
-@login_required
-def system_update(request, pk):
-    """Update an existing system"""
-    system = get_object_or_404(System, pk=pk)
-    
-    if request.method == 'POST':
-        form = SystemForm(request.POST, instance=system)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'System "{system.name}" was updated successfully.')
-            return redirect('systems:detail', pk=system.pk)
-    else:
-        form = SystemForm(instance=system)
-    
-    return render(request, 'systems/system_form.html', {'form': form, 'system': system, 'title': 'Update System'})
-
-@login_required
-def system_delete(request, pk):
-    """Delete a system"""
-    system = get_object_or_404(System, pk=pk)
-    
-    if request.method == 'POST':
-        system_name = system.name
-        system.delete()
-        messages.success(request, f'System "{system_name}" was deleted successfully.')
-        return redirect('systems:list')
-    
-    return render(request, 'systems/system_confirm_delete.html', {'system': system})
-
 @login_required
 def relationship_diagram(request):
     """Show the systems relationship diagram"""
     return render(request, 'systems/relationship_diagram.html')
-# Update to the relationship_data view in systems/views.py
 
 @login_required
 def relationship_data(request):
@@ -471,7 +572,6 @@ def relationship_data(request):
     
     return JsonResponse({'systems': systems, 'links': links})
 
-
 @login_required
 def delete_system_note(request, system_pk, note_pk):
     """Delete a system note"""
@@ -516,8 +616,8 @@ def edit_system_note(request, system_pk, note_pk):
         'note': note,
         'system': note.system
     })
-# Category and Status management views
 
+# Category and Status management views
 @login_required
 def category_list(request):
     """List and manage system categories"""
@@ -670,7 +770,7 @@ def status_delete(request, pk):
     
     return render(request, 'systems/status_confirm_delete.html', context)
 
-
+@login_required
 def systems_by_sso(request, sso_id):
     """View systems that use a specific SSO system"""
     sso_system = get_object_or_404(System, pk=sso_id)
@@ -684,7 +784,7 @@ def systems_by_sso(request, sso_id):
     
     return render(request, 'systems/systems_by_filter.html', context)
 
-
+@login_required
 def systems_by_host(request, host_id):
     """View systems hosted on a specific system"""
     host_system = get_object_or_404(System, pk=host_id)
