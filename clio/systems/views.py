@@ -797,3 +797,36 @@ def systems_by_host(request, host_id):
     }
     
     return render(request, 'systems/systems_by_filter.html', context)
+
+@login_required
+def system_disaster_analysis(request, pk):
+    """View for the system disaster impact analysis"""
+    system = get_object_or_404(System, pk=pk)
+    
+    # Get the dependencies and dependents
+    dependencies = [rel.source_system for rel in system.incoming_relationships.filter(relationship_type='depends_on').select_related('source_system__category', 'source_system__status')]
+    dependents = [rel.target_system for rel in system.outgoing_relationships.filter(relationship_type='depends_on').select_related('target_system__category', 'target_system__status')]
+    
+    # Get systems that use this as SSO
+    sso_dependents = system.sso_dependent_systems.all().select_related('category', 'status')
+    
+    # Get systems hosted on this system
+    hosted_systems = system.hosted_systems.all().select_related('category', 'status')
+    
+    # Get administrators for this system
+    administrators = system.administrators.all().select_related('user').order_by('-is_primary', 'user__first_name')
+    
+    # Get all systems for the visualization
+    all_systems = System.objects.all().select_related('category', 'status')
+    
+    context = {
+        'system': system,
+        'dependencies': dependencies,
+        'dependents': dependents,
+        'sso_dependents': sso_dependents,
+        'hosted_systems': hosted_systems,
+        'administrators': administrators,
+        'all_systems': all_systems,
+    }
+    
+    return render(request, 'systems/system_disaster_analysis.html', context)

@@ -43,4 +43,6 @@ urlpatterns = [
     # SSO System views
     path('by-sso/<int:sso_id>/', views.systems_by_sso, name='systems_by_sso'),
     path('by-host/<int:host_id>/', views.systems_by_host, name='systems_by_host'),
+
+    path('<int:pk>/disaster-analysis/', views.system_disaster_analysis, name='disaster_analysis'),
 ]
