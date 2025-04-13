@@ -405,6 +405,7 @@ def system_delete(request, pk):
 def relationship_diagram(request):
     """Show the systems relationship diagram"""
     return render(request, 'systems/relationship_diagram.html')
+# Update to the relationship_data view in systems/views.py
 
 @login_required
 def relationship_data(request):
@@ -413,7 +414,7 @@ def relationship_data(request):
     links = []
     
     # Get all systems with related category and status
-    all_systems = System.objects.all().select_related('category', 'status')
+    all_systems = System.objects.all().select_related('category', 'status', 'sso_system', 'hosting_system')
     
     for system in all_systems:
         # Get category and status information
@@ -432,11 +433,30 @@ def relationship_data(request):
             'is_active': system.status.is_active,
         } if system.status else {'slug': 'unknown', 'name': 'Unknown', 'color': '#f2f2f2', 'text_color': '#333333', 'is_active': False}
         
+        # Get SSO system data if present
+        sso_system = None
+        if system.sso_system:
+            sso_system = {
+                'id': system.sso_system.id,
+                'name': system.sso_system.name
+            }
+        
+        # Get hosting system data if present
+        hosting_system = None
+        if system.hosting_system:
+            hosting_system = {
+                'id': system.hosting_system.id,
+                'name': system.hosting_system.name
+            }
+        
         systems.append({
             'id': system.id,
             'name': system.name,
             'category': category,
             'status': status,
+            'vendor': system.vendor,
+            'sso_system': sso_system,
+            'hosting_system': hosting_system,
         })
     
     # Get all relationships
