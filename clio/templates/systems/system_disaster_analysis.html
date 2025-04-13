@@ -312,6 +312,17 @@
         font-size: 0.875rem;
     }
     
+    /* Node pulsing animation */
+    @keyframes pulse-node {
+        0% { stroke-width: 2px; r: attr(data-original-r px); }
+        50% { stroke-width: 3px; r: calc(attr(data-original-r px) * 1.2); }
+        100% { stroke-width: 2px; r: attr(data-original-r px); }
+    }
+    
+    .pulse-animation {
+        animation: pulse-node 2s infinite;
+    }
+    
     /* Responsive adjustments */
     @media (max-width: 640px) {
         #diagram-container {
@@ -437,6 +448,12 @@
                     </svg>
                     Show SSO
                 </button>
+                <button type="button" id="showImmediateImpactsButton" class="control-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Focus on Direct
+                </button>
             </div>
             
             <!-- Dependency Graph Visualization -->
@@ -461,6 +478,10 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #fef9c3; border: 1px solid #eab308;"></div>
                         <span>Tertiary Impact</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #dbeafe; border: 1px solid #60a5fa;"></div>
+                        <span>Distant Impact (4+)</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #e0f2fe; border: 1px solid #0ea5e9;"></div>
@@ -787,6 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let hideIntermediateNodes = false;
     let showHostingDependencies = true;
     let showSsoDependencies = true;
+    let nodes = []; // Global nodes array for reference in utility functions
     
     // Get DOM elements
     const runDisasterSimulationBtn = document.getElementById('runDisasterSimulation');
@@ -801,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleIntermediateButton = document.getElementById('toggleIntermediateButton');
     const toggleHostingButton = document.getElementById('toggleHostingButton');
     const toggleSsoButton = document.getElementById('toggleSsoButton');
+    const showImmediateImpactsButton = document.getElementById('showImmediateImpactsButton');
     
     // Zoom control buttons
     const zoomInButton = document.getElementById('zoomInButton');
@@ -843,6 +866,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (toggleSsoButton) {
         toggleSsoButton.addEventListener('click', toggleSso);
+    }
+    
+    if (showImmediateImpactsButton) {
+        showImmediateImpactsButton.addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (this.classList.contains('active')) {
+                showImmediateImpacts();
+            } else {
+                resetView();
+            }
+        });
     }
     
     if (zoomInButton) {
@@ -1049,9 +1083,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         allSystems.push(currentSystem);
         
+        // Add systems from related data
+        // This collects all known systems to create a complete graph
+        function addSystemToCollection(system) {
+            if (!allSystems.some(s => s.id === system.id)) {
+                allSystems.push(system);
+            }
+        }
+        
         // Add all systems that this system depends on
         {% for dep in dependencies %}
-        allSystems.push({
+        addSystemToCollection({
             id: {{ dep.id }},
             name: "{{ dep.name }}",
             category: {
@@ -1072,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add all systems that depend on this system
         {% for dep in dependents %}
-        allSystems.push({
+        addSystemToCollection({
             id: {{ dep.id }},
             name: "{{ dep.name }}",
             category: {
@@ -1091,283 +1133,285 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         {% endfor %}
         
-        // Remove duplicate systems by ID
-        const systemIds = new Set();
-        const uniqueSystems = allSystems.filter(system => {
-            if (systemIds.has(system.id)) {
-                return false;
-            }
-            systemIds.add(system.id);
-            return true;
+        // Add systems from other related collections
+        // Add systems from SSO dependents
+        {% if sso_dependents %}
+        {% for sso_dep in sso_dependents %}
+        addSystemToCollection({
+            id: {{ sso_dep.id }},
+            name: "{{ sso_dep.name }}",
+            category: {
+                slug: "{{ sso_dep.category.slug }}",
+                name: "{{ sso_dep.category.name }}",
+                color: "{{ sso_dep.category.color }}",
+                text_color: "{{ sso_dep.category.text_color }}"
+            },
+            status: {
+                slug: "{{ sso_dep.status.slug }}",
+                name: "{{ sso_dep.status.name }}",
+                color: "{{ sso_dep.status.color }}",
+                text_color: "{{ sso_dep.status.text_color }}"
+            },
+            vendor: "{{ sso_dep.vendor|default:'Unknown' }}"
         });
+        {% endfor %}
+        {% endif %}
+        
+        // Add systems from hosted systems
+        {% if hosted_systems %}
+        {% for hosted in hosted_systems %}
+        addSystemToCollection({
+            id: {{ hosted.id }},
+            name: "{{ hosted.name }}",
+            category: {
+                slug: "{{ hosted.category.slug }}",
+                name: "{{ hosted.category.name }}",
+                color: "{{ hosted.category.color }}",
+                text_color: "{{ hosted.category.text_color }}"
+            },
+            status: {
+                slug: "{{ hosted.status.slug }}",
+                name: "{{ hosted.status.name }}",
+                color: "{{ hosted.status.color }}",
+                text_color: "{{ hosted.status.text_color }}"
+            },
+            vendor: "{{ hosted.vendor|default:'Unknown' }}"
+        });
+        {% endfor %}
+        {% endif %}
         
         // Add all systems to the graph
-        uniqueSystems.forEach(system => {
+        allSystems.forEach(system => {
             graph.nodes[system.id] = system;
             graph.dependencies[system.id] = [];
             graph.dependents[system.id] = [];
         });
         
-        // Add direct dependencies based on the dependencies list
-        {% for dep in dependencies %}
-        if (!graph.dependencies[{{ system.id }}].includes({{ dep.id }})) {
-            graph.dependencies[{{ system.id }}].push({{ dep.id }});
-        }
-        if (!graph.dependents[{{ dep.id }}].includes({{ system.id }})) {
-            graph.dependents[{{ dep.id }}].push({{ system.id }});
-        }
-        {% endfor %}
+        // CRITICAL DEBUG STEP: Log the relationship data to verify we're getting everything
+        console.log("Building dependency graph with data:");
+        console.log("Dependencies (what I depend on):", {% for dep in dependencies %}{{ dep.id }}, {% endfor %});
+        console.log("Dependents (what depends on me):", {% for dep in dependents %}{{ dep.id }}, {% endfor %});
         
-        // Add direct dependents based on the dependents list
-        {% for dep in dependents %}
-        if (!graph.dependencies[{{ dep.id }}].includes({{ system.id }})) {
-            graph.dependencies[{{ dep.id }}].push({{ system.id }});
-        }
-        if (!graph.dependents[{{ system.id }}].includes({{ dep.id }})) {
-            graph.dependents[{{ system.id }}].push({{ dep.id }});
-        }
-        {% endfor %}
-
-        // Add SSO and hosting relationships - important for complete path visualization
-        {% if system.sso_system %}
-        graph.ssoRelations[{{ system.id }}] = {{ system.sso_system.id }};
-        // Add to graph.nodes if not already there
-        if (!graph.nodes[{{ system.sso_system.id }}]) {
-            graph.nodes[{{ system.sso_system.id }}] = {
-                id: {{ system.sso_system.id }},
-                name: "{{ system.sso_system.name }}",
-                category: {
-                    slug: "{{ system.sso_system.category.slug }}",
-                    name: "{{ system.sso_system.category.name }}",
-                    color: "{{ system.sso_system.category.color }}",
-                    text_color: "{{ system.sso_system.category.text_color }}"
-                },
-                status: {
-                    slug: "{{ system.sso_system.status.slug }}",
-                    name: "{{ system.sso_system.status.name }}",
-                    color: "{{ system.sso_system.status.color }}",
-                    text_color: "{{ system.sso_system.status.text_color }}"
-                },
-                vendor: "{{ system.sso_system.vendor|default:'Unknown' }}",
-                isSsoProvider: true
-            };
-            graph.dependencies[{{ system.sso_system.id }}] = [];
-            graph.dependents[{{ system.sso_system.id }}] = [];
-        }
-        if (!graph.dependencies[{{ system.id }}].includes({{ system.sso_system.id }})) {
-            graph.dependencies[{{ system.id }}].push({{ system.sso_system.id }});
-        }
-        if (!graph.dependents[{{ system.sso_system.id }}].includes({{ system.id }})) {
-            graph.dependents[{{ system.sso_system.id }}].push({{ system.id }});
-        }
-        {% endif %}
-        
-        {% if system.hosting_system %}
-        graph.hostingRelations[{{ system.id }}] = {{ system.hosting_system.id }};
-        // Add to graph.nodes if not already there
-        if (!graph.nodes[{{ system.hosting_system.id }}]) {
-            graph.nodes[{{ system.hosting_system.id }}] = {
-                id: {{ system.hosting_system.id }},
-                name: "{{ system.hosting_system.name }}",
-                category: {
-                    slug: "{{ system.hosting_system.category.slug }}",
-                    name: "{{ system.hosting_system.category.name }}",
-                    color: "{{ system.hosting_system.category.color }}",
-                    text_color: "{{ system.hosting_system.category.text_color }}"
-                },
-                status: {
-                    slug: "{{ system.hosting_system.status.slug }}",
-                    name: "{{ system.hosting_system.status.name }}",
-                    color: "{{ system.hosting_system.status.color }}",
-                    text_color: "{{ system.hosting_system.status.text_color }}"
-                },
-                vendor: "{{ system.hosting_system.vendor|default:'Unknown' }}",
-                isHostingProvider: true
-            };
-            graph.dependencies[{{ system.hosting_system.id }}] = [];
-            graph.dependents[{{ system.hosting_system.id }}] = [];
-        }
-        if (!graph.dependencies[{{ system.id }}].includes({{ system.hosting_system.id }})) {
-            graph.dependencies[{{ system.id }}].push({{ system.hosting_system.id }});
-        }
-        if (!graph.dependents[{{ system.hosting_system.id }}].includes({{ system.id }})) {
-            graph.dependents[{{ system.hosting_system.id }}].push({{ system.id }});
-        }
-        {% endif %}
-        
-        // Make sure all relationships are properly propagated
-        // This is critical to ensure non-first level dependencies are correctly tracked
-        const processedLinks = new Set();
-        
-        function ensureDependencyLinks(sourceId, targetId, connectionType) {
-            const linkKey = `${sourceId}-${targetId}`;
-            if (processedLinks.has(linkKey)) return;
-            processedLinks.add(linkKey);
+        // Add direct dependency relationships
+        function addDependencyRelationship(sourceId, targetId, type) {
+            // Skip if either node doesn't exist
+            if (!graph.nodes[sourceId] || !graph.nodes[targetId]) {
+                console.log(`Skipping relationship ${sourceId} -> ${targetId} (node missing)`);
+                return;
+            }
             
-            // Make sure both nodes exist
-            if (!graph.nodes[sourceId] || !graph.nodes[targetId]) return;
-            
-            // Add the dependency in both directions
+            // Add dependency: source depends on target
             if (!graph.dependencies[sourceId].includes(targetId)) {
                 graph.dependencies[sourceId].push(targetId);
             }
+            
+            // Add dependent: target is depended on by source
             if (!graph.dependents[targetId].includes(sourceId)) {
                 graph.dependents[targetId].push(sourceId);
             }
             
-            // If this is an SSO or hosting relationship, track it
-            if (connectionType === 'sso') {
+            // Track special relationship types
+            if (type === 'sso') {
                 graph.ssoRelations[sourceId] = targetId;
-            } else if (connectionType === 'hosting') {
+            } else if (type === 'hosting') {
                 graph.hostingRelations[sourceId] = targetId;
             }
         }
         
-        // Process all relationships from the server data
+        // Add direct dependencies: system depends on these
         {% for dep in dependencies %}
-        ensureDependencyLinks({{ system.id }}, {{ dep.id }}, 'direct');
+        addDependencyRelationship({{ system.id }}, {{ dep.id }}, 'direct');
         {% endfor %}
         
+        // Add direct dependents: these depend on system
         {% for dep in dependents %}
-        ensureDependencyLinks({{ dep.id }}, {{ system.id }}, 'direct');
+        addDependencyRelationship({{ dep.id }}, {{ system.id }}, 'direct');
         {% endfor %}
         
+        // Add SSO and hosting relationships
         {% if system.sso_system %}
-        ensureDependencyLinks({{ system.id }}, {{ system.sso_system.id }}, 'sso');
+        addDependencyRelationship({{ system.id }}, {{ system.sso_system.id }}, 'sso');
         {% endif %}
         
         {% if system.hosting_system %}
-        ensureDependencyLinks({{ system.id }}, {{ system.hosting_system.id }}, 'hosting');
+        addDependencyRelationship({{ system.id }}, {{ system.hosting_system.id }}, 'hosting');
         {% endif %}
         
         {% if sso_dependents %}
         {% for sso_dep in sso_dependents %}
-        ensureDependencyLinks({{ sso_dep.id }}, {{ system.id }}, 'sso');
+        addDependencyRelationship({{ sso_dep.id }}, {{ system.id }}, 'sso');
         {% endfor %}
         {% endif %}
         
         {% if hosted_systems %}
         {% for hosted in hosted_systems %}
-        ensureDependencyLinks({{ hosted.id }}, {{ system.id }}, 'hosting');
+        addDependencyRelationship({{ hosted.id }}, {{ system.id }}, 'hosting');
         {% endfor %}
         {% endif %}
+        
+        // DEBUG: Log dependency structure after building
+        console.log("Complete dependency graph structure:");
+        console.log("Nodes:", Object.keys(graph.nodes).length);
+        console.log("Dependencies of current system:", graph.dependencies[{{ system.id }}]);
+        console.log("Dependents on current system:", graph.dependents[{{ system.id }}]);
+        
+        // Verify graph connectivity by running a simple traversal
+        function countReachableNodes(startId) {
+            const visited = new Set();
+            const queue = [startId];
+            
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+                if (visited.has(currentId)) continue;
+                
+                visited.add(currentId);
+                const dependents = graph.dependents[currentId] || [];
+                
+                for (const dependentId of dependents) {
+                    if (!visited.has(dependentId)) {
+                        queue.push(dependentId);
+                    }
+                }
+            }
+            
+            return visited.size;
+        }
+        
+        const reachableCount = countReachableNodes({{ system.id }});
+
         
         return graph;
     }
     
     // Calculate impact tiers based on the dependency graph
     function calculateImpactTiers(systemId, dependencyGraph) {
-    console.log("Calculating impact tiers for system ID:", systemId);
-    console.log("Dependency graph:", dependencyGraph);
-    
-    // Map for impact level names
-    const impactLevelMap = {
-        0: 'primary',    // Was "critical"
-        1: 'secondary',  // Was "high"
-        2: 'tertiary',   // Was "medium"
-        3: 'quaternary', // Fourth level
-        4: 'quinary'     // Fifth level
-    };
-    
-    // Initialize impact arrays for each tier
-    const primaryImpact = [];
-    const secondaryImpact = [];
-    const tertiaryImpact = [];
-    const quaternaryImpact = [];
-    
-    // Track visited nodes to prevent duplicates
-    const visitedNodes = new Set([systemId]); // Mark the source system as visited
-    
-    // Track overall impact score
-    let criticalityScore = 0;
-    
-    // BFS approach for level-by-level dependency exploration
-    // This ensures we correctly identify each tier
-    const queue = [{id: systemId, level: 0, path: [systemId]}];
-    
-    while (queue.length > 0) {
-        const { id, level, path } = queue.shift();
+        console.log("Calculating impact tiers for system ID:", systemId);
         
-        // Get all systems that depend on this one
-        const dependents = dependencyGraph.dependents[id] || [];
+        // Use more explicit naming to avoid confusion about what the arrays contain
+        const directImpactSystems = []; // Primary (level 1)
+        const secondLevelImpactSystems = []; // Secondary (level 2)
+        const thirdLevelImpactSystems = []; // Tertiary (level 3)
+        const distantImpactSystems = []; // Quaternary+ (level 4+)
         
-        dependents.forEach(dependentId => {
-            // Skip if already visited or if this is the source system
-            if (visitedNodes.has(dependentId) || dependentId === systemId) return;
-            visitedNodes.add(dependentId);
+        // Track visited nodes to prevent duplicates and cycles
+        const visitedNodes = new Set([systemId]); // Mark the source system as visited
+        
+        // Track overall impact score
+        let criticalityScore = 0;
+        
+        // Using BFS to traverse the graph level by level
+        // Structure: [{id: systemId, level: 0, path: [systemId], sourceNode: null}]
+        const queue = [{id: systemId, level: 0, path: [systemId], sourceNode: null}];
+        
+        // Process all nodes in the queue
+        while (queue.length > 0) {
+            const { id, level, path, sourceNode } = queue.shift();
             
-            // Get system data
-            const system = dependencyGraph.nodes[dependentId];
-            if (!system) return; // Skip if system data not found
+            // DEBUG: Log each node being processed
+            console.log(`Processing node ${id} at level ${level}`);
             
-            // Determine impact level based on distance from source
-            const nextLevel = level + 1;
-            const impactLevel = impactLevelMap[nextLevel] || 'quaternary'; // Default to quaternary for deep levels
-            
-            // Calculate impact score with diminishing factor by level
-            const tierFactor = Math.max(0.2, 1 - (nextLevel * 0.2));
-            const impact = calculateSystemImpact(system, tierFactor);
-            
-            // Create the impact data object
-            const impactData = {
-                ...system,
-                impact,
-                impactLevel,
-                connectionType: getConnectionType(id, dependentId, dependencyGraph),
-                sourceNode: id, // Track the direct source of this dependency
-                path: [...path, dependentId] // Track the full path for visualization
-            };
-            
-            // Add to appropriate impact array based on level
-            if (nextLevel === 1) {
-                primaryImpact.push(impactData);
-                criticalityScore += impact;
-            } else if (nextLevel === 2) {
-                secondaryImpact.push(impactData);
-                criticalityScore += impact * 0.8;
-            } else if (nextLevel === 3) {
-                tertiaryImpact.push(impactData);
-                criticalityScore += impact * 0.6;
-            } else {
-                quaternaryImpact.push(impactData);
-                criticalityScore += impact * 0.4;
+            if (level > 0) {
+                // This is not the source system
+                // Create impact data for this system
+                const system = dependencyGraph.nodes[id];
+                if (!system) {
+                    console.log(`WARNING: Missing node data for system ${id}`);
+                    continue;
+                }
+                
+                // Calculate impact score with diminishing factor by level
+                const tierFactor = Math.max(0.1, 1 - (level * 0.2));
+                const impact = calculateSystemImpact(system, tierFactor);
+                
+                // Create the impact data
+                const impactData = {
+                    ...system,
+                    impact,
+                    impactLevel: getImpactLevelName(level),
+                    distanceFromSource: level,
+                    connectionType: getConnectionType(sourceNode, id, dependencyGraph),
+                    sourceNode: sourceNode,
+                    path: path
+                };
+                
+                // Add to appropriate impact array based on level
+                if (level === 1) {
+                    directImpactSystems.push(impactData);
+                    criticalityScore += impact;
+                } else if (level === 2) {
+                    secondLevelImpactSystems.push(impactData);
+                    criticalityScore += impact * 0.7;
+                } else if (level === 3) {
+                    thirdLevelImpactSystems.push(impactData);
+                    criticalityScore += impact * 0.5;
+                } else {
+                    distantImpactSystems.push(impactData);
+                    criticalityScore += impact * 0.3;
+                }
             }
             
-            // Add to queue for next level processing
-            queue.push({
-                id: dependentId,
-                level: nextLevel,
-                path: [...path, dependentId]
-            });
-        });
+            // Get systems that depend on this one (will be affected if this system fails)
+            const dependentIds = dependencyGraph.dependents[id] || [];
+            console.log(`Node ${id} has ${dependentIds.length} dependents: ${dependentIds.join(', ')}`);
+            
+            // Process each dependent
+            for (const dependentId of dependentIds) {
+                // Skip if already visited to avoid cycles
+                if (visitedNodes.has(dependentId)) {
+                    console.log(`Skipping already visited node ${dependentId}`);
+                    continue;
+                }
+                
+                // Mark as visited to avoid reprocessing
+                visitedNodes.add(dependentId);
+                
+                // Add to queue for processing at next level
+                queue.push({
+                    id: dependentId,
+                    level: level + 1,
+                    path: [...path, dependentId],
+                    sourceNode: id
+                });
+                
+                console.log(`Added node ${dependentId} to queue at level ${level + 1}`);
+            }
+        }
+        
+        // Sort each tier by impact score (descending)
+        directImpactSystems.sort((a, b) => b.impact - a.impact);
+        secondLevelImpactSystems.sort((a, b) => b.impact - a.impact);
+        thirdLevelImpactSystems.sort((a, b) => b.impact - a.impact);
+        distantImpactSystems.sort((a, b) => b.impact - a.impact);
+        
+        // Log the results for debugging
+        console.log(`Found ${directImpactSystems.length} direct impact systems.`);
+        console.log(`Found ${secondLevelImpactSystems.length} secondary impact systems.`);
+        console.log(`Found ${thirdLevelImpactSystems.length} tertiary impact systems.`);
+        console.log(`Found ${distantImpactSystems.length} distant impact systems.`);
+        
+        return {
+            primaryImpact: directImpactSystems,
+            secondaryImpact: secondLevelImpactSystems,
+            tertiaryImpact: thirdLevelImpactSystems,
+            quaternaryImpact: distantImpactSystems,
+            criticalityScore,
+            recoveryTime: estimateRecoveryTime(directImpactSystems, secondLevelImpactSystems, thirdLevelImpactSystems),
+            systemsCount: directImpactSystems.length + secondLevelImpactSystems.length + 
+                         thirdLevelImpactSystems.length + distantImpactSystems.length,
+            userImpact: estimateUserImpact(directImpactSystems, criticalityScore),
+            businessImpact: estimateBusinessImpact(directImpactSystems, secondLevelImpactSystems, systemId, dependencyGraph)
+        };
     }
     
-    // Log the results for debugging
-    console.log("Impact tiers calculated:", {
-        primaryImpact,
-        secondaryImpact,
-        tertiaryImpact,
-        quaternaryImpact
-    });
-    
-    // Sort each tier by impact score (descending)
-    primaryImpact.sort((a, b) => b.impact - a.impact);
-    secondaryImpact.sort((a, b) => b.impact - a.impact);
-    tertiaryImpact.sort((a, b) => b.impact - a.impact);
-    quaternaryImpact.sort((a, b) => b.impact - a.impact);
-    
-    return {
-        primaryImpact,
-        secondaryImpact,
-        tertiaryImpact,
-        quaternaryImpact,
-        criticalityScore,
-        recoveryTime: estimateRecoveryTime(primaryImpact, secondaryImpact, tertiaryImpact),
-        systemsCount: primaryImpact.length + secondaryImpact.length + tertiaryImpact.length + quaternaryImpact.length,
-        userImpact: estimateUserImpact(primaryImpact, criticalityScore),
-        businessImpact: estimateBusinessImpact(primaryImpact, secondaryImpact, systemId, dependencyGraph)
-    };
-}
+    // Helper function to get impact level name from level number
+    function getImpactLevelName(level) {
+        switch(level) {
+            case 1: return 'primary';
+            case 2: return 'secondary';
+            case 3: return 'tertiary';
+            default: return 'quaternary'; // Level 4 and beyond
+        }
+    }
     
     // Helper function to determine the connection type between two systems
     function getConnectionType(sourceId, targetId, graph) {
@@ -1667,7 +1711,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const g = svg.append('g');
         
         // Create graph data structure for D3
-        const nodes = [];
+        nodes = []; // Use the global nodes array
         const links = [];
         
         // Function to add a system to nodes if not already present
@@ -1680,6 +1724,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     status: system.status,
                     vendor: system.vendor,
                     impactLevel: system.impactLevel,
+                    distanceFromSource: system.distanceFromSource || 0,
                     isSsoProvider: system.isSsoProvider,
                     isHostingProvider: system.isHostingProvider
                 });
@@ -1707,7 +1752,8 @@ document.addEventListener('DOMContentLoaded', function() {
             category: dependencyGraph.nodes[systemId].category,
             status: dependencyGraph.nodes[systemId].status,
             vendor: dependencyGraph.nodes[systemId].vendor,
-            isMainSystem: true
+            isMainSystem: true,
+            distanceFromSource: 0
         });
         
         // Add primary impact systems and their connections
@@ -1777,6 +1823,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add circles to nodes
         node.append('circle')
             .attr('r', d => getNodeRadius(d))
+            .attr('data-original-r', d => getNodeRadius(d)) // Store original radius for animations
             .attr('fill', d => getNodeFill(d))
             .attr('stroke', d => getNodeStroke(d))
             .attr('class', 'system-node')
@@ -1827,6 +1874,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
         svg.call(zoomInstance);
+        
+        // Apply connection styles
+        updateConnectionStyles();
         
         // Tick function for the force simulation
         simulation.on('tick', () => {
@@ -1884,44 +1934,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Expose simulation for later use
         simulation.nodes(nodes);
         this.simulation = simulation;
-        
-        // Helper function: Get node radius based on node type
-        function getNodeRadius(node) {
-            if (node.isMainSystem) return 25;
-            if (node.isSsoProvider || node.isHostingProvider) return 22;
-            if (node.impactLevel === 'primary') return 20;
-            if (node.impactLevel === 'secondary') return 16;
-            if (node.impactLevel === 'tertiary') return 14;
-            return 12;
-        }
-        
-        // Helper function: Get node fill color based on node type and impact level
-        function getNodeFill(node) {
-            if (node.isMainSystem) return '#ffd700'; // Gold for main system
-            if (node.isSsoProvider) return '#e0f2fe'; // Light blue for SSO provider
-            if (node.isHostingProvider) return '#f3e8ff'; // Light purple for hosting provider
-            if (node.impactLevel === 'primary') return '#fee2e2'; // Red bg for primary
-            if (node.impactLevel === 'secondary') return '#ffedd5'; // Orange bg for secondary
-            if (node.impactLevel === 'tertiary') return '#fef9c3'; // Yellow bg for tertiary
-            if (node.impactLevel === 'quaternary') return '#e0f2fe'; // Light blue for quaternary
-            
-            // Default by category
-            return node.category?.color || '#f5f5f5';
-        }
-        
-        // Helper function: Get node stroke color
-        function getNodeStroke(node) {
-            if (node.isMainSystem) return '#ff8c00'; // Orange stroke for main
-            if (node.isSsoProvider) return '#0ea5e9'; // Blue stroke for SSO
-            if (node.isHostingProvider) return '#a855f7'; // Purple stroke for hosting
-            if (node.impactLevel === 'primary') return '#ef4444'; // Red for primary
-            if (node.impactLevel === 'secondary') return '#f97316'; // Orange for secondary
-            if (node.impactLevel === 'tertiary') return '#eab308'; // Yellow for tertiary
-            if (node.impactLevel === 'quaternary') return '#0ea5e9'; // Blue for quaternary
-            
-            // Default by category
-            return node.category?.text_color || '#999';
-        }
         
         // Drag handlers
         function dragStarted(event) {
@@ -2036,6 +2048,129 @@ document.addEventListener('DOMContentLoaded', function() {
             // Center view on this node
             centerOnNode(nodeData);
         };
+    }
+    
+    // Update link opacity and stroke width based on connection type
+    function updateConnectionStyles() {
+        // For the links
+        d3.selectAll('.connection')
+            .attr('stroke-width', function(d) {
+                // Determine tier level from target node
+                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
+                
+                if (!targetNode) return 1.5;
+                
+                // Highlight links connected to main system
+                if (sourceNode && sourceNode.isMainSystem) {
+                    return 3; // Make direct connections from main system thicker
+                }
+                
+                const level = targetNode.impactLevel;
+                
+                // Direct connections heavier
+                if (level === 'primary') return 2.5;
+                if (level === 'secondary') return 2;
+                if (level === 'tertiary') return 1.5;
+                return 1; // Thinner lines for quaternary+
+            })
+            .attr('stroke-opacity', function(d) {
+                // Determine tier level from target node
+                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
+                
+                if (!targetNode) return 0.6;
+                
+                // Highlight links connected to main system
+                if (sourceNode && sourceNode.isMainSystem) {
+                    return 1.0; // Make direct connections from main system fully visible
+                }
+                
+                const level = targetNode.impactLevel;
+                
+                // Direct connections more visible
+                if (level === 'primary') return 0.8;
+                if (level === 'secondary') return 0.7;
+                if (level === 'tertiary') return 0.6;
+                return 0.4; // More transparent for quaternary+
+            });
+    }
+    
+    // Function to show immediate impacts
+    function showImmediateImpacts() {
+        console.log("Showing immediate impacts");
+        console.log("Number of nodes:", d3.selectAll('.node').size());
+        console.log("Node impact levels:", nodes.map(n => `${n.id}: ${n.impactLevel}`));
+        
+        // Hide the failure paths first
+        d3.selectAll('.failure-path').remove();
+        
+        // Count nodes by impact level
+        const impactCounts = {
+            primary: 0,
+            secondary: 0,
+            tertiary: 0,
+            quaternary: 0
+        };
+        
+        // Focus on primary impacts
+        d3.selectAll('.node').each(function(d) {
+            if (d) {
+                if (d.impactLevel) {
+                    impactCounts[d.impactLevel] = (impactCounts[d.impactLevel] || 0) + 1;
+                }
+                
+                if (d.impactLevel === 'primary') {
+                    d3.select(this).style('opacity', 1);
+                    
+                    // Add pulsing animation to primary impact nodes
+                    const circle = d3.select(this).select('circle');
+                    
+                    // Store original radius
+                    const originalRadius = parseFloat(circle.attr('r'));
+                    
+                    // Add pulsing animation
+                    circle.transition()
+                        .duration(800)
+                        .attr('r', originalRadius * 1.2)
+                        .transition()
+                        .duration(800)
+                        .attr('r', originalRadius)
+                        .on('end', function repeat() {
+                            d3.select(this)
+                                .transition()
+                                .duration(800)
+                                .attr('r', originalRadius * 1.2)
+                                .transition()
+                                .duration(800)
+                                .attr('r', originalRadius)
+                                .on('end', repeat);
+                        });
+                    
+                } else if (d.isMainSystem) {
+                    d3.select(this).style('opacity', 1);
+                } else {
+                    d3.select(this).style('opacity', 0.2);
+                }
+            }
+        });
+        
+        console.log("Impact counts:", impactCounts);
+        
+        // Only show connections to primary impacts
+        d3.selectAll('.connection').each(function(d) {
+            if (d && d.target) {
+                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
+                
+                if ((targetNode && targetNode.impactLevel === 'primary') || 
+                    (sourceNode && sourceNode.isMainSystem)) {
+                    d3.select(this).style('opacity', 0.8).attr('stroke-width', 3);
+                } else {
+                    d3.select(this).style('opacity', 0.1);
+                }
+            }
+        });
     }
     
     // Show complete failure propagation paths
@@ -2156,8 +2291,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     impactText = 'Tertiary Impact';
                     break;
                 case 'quaternary':
+                    const distanceText = node.distanceFromSource >= 4 ? 
+                        ` (Level ${node.distanceFromSource})` : '';
                     badgeClass = 'bg-blue-100 text-blue-800';
-                    impactText = 'Quaternary Impact';
+                    impactText = `Distant Impact${distanceText}`;
                     break;
                 default:
                     badgeClass = 'bg-gray-100 text-gray-800';
@@ -2231,6 +2368,21 @@ document.addEventListener('DOMContentLoaded', function() {
             zoomInstance.transform, d3.zoomIdentity
         );
         
+        // Set normal opacity for all nodes
+        d3.selectAll('.node').style('opacity', 1);
+        
+        // Apply standard connection styling
+        updateConnectionStyles();
+        
+        // Stop any animations
+        d3.selectAll('.system-node').interrupt();
+        
+        // Reset to original radius
+        d3.selectAll('.system-node').each(function(d) {
+            const originalRadius = d3.select(this).attr('data-original-r');
+            d3.select(this).attr('r', originalRadius);
+        });
+        
         // Hide info panel
         hideInfoPanel();
     }
@@ -2290,6 +2442,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Restart simulation to apply changes
         simulation.alpha(0.3).restart();
         
+        // Apply consistent connection styles
+        updateConnectionStyles();
+        
         // Fit all nodes into view
         setTimeout(fitAllNodes, 500);
     }
@@ -2321,24 +2476,39 @@ document.addEventListener('DOMContentLoaded', function() {
             // Hide tertiary and quaternary impact nodes
             d3.selectAll('.node').each(function(d) {
                 if (d && (d.impactLevel === 'tertiary' || d.impactLevel === 'quaternary')) {
-                    d3.select(this).style('opacity', 0.2);
+                    d3.select(this).style('opacity', 0.15);
+                } else if (d && d.impactLevel === 'secondary') {
+                    // Dim secondary a bit too
+                    d3.select(this).style('opacity', 0.5);
                 }
             });
             
             // Hide links to tertiary and quaternary impact nodes
             d3.selectAll('.connection').each(function(d) {
-                if (d && d.target && (d.target.impactLevel === 'tertiary' || d.target.impactLevel === 'quaternary')) {
-                    d3.select(this).style('opacity', 0.2);
+                if (d && d.target) {
+                    const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
+                    if (targetNode && (targetNode.impactLevel === 'tertiary' || targetNode.impactLevel === 'quaternary')) {
+                        d3.select(this).style('opacity', 0.15);
+                    } else if (targetNode && targetNode.impactLevel === 'secondary') {
+                        // Dim secondary a bit too
+                        d3.select(this).style('opacity', 0.3);
+                    }
                 }
             });
         } else {
             button.classList.remove('active');
             
-            // Show all nodes
-            d3.selectAll('.node').style('opacity', 1);
+            // Show all nodes with appropriate opacity based on level
+            d3.selectAll('.node').each(function(d) {
+                if (d && d.impactLevel === 'quaternary') {
+                    d3.select(this).style('opacity', 0.8);
+                } else {
+                    d3.select(this).style('opacity', 1);
+                }
+            });
             
-            // Show all links
-            d3.selectAll('.connection').style('opacity', 0.6);
+            // Apply standard connection styling
+            updateConnectionStyles();
         }
     }
     
@@ -2472,10 +2642,53 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
     
+    // Helper: Get node radius based on node type
+    function getNodeRadius(node) {
+        if (node.isMainSystem) return 28; // Slightly larger main system
+        if (node.isSsoProvider || node.isHostingProvider) return 22;
+        
+        // Size by impact level
+        if (node.impactLevel === 'primary') return 20;
+        if (node.impactLevel === 'secondary') return 16;
+        if (node.impactLevel === 'tertiary') return 14;
+        
+        // All quaternary nodes get smaller size
+        return 10;
+    }
+    
+    // Helper: Get node fill color based on node type and impact level
+    function getNodeFill(node) {
+        if (node.isMainSystem) return '#ffd700'; // Gold for main system
+        if (node.isSsoProvider) return '#e0f2fe'; // Light blue for SSO provider
+        if (node.isHostingProvider) return '#f3e8ff'; // Light purple for hosting provider
+        
+        // Impact levels
+        if (node.impactLevel === 'primary') return '#fee2e2'; // Red bg for primary
+        if (node.impactLevel === 'secondary') return '#ffedd5'; // Orange bg for secondary
+        if (node.impactLevel === 'tertiary') return '#fef9c3'; // Yellow bg for tertiary
+        
+        // Quaternary nodes get lower opacity based on distance
+        return node.distanceFromSource >= 4 ? '#dbeafe99' : '#dbeafe'; // Light blue with opacity for quaternary+
+    }
+    
+    // Helper: Get node stroke color
+    function getNodeStroke(node) {
+        if (node.isMainSystem) return '#ff8c00'; // Orange stroke for main
+        if (node.isSsoProvider) return '#0ea5e9'; // Blue stroke for SSO
+        if (node.isHostingProvider) return '#a855f7'; // Purple stroke for hosting
+        
+        // Impact levels
+        if (node.impactLevel === 'primary') return '#ef4444'; // Red for primary
+        if (node.impactLevel === 'secondary') return '#f97316'; // Orange for secondary
+        if (node.impactLevel === 'tertiary') return '#eab308'; // Yellow for tertiary
+        
+        // Quaternary nodes - use lighter stroke for distant nodes
+        return node.distanceFromSource >= 4 ? '#60a5fa88' : '#60a5fa'; // Blue for quaternary with opacity
+    }
+    
     // Zoom in
     function zoomIn() {
         const svg = d3.select('#disaster-graph svg');
-        const currentTransform = d3.zoomTransform(svg.node());
         
         svg.transition().duration(300).call(
             zoomInstance.scaleBy, 1.5
