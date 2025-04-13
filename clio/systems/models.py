@@ -170,3 +170,22 @@ class SystemAdministrator(models.Model):
         
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {self.system.name}"
+
+class DisasterRecoveryStep(models.Model):
+    """Model for system disaster recovery steps"""
+    system = models.ForeignKey(System, on_delete=models.CASCADE, related_name='recovery_steps')
+    order = models.PositiveIntegerField(default=0)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    responsible_team = models.CharField(max_length=255, blank=True)
+    estimated_time = models.CharField(max_length=50, blank=True, help_text="Estimated time to complete this step")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_recovery_steps')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['order']
+        unique_together = ('system', 'order')
+    
+    def __str__(self):
+        return f"Step {self.order}: {self.title} - {self.system.name}"

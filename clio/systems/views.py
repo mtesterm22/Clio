@@ -12,11 +12,11 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.http import require_POST, require_http_methods
 from .models import (
     System, SystemRelationship, SystemDocument, SystemNote,
-    SystemCategory, SystemStatus, SystemAdministrator
+    SystemCategory, SystemStatus, SystemAdministrator, DisasterRecoveryStep
 )
 from .forms import (
     SystemForm, SystemRelationshipForm, SystemDocumentForm, SystemNoteForm,
-    SystemAdministratorForm, SystemCategoryForm, SystemStatusForm  
+    SystemAdministratorForm, SystemCategoryForm, SystemStatusForm  , DisasterRecoveryStepForm
 )
 from scripts.models import Script, ScriptSystemRelationship
 
@@ -816,6 +816,9 @@ def system_disaster_analysis(request, pk):
     # Get administrators for this system
     administrators = system.administrators.all().select_related('user').order_by('-is_primary', 'user__first_name')
     
+    # Get recovery steps for this system
+    recovery_steps = system.recovery_steps.all().order_by('order')
+    
     # Get all systems for the visualization
     all_systems = System.objects.all().select_related('category', 'status')
     
@@ -826,7 +829,128 @@ def system_disaster_analysis(request, pk):
         'sso_dependents': sso_dependents,
         'hosted_systems': hosted_systems,
         'administrators': administrators,
+        'recovery_steps': recovery_steps,
         'all_systems': all_systems,
     }
     
     return render(request, 'systems/system_disaster_analysis.html', context)
+
+
+@login_required
+def save_recovery_step(request, system_pk):
+    """Save a disaster recovery step"""
+    system = get_object_or_404(System, pk=system_pk)
+    
+    if request.method == 'POST':
+        step_id = request.POST.get('step_id')
+        
+        if step_id:
+            # Update existing step
+            step = get_object_or_404(DisasterRecoveryStep, pk=step_id, system=system)
+            form = DisasterRecoveryStepForm(request.POST, instance=step)
+        else:
+            # Create new step
+            form = DisasterRecoveryStepForm(request.POST)
+        
+        if form.is_valid():
+            step = form.save(commit=False)
+            step.system = system
+            
+            if not step_id:
+                # For new steps, set order to the next available
+                next_order = DisasterRecoveryStep.objects.filter(system=system).count() + 1
+                step.order = next_order
+            
+            if request.user.is_authenticated:
+                step.created_by = request.user
+                
+            step.save()
+            messages.success(request, 'Recovery step saved successfully.')
+        else:
+            messages.error(request, 'Error saving recovery step: ' + str(form.errors))
+    
+    return redirect('systems:disaster_analysis', pk=system_pk)
+
+@login_required
+def get_recovery_step(request, step_id):
+    """API endpoint to get recovery step details"""
+    step = get_object_or_404(DisasterRecoveryStep, pk=step_id)
+    
+    data = {
+        'id': step.id,
+        'title': step.title,
+        'description': step.description,
+        'responsible_team': step.responsible_team,
+        'estimated_time': step.estimated_time,
+        'order': step.order
+    }
+    
+    return JsonResponse(data)
+
+@login_required
+def delete_recovery_step(request, system_pk, step_id):
+    """Delete a recovery step"""
+    system = get_object_or_404(System, pk=system_pk)
+    step = get_object_or_404(DisasterRecoveryStep, pk=step_id, system=system)
+    
+    if request.method == 'POST':
+        # Get the order of the deleted step
+        deleted_order = step.order
+        
+        # Delete the step
+        step.delete()
+        
+        # Reorder remaining steps
+        steps_to_update = DisasterRecoveryStep.objects.filter(
+            system=system, 
+            order__gt=deleted_order
+        )
+        
+        # Shift orders down by 1
+        for step in steps_to_update:
+            step.order -= 1
+            step.save()
+        
+        messages.success(request, 'Recovery step deleted successfully.')
+    
+    return redirect('systems:disaster_analysis', pk=system_pk)
+
+@login_required
+@require_POST
+def move_recovery_step(request, system_pk):
+    """Move a recovery step up or down in order"""
+    try:
+        data = json.loads(request.body)
+        step_id = data.get('step_id')
+        direction = data.get('direction')
+        
+        if not step_id or direction not in ['up', 'down']:
+            return JsonResponse({'error': 'Invalid parameters'}, status=400)
+        
+        system = get_object_or_404(System, pk=system_pk)
+        step = get_object_or_404(DisasterRecoveryStep, pk=step_id, system=system)
+        
+        if direction == 'up' and step.order > 1:
+            # Find the step above
+            step_above = DisasterRecoveryStep.objects.get(system=system, order=step.order-1)
+            
+            # Swap orders
+            step_above.order, step.order = step.order, step_above.order
+            step_above.save()
+            step.save()
+            
+        elif direction == 'down':
+            # Check if this is the last step
+            if DisasterRecoveryStep.objects.filter(system=system, order=step.order+1).exists():
+                # Find the step below
+                step_below = DisasterRecoveryStep.objects.get(system=system, order=step.order+1)
+                
+                # Swap orders
+                step_below.order, step.order = step.order, step_below.order
+                step_below.save()
+                step.save()
+                
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

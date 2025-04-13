@@ -15,24 +15,24 @@
         align-items: center;
     }
     
-    .impact-badge-red {
+    .impact-badge-primary {
         background-color: #fee2e2;
         color: #b91c1c;
     }
     
-    .impact-badge-orange {
+    .impact-badge-secondary {
         background-color: #ffedd5;
         color: #c2410c;
     }
     
-    .impact-badge-yellow {
+    .impact-badge-tertiary {
         background-color: #fef9c3;
         color: #854d0e;
     }
     
-    .impact-badge-green {
-        background-color: #dcfce7;
-        color: #15803d;
+    .impact-badge-quaternary {
+        background-color: #e0f2fe;
+        color: #0369a1;
     }
     
     /* Graph visualization styles */
@@ -286,6 +286,32 @@
         color: white;
     }
     
+    /* Recovery step styling */
+    .recovery-step {
+        position: relative;
+        border-left: 4px solid #3b82f6;
+        padding-left: 1.5rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .recovery-step-number {
+        position: absolute;
+        left: -1.25rem;
+        top: -0.25rem;
+        height: 2.5rem;
+        width: 2.5rem;
+        background-color: #3b82f6;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
     /* Responsive adjustments */
     @media (max-width: 640px) {
         #diagram-container {
@@ -426,15 +452,15 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #fee2e2; border: 1px solid #ef4444;"></div>
-                        <span>Critical Impact</span>
+                        <span>Primary Impact</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #ffedd5; border: 1px solid #f97316;"></div>
-                        <span>High Impact</span>
+                        <span>Secondary Impact</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #fef9c3; border: 1px solid #eab308;"></div>
-                        <span>Medium Impact</span>
+                        <span>Tertiary Impact</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #e0f2fe; border: 1px solid #0ea5e9;"></div>
@@ -526,48 +552,48 @@
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Impact Breakdown</h3>
                 
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <!-- Critical Impact (Level 1) -->
+                    <!-- Primary Impact (Tier 1) -->
                     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                         <div class="px-4 py-5 sm:px-6 bg-red-50">
                             <h4 class="text-base font-medium text-red-700 flex items-center">
                                 <span class="inline-block w-3 h-3 bg-red-700 rounded-full mr-2"></span>
-                                Critical Impact Systems
+                                Primary Impact Systems
                             </h4>
                         </div>
                         <div class="border-t border-gray-200">
-                            <div id="critical-impact-systems" class="divide-y divide-gray-200">
+                            <div id="primary-impact-systems" class="divide-y divide-gray-200">
                                 <!-- Will be populated by JavaScript -->
                                 <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- High Impact (Level 2) -->
+                    <!-- Secondary Impact (Tier 2) -->
                     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                         <div class="px-4 py-5 sm:px-6 bg-orange-50">
                             <h4 class="text-base font-medium text-orange-700 flex items-center">
                                 <span class="inline-block w-3 h-3 bg-orange-600 rounded-full mr-2"></span>
-                                High Impact Systems
+                                Secondary Impact Systems
                             </h4>
                         </div>
                         <div class="border-t border-gray-200">
-                            <div id="high-impact-systems" class="divide-y divide-gray-200">
+                            <div id="secondary-impact-systems" class="divide-y divide-gray-200">
                                 <!-- Will be populated by JavaScript -->
                                 <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Medium Impact (Level 3) -->
+                    <!-- Tertiary Impact (Tier 3) -->
                     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                         <div class="px-4 py-5 sm:px-6 bg-yellow-50">
                             <h4 class="text-base font-medium text-yellow-700 flex items-center">
                                 <span class="inline-block w-3 h-3 bg-yellow-600 rounded-full mr-2"></span>
-                                Medium Impact Systems
+                                Tertiary Impact Systems
                             </h4>
                         </div>
                         <div class="border-t border-gray-200">
-                            <div id="medium-impact-systems" class="divide-y divide-gray-200">
+                            <div id="tertiary-impact-systems" class="divide-y divide-gray-200">
                                 <!-- Will be populated by JavaScript -->
                                 <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
                             </div>
@@ -599,176 +625,154 @@
     </div>
 </div>
 
-<!-- Mitigation Strategies -->
+<!-- Disaster Recovery Plan -->
 <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:px-6">
-        <h4 class="text-md leading-6 font-medium text-gray-900">
-            Risk Mitigation Strategies
-        </h4>
-        <p class="mt-1 max-w-2xl text-sm text-gray-500">
-            Recommended actions to minimize risk and impact.
-        </p>
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+        <div>
+            <h4 class="text-md leading-6 font-medium text-gray-900">
+                Disaster Recovery Plan
+            </h4>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Step-by-step recovery process in case of system failure.
+            </p>
+        </div>
+        <button id="addRecoveryStepBtn" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            Add Step
+        </button>
     </div>
-    <div class="border-t border-gray-200">
-        <ul id="mitigation-strategies" class="divide-y divide-gray-200">
-            <li class="px-4 py-4 sm:px-6">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <div id="recovery-steps-container" class="space-y-6">
+            {% if recovery_steps %}
+                {% for step in recovery_steps %}
+                <div class="recovery-step relative border-l-4 border-blue-600 pl-4 py-2" data-step-id="{{ step.id }}">
+                    <div class="absolute -left-5 -top-1 h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                        <span class="text-xs font-medium text-white">{{ step.order }}</span>
                     </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Regular system backups</p>
-                        <p class="mt-1 text-sm text-gray-500">Ensure automated backups are in place and regularly tested for restoration.</p>
+                    <div class="flex justify-between items-start ml-4">
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-900">{{ step.title }}</h5>
+                            <p class="mt-1 text-sm text-gray-500">{{ step.description|linebreaksbr }}</p>
+                            
+                            {% if step.responsible_team or step.estimated_time %}
+                            <div class="mt-2 flex space-x-4 text-xs text-gray-500">
+                                {% if step.responsible_team %}
+                                <div>
+                                    <span class="font-medium">Team:</span> {{ step.responsible_team }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if step.estimated_time %}
+                                <div>
+                                    <span class="font-medium">Est. Time:</span> {{ step.estimated_time }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="button" class="text-blue-600 hover:text-blue-900 edit-step" data-step-id="{{ step.id }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button type="button" class="text-red-600 hover:text-red-900 delete-step" data-step-id="{{ step.id }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                            {% if not forloop.first %}
+                            <button type="button" class="text-gray-600 hover:text-gray-900 move-step-up" data-step-id="{{ step.id }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {% endif %}
+                            {% if not forloop.last %}
+                            <button type="button" class="text-gray-600 hover:text-gray-900 move-step-down" data-step-id="{{ step.id }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-            </li>
-            <li class="px-4 py-4 sm:px-6">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Redundancy planning</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement redundant systems or components for critical functionality.</p>
-                    </div>
+                {% endfor %}
+            {% else %}
+                <div id="empty-recovery-steps" class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No recovery steps</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Start by adding the first step to your disaster recovery plan.
+                    </p>
                 </div>
-            </li>
-            <li class="px-4 py-4 sm:px-6">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Documentation</p>
-                        <p class="mt-1 text-sm text-gray-500">Maintain up-to-date documentation of dependencies and recovery procedures.</p>
-                    </div>
-                </div>
-            </li>
-            <li id="custom-mitigation-strategies" class="px-4 py-4 sm:px-6">
-                <!-- Will be populated with custom strategies based on system type -->
-            </li>
-        </ul>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<!-- Disaster Recovery Plan -->
-<div class="mt-6 bg-white shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:px-6">
-        <h4 class="text-md leading-6 font-medium text-gray-900">
-            Disaster Recovery Plan
-        </h4>
-        <p class="mt-1 max-w-2xl text-sm text-gray-500">
-            Step-by-step recovery process in case of system failure.
-        </p>
+<!-- Recovery Step Modal -->
+<div id="recoveryStepModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4" id="stepModalTitle">Add Recovery Step</h3>
+        <form id="recoveryStepForm" method="post" action="{% url 'systems:save_recovery_step' system.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="step_id" id="stepId" value="">
+            
+            <div class="mb-4">
+                <label for="stepTitle" class="block text-sm font-medium text-gray-700">Title</label>
+                <input type="text" id="stepTitle" name="title" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+            </div>
+            
+            <div class="mb-4">
+                <label for="stepDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea id="stepDescription" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required></textarea>
+            </div>
+            
+            <div class="mb-4">
+                <label for="responsibleTeam" class="block text-sm font-medium text-gray-700">Responsible Team</label>
+                <input type="text" id="responsibleTeam" name="responsible_team" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            
+            <div class="mb-4">
+                <label for="estimatedTime" class="block text-sm font-medium text-gray-700">Estimated Time</label>
+                <input type="text" id="estimatedTime" name="estimated_time" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="e.g. 30 minutes, 2 hours">
+            </div>
+            
+            <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelStepModal" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </button>
+                <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save
+                </button>
+            </div>
+        </form>
     </div>
-    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-        <ol class="mt-2 space-y-4">
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">1</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Assessment & Notification</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Identify the scope of the outage and notify all stakeholders. Contact primary administrator: 
-                            <span class="font-medium" id="primary-admin-contact">
-                                {% for admin in administrators %}
-                                    {% if admin.is_primary %}
-                                        {{ admin.user.get_full_name|default:admin.user.username }}
-                                    {% endif %}
-                                {% endfor %}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">2</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">System Isolation</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Isolate the failed system to prevent further cascading failures.
-                            {% if system.hosting_system %}
-                                Contact {{ system.hosting_system.name }} administrator if hosting infrastructure is affected.
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">3</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Activate Backup Systems</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Initiate failover procedures if available. Restore from latest backup if necessary.
-                            {% if system.sso_system %}
-                                If authentication is affected, coordinate with {{ system.sso_system.name }} team.
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">4</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Restoration & Testing</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Restore from latest backup and perform validation testing of functionality.
-                        </p>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">5</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Dependency Restoration</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Re-establish connections with dependent systems in proper order.
-                            {% if dependents %}
-                                Priority systems to restore first:
-                                {% for dep in dependents|slice:":3" %}
-                                    {{ dep.name }}{% if not forloop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if dependents|length > 3 %}and {{ dependents|length|add:"-3" }} more{% endif %}
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span class="text-xs font-medium text-white">6</span>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Post-Incident Review</p>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Conduct a post-incident review to identify root causes and preventive measures for the future.
-                            Document findings and update recovery procedures as needed.
-                        </p>
-                    </div>
-                </div>
-            </li>
-        </ol>
+</div>
+
+<!-- Delete Step Confirmation Modal -->
+<div id="deleteStepModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Remove Recovery Step</h3>
+        <p class="text-sm text-gray-500 mb-4">
+            Are you sure you want to remove this recovery step from the plan? This action cannot be undone.
+        </p>
+        <form id="deleteStepForm" method="post" action="{% url 'systems:delete_recovery_step' system.id 0 %}">
+            {% csrf_token %}
+            <input type="hidden" name="step_id" id="deleteStepId" value="">
+            
+            <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                <button type="button" id="cancelDeleteStep" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </button>
+                <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Remove
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -789,7 +793,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const runSimulationFromPlaceholderBtn = document.getElementById('runSimulationFromPlaceholder');
     const disasterSimulationResults = document.getElementById('disaster-simulation-results');
     const disasterSimulationPlaceholder = document.getElementById('disaster-simulation-placeholder');
-    const customMitigationStrategies = document.getElementById('custom-mitigation-strategies');
     
     // Visualization control buttons
     const resetViewButton = document.getElementById('resetViewButton');
@@ -803,6 +806,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const zoomInButton = document.getElementById('zoomInButton');
     const zoomOutButton = document.getElementById('zoomOutButton');
     const fitViewButton = document.getElementById('fitViewButton');
+    
+    // Recovery step buttons
+    const addRecoveryStepBtn = document.getElementById('addRecoveryStepBtn');
+    const cancelStepModalBtn = document.getElementById('cancelStepModal');
+    const cancelDeleteStepBtn = document.getElementById('cancelDeleteStep');
     
     // Add event listeners
     if (runDisasterSimulationBtn) {
@@ -848,6 +856,63 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fitViewButton) {
         fitViewButton.addEventListener('click', fitAllNodes);
     }
+    
+    // Recovery step event listeners
+    if (addRecoveryStepBtn) {
+        addRecoveryStepBtn.addEventListener('click', function() {
+            openRecoveryStepModal();
+        });
+    }
+    
+    if (cancelStepModalBtn) {
+        cancelStepModalBtn.addEventListener('click', function() {
+            closeRecoveryStepModal();
+        });
+    }
+    
+    if (cancelDeleteStepBtn) {
+        cancelDeleteStepBtn.addEventListener('click', function() {
+            document.getElementById('deleteStepModal').classList.add('hidden');
+        });
+    }
+    
+    // Attach event listeners to dynamic elements
+    function attachDynamicEventListeners() {
+        // Edit step buttons
+        document.querySelectorAll('.edit-step').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                editRecoveryStep(stepId);
+            });
+        });
+        
+        // Delete step buttons
+        document.querySelectorAll('.delete-step').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                confirmDeleteStep(stepId);
+            });
+        });
+        
+        // Move step up buttons
+        document.querySelectorAll('.move-step-up').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                moveRecoveryStep(stepId, 'up');
+            });
+        });
+        
+        // Move step down buttons
+        document.querySelectorAll('.move-step-down').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                moveRecoveryStep(stepId, 'down');
+            });
+        });
+    }
+    
+    // Call this initially to set up existing buttons
+    attachDynamicEventListeners();
     
     // Function to start the simulation
     function startSimulation() {
@@ -923,15 +988,12 @@ document.addEventListener('DOMContentLoaded', function() {
         createDependencyVisualization(systemId, dependencyGraph, impactData);
         
         // Populate the impacted systems by tier
-        populateImpactedSystems('critical-impact-systems', impactData.criticalImpact);
-        populateImpactedSystems('high-impact-systems', impactData.highImpact);
-        populateImpactedSystems('medium-impact-systems', impactData.mediumImpact);
+        populateImpactedSystems('primary-impact-systems', impactData.primaryImpact);
+        populateImpactedSystems('secondary-impact-systems', impactData.secondaryImpact);
+        populateImpactedSystems('tertiary-impact-systems', impactData.tertiaryImpact);
         
         // Update recovery metrics
         updateRecoveryMetrics(systemCategory, impactData);
-        
-        // Generate custom mitigation strategies
-        generateMitigationStrategies(systemCategory, systemCategoryName, impactData);
     }
     
     // Update recovery metrics based on impact data
@@ -1029,100 +1091,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         {% endfor %}
         
-        // Add SSO system if exists
-        {% if system.sso_system %}
-        allSystems.push({
-            id: {{ system.sso_system.id }},
-            name: "{{ system.sso_system.name }}",
-            category: {
-                slug: "{{ system.sso_system.category.slug }}",
-                name: "{{ system.sso_system.category.name }}",
-                color: "{{ system.sso_system.category.color }}",
-                text_color: "{{ system.sso_system.category.text_color }}"
-            },
-            status: {
-                slug: "{{ system.sso_system.status.slug }}",
-                name: "{{ system.sso_system.status.name }}",
-                color: "{{ system.sso_system.status.color }}",
-                text_color: "{{ system.sso_system.status.text_color }}"
-            },
-            vendor: "{{ system.sso_system.vendor|default:'Unknown' }}",
-            isSsoProvider: true
-        });
-        graph.ssoRelations[{{ system.id }}] = {{ system.sso_system.id }};
-        {% endif %}
-        
-        // Add hosting system if exists
-        {% if system.hosting_system %}
-        allSystems.push({
-            id: {{ system.hosting_system.id }},
-            name: "{{ system.hosting_system.name }}",
-            category: {
-                slug: "{{ system.hosting_system.category.slug }}",
-                name: "{{ system.hosting_system.category.name }}",
-                color: "{{ system.hosting_system.category.color }}",
-                text_color: "{{ system.hosting_system.category.text_color }}"
-            },
-            status: {
-                slug: "{{ system.hosting_system.status.slug }}",
-                name: "{{ system.hosting_system.status.name }}",
-                color: "{{ system.hosting_system.status.color }}",
-                text_color: "{{ system.hosting_system.status.text_color }}"
-            },
-            vendor: "{{ system.hosting_system.vendor|default:'Unknown' }}",
-            isHostingProvider: true
-        });
-        graph.hostingRelations[{{ system.id }}] = {{ system.hosting_system.id }};
-        {% endif %}
-        
-        // Add all systems hosted on this system
-        {% if hosted_systems %}
-        {% for hosted in hosted_systems %}
-        allSystems.push({
-            id: {{ hosted.id }},
-            name: "{{ hosted.name }}",
-            category: {
-                slug: "{{ hosted.category.slug }}",
-                name: "{{ hosted.category.name }}",
-                color: "{{ hosted.category.color }}",
-                text_color: "{{ hosted.category.text_color }}"
-            },
-            status: {
-                slug: "{{ hosted.status.slug }}",
-                name: "{{ hosted.status.name }}",
-                color: "{{ hosted.status.color }}",
-                text_color: "{{ hosted.status.text_color }}"
-            },
-            vendor: "{{ hosted.vendor|default:'Unknown' }}"
-        });
-        graph.hostingRelations[{{ hosted.id }}] = {{ system.id }};
-        {% endfor %}
-        {% endif %}
-        
-        // Add all systems that use this system for SSO
-        {% if sso_dependents %}
-        {% for sso_dep in sso_dependents %}
-        allSystems.push({
-            id: {{ sso_dep.id }},
-            name: "{{ sso_dep.name }}",
-            category: {
-                slug: "{{ sso_dep.category.slug }}",
-                name: "{{ sso_dep.category.name }}",
-                color: "{{ sso_dep.category.color }}",
-                text_color: "{{ sso_dep.category.text_color }}"
-            },
-            status: {
-                slug: "{{ sso_dep.status.slug }}",
-                name: "{{ sso_dep.status.name }}",
-                color: "{{ sso_dep.status.color }}",
-                text_color: "{{ sso_dep.status.text_color }}"
-            },
-            vendor: "{{ sso_dep.vendor|default:'Unknown' }}"
-        });
-        graph.ssoRelations[{{ sso_dep.id }}] = {{ system.id }};
-        {% endfor %}
-        {% endif %}
-        
         // Remove duplicate systems by ID
         const systemIds = new Set();
         const uniqueSystems = allSystems.filter(system => {
@@ -1138,194 +1106,268 @@ document.addEventListener('DOMContentLoaded', function() {
             graph.nodes[system.id] = system;
             graph.dependencies[system.id] = [];
             graph.dependents[system.id] = [];
-            
-            // Mark SSO and hosting providers
-            if (system.isSsoProvider) {
-                graph.nodes[system.id].isSsoProvider = true;
-            }
-            if (system.isHostingProvider) {
-                graph.nodes[system.id].isHostingProvider = true;
-            }
         });
         
         // Add direct dependencies based on the dependencies list
         {% for dep in dependencies %}
-        graph.dependencies[{{ system.id }}].push({{ dep.id }});
-        graph.dependents[{{ dep.id }}].push({{ system.id }});
+        if (!graph.dependencies[{{ system.id }}].includes({{ dep.id }})) {
+            graph.dependencies[{{ system.id }}].push({{ dep.id }});
+        }
+        if (!graph.dependents[{{ dep.id }}].includes({{ system.id }})) {
+            graph.dependents[{{ dep.id }}].push({{ system.id }});
+        }
         {% endfor %}
         
         // Add direct dependents based on the dependents list
         {% for dep in dependents %}
-        graph.dependencies[{{ dep.id }}].push({{ system.id }});
-        graph.dependents[{{ system.id }}].push({{ dep.id }});
+        if (!graph.dependencies[{{ dep.id }}].includes({{ system.id }})) {
+            graph.dependencies[{{ dep.id }}].push({{ system.id }});
+        }
+        if (!graph.dependents[{{ system.id }}].includes({{ dep.id }})) {
+            graph.dependents[{{ system.id }}].push({{ dep.id }});
+        }
         {% endfor %}
+
+        // Add SSO and hosting relationships - important for complete path visualization
+        {% if system.sso_system %}
+        graph.ssoRelations[{{ system.id }}] = {{ system.sso_system.id }};
+        // Add to graph.nodes if not already there
+        if (!graph.nodes[{{ system.sso_system.id }}]) {
+            graph.nodes[{{ system.sso_system.id }}] = {
+                id: {{ system.sso_system.id }},
+                name: "{{ system.sso_system.name }}",
+                category: {
+                    slug: "{{ system.sso_system.category.slug }}",
+                    name: "{{ system.sso_system.category.name }}",
+                    color: "{{ system.sso_system.category.color }}",
+                    text_color: "{{ system.sso_system.category.text_color }}"
+                },
+                status: {
+                    slug: "{{ system.sso_system.status.slug }}",
+                    name: "{{ system.sso_system.status.name }}",
+                    color: "{{ system.sso_system.status.color }}",
+                    text_color: "{{ system.sso_system.status.text_color }}"
+                },
+                vendor: "{{ system.sso_system.vendor|default:'Unknown' }}",
+                isSsoProvider: true
+            };
+            graph.dependencies[{{ system.sso_system.id }}] = [];
+            graph.dependents[{{ system.sso_system.id }}] = [];
+        }
+        if (!graph.dependencies[{{ system.id }}].includes({{ system.sso_system.id }})) {
+            graph.dependencies[{{ system.id }}].push({{ system.sso_system.id }});
+        }
+        if (!graph.dependents[{{ system.sso_system.id }}].includes({{ system.id }})) {
+            graph.dependents[{{ system.sso_system.id }}].push({{ system.id }});
+        }
+        {% endif %}
         
-        // Add SSO and hosting relationships to dependencies
-        Object.keys(graph.ssoRelations).forEach(systemId => {
-            const ssoProviderId = graph.ssoRelations[systemId];
-            if (!graph.dependencies[systemId].includes(ssoProviderId)) {
-                graph.dependencies[systemId].push(ssoProviderId);
-            }
-            if (!graph.dependents[ssoProviderId].includes(systemId)) {
-                graph.dependents[ssoProviderId].push(systemId);
-            }
-        });
+        {% if system.hosting_system %}
+        graph.hostingRelations[{{ system.id }}] = {{ system.hosting_system.id }};
+        // Add to graph.nodes if not already there
+        if (!graph.nodes[{{ system.hosting_system.id }}]) {
+            graph.nodes[{{ system.hosting_system.id }}] = {
+                id: {{ system.hosting_system.id }},
+                name: "{{ system.hosting_system.name }}",
+                category: {
+                    slug: "{{ system.hosting_system.category.slug }}",
+                    name: "{{ system.hosting_system.category.name }}",
+                    color: "{{ system.hosting_system.category.color }}",
+                    text_color: "{{ system.hosting_system.category.text_color }}"
+                },
+                status: {
+                    slug: "{{ system.hosting_system.status.slug }}",
+                    name: "{{ system.hosting_system.status.name }}",
+                    color: "{{ system.hosting_system.status.color }}",
+                    text_color: "{{ system.hosting_system.status.text_color }}"
+                },
+                vendor: "{{ system.hosting_system.vendor|default:'Unknown' }}",
+                isHostingProvider: true
+            };
+            graph.dependencies[{{ system.hosting_system.id }}] = [];
+            graph.dependents[{{ system.hosting_system.id }}] = [];
+        }
+        if (!graph.dependencies[{{ system.id }}].includes({{ system.hosting_system.id }})) {
+            graph.dependencies[{{ system.id }}].push({{ system.hosting_system.id }});
+        }
+        if (!graph.dependents[{{ system.hosting_system.id }}].includes({{ system.id }})) {
+            graph.dependents[{{ system.hosting_system.id }}].push({{ system.id }});
+        }
+        {% endif %}
         
-        Object.keys(graph.hostingRelations).forEach(systemId => {
-            const hostProviderId = graph.hostingRelations[systemId];
-            if (!graph.dependencies[systemId].includes(hostProviderId)) {
-                graph.dependencies[systemId].push(hostProviderId);
-            }
-            if (!graph.dependents[hostProviderId].includes(systemId)) {
-                graph.dependents[hostProviderId].push(systemId);
-            }
-        });
+        // Make sure all relationships are properly propagated
+        // This is critical to ensure non-first level dependencies are correctly tracked
+        const processedLinks = new Set();
         
-        // Check for secondary system relationships for a more complete graph
-        // This is a simple recursive traversal to find dependencies of dependencies
-        function findSecondaryDependencies(systemId, visited = new Set(), depth = 0) {
-            if (depth > 3) return; // Limit recursion depth
+        function ensureDependencyLinks(sourceId, targetId, connectionType) {
+            const linkKey = `${sourceId}-${targetId}`;
+            if (processedLinks.has(linkKey)) return;
+            processedLinks.add(linkKey);
             
-            visited.add(systemId);
+            // Make sure both nodes exist
+            if (!graph.nodes[sourceId] || !graph.nodes[targetId]) return;
             
-            // Get direct dependencies
-            const directDeps = graph.dependencies[systemId] || [];
+            // Add the dependency in both directions
+            if (!graph.dependencies[sourceId].includes(targetId)) {
+                graph.dependencies[sourceId].push(targetId);
+            }
+            if (!graph.dependents[targetId].includes(sourceId)) {
+                graph.dependents[targetId].push(sourceId);
+            }
             
-            // For each direct dependency
-            directDeps.forEach(depId => {
-                if (!visited.has(depId)) {
-                    // Recursively find dependencies of this dependency
-                    findSecondaryDependencies(depId, visited, depth + 1);
-                }
-            });
+            // If this is an SSO or hosting relationship, track it
+            if (connectionType === 'sso') {
+                graph.ssoRelations[sourceId] = targetId;
+            } else if (connectionType === 'hosting') {
+                graph.hostingRelations[sourceId] = targetId;
+            }
         }
         
-        // Traverse from the main system to discover extended dependency graph
-        findSecondaryDependencies({{ system.id }});
+        // Process all relationships from the server data
+        {% for dep in dependencies %}
+        ensureDependencyLinks({{ system.id }}, {{ dep.id }}, 'direct');
+        {% endfor %}
+        
+        {% for dep in dependents %}
+        ensureDependencyLinks({{ dep.id }}, {{ system.id }}, 'direct');
+        {% endfor %}
+        
+        {% if system.sso_system %}
+        ensureDependencyLinks({{ system.id }}, {{ system.sso_system.id }}, 'sso');
+        {% endif %}
+        
+        {% if system.hosting_system %}
+        ensureDependencyLinks({{ system.id }}, {{ system.hosting_system.id }}, 'hosting');
+        {% endif %}
+        
+        {% if sso_dependents %}
+        {% for sso_dep in sso_dependents %}
+        ensureDependencyLinks({{ sso_dep.id }}, {{ system.id }}, 'sso');
+        {% endfor %}
+        {% endif %}
+        
+        {% if hosted_systems %}
+        {% for hosted in hosted_systems %}
+        ensureDependencyLinks({{ hosted.id }}, {{ system.id }}, 'hosting');
+        {% endfor %}
+        {% endif %}
         
         return graph;
     }
     
     // Calculate impact tiers based on the dependency graph
     function calculateImpactTiers(systemId, dependencyGraph) {
-        // Calculate impact tiers
-        const criticalImpact = []; // Direct dependencies (systems that directly depend on the failed system)
-        const highImpact = [];     // Secondary dependencies (systems that depend on the critical systems)
-        const mediumImpact = [];   // Tertiary dependencies (systems that depend on the high impact systems)
-        const visitedNodes = new Set(); // Track visited nodes to prevent duplicates
+    console.log("Calculating impact tiers for system ID:", systemId);
+    console.log("Dependency graph:", dependencyGraph);
+    
+    // Map for impact level names
+    const impactLevelMap = {
+        0: 'primary',    // Was "critical"
+        1: 'secondary',  // Was "high"
+        2: 'tertiary',   // Was "medium"
+        3: 'quaternary', // Fourth level
+        4: 'quinary'     // Fifth level
+    };
+    
+    // Initialize impact arrays for each tier
+    const primaryImpact = [];
+    const secondaryImpact = [];
+    const tertiaryImpact = [];
+    const quaternaryImpact = [];
+    
+    // Track visited nodes to prevent duplicates
+    const visitedNodes = new Set([systemId]); // Mark the source system as visited
+    
+    // Track overall impact score
+    let criticalityScore = 0;
+    
+    // BFS approach for level-by-level dependency exploration
+    // This ensures we correctly identify each tier
+    const queue = [{id: systemId, level: 0, path: [systemId]}];
+    
+    while (queue.length > 0) {
+        const { id, level, path } = queue.shift();
         
-        // Track overall impact score
-        let criticalityScore = 0;
+        // Get all systems that depend on this one
+        const dependents = dependencyGraph.dependents[id] || [];
         
-        // Add direct dependents to critical impact tier
-        dependencyGraph.dependents[systemId].forEach(depId => {
-            if (dependencyGraph.nodes[depId] && !visitedNodes.has(depId)) {
-                const system = dependencyGraph.nodes[depId];
-                const impact = calculateSystemImpact(system, 1);
-                criticalImpact.push({
-                    ...system,
-                    impact,
-                    impactLevel: 'critical',
-                    connectionType: getConnectionType(systemId, depId, dependencyGraph)
-                });
-                criticalityScore += impact;
-                visitedNodes.add(depId);
-            }
-        });
-        
-        // Add secondary dependencies (dependents of systems in the critical tier)
-        criticalImpact.forEach(criticalSystem => {
-            dependencyGraph.dependents[criticalSystem.id]?.forEach(depId => {
-                if (dependencyGraph.nodes[depId] && !visitedNodes.has(depId) && depId !== systemId) {
-                    const system = dependencyGraph.nodes[depId];
-                    const impact = calculateSystemImpact(system, 0.7); // Reduced impact for secondary tier
-                    highImpact.push({
-                        ...system,
-                        impact,
-                        impactLevel: 'high',
-                        connectionType: getConnectionType(criticalSystem.id, depId, dependencyGraph),
-                        sourceNode: criticalSystem.id
-                    });
-                    criticalityScore += impact * 0.7;
-                    visitedNodes.add(depId);
-                }
-            });
-        });
-        
-        // Add tertiary dependencies (dependents of systems in the high impact tier)
-        highImpact.forEach(highImpactSystem => {
-            dependencyGraph.dependents[highImpactSystem.id]?.forEach(depId => {
-                if (dependencyGraph.nodes[depId] && 
-                    !visitedNodes.has(depId) && 
-                    depId !== systemId) {
-                    const system = dependencyGraph.nodes[depId];
-                    const impact = calculateSystemImpact(system, 0.4); // Reduced impact for tertiary tier
-                    mediumImpact.push({
-                        ...system,
-                        impact,
-                        impactLevel: 'medium',
-                        connectionType: getConnectionType(highImpactSystem.id, depId, dependencyGraph),
-                        sourceNode: highImpactSystem.id
-                    });
-                    criticalityScore += impact * 0.4;
-                    visitedNodes.add(depId);
-                }
-            });
-        });
-        
-        // Special handling for SSO dependencies
-        if (dependencyGraph.ssoRelations[systemId]) {
-            const ssoId = dependencyGraph.ssoRelations[systemId];
+        dependents.forEach(dependentId => {
+            // Skip if already visited or if this is the source system
+            if (visitedNodes.has(dependentId) || dependentId === systemId) return;
+            visitedNodes.add(dependentId);
             
-            // Add SSO provider to critical impact if not already included
-            if (!visitedNodes.has(ssoId)) {
-                const ssoSystem = dependencyGraph.nodes[ssoId];
-                const impact = calculateSystemImpact(ssoSystem, 1.2); // SSO has higher impact factor
-                criticalImpact.push({
-                    ...ssoSystem,
-                    impact,
-                    impactLevel: 'critical',
-                    connectionType: 'sso',
-                    isSsoProvider: true
-                });
-                criticalityScore += impact * 1.2;
-                visitedNodes.add(ssoId);
-                
-                // Also add systems that depend on the SSO system to high impact
-                dependencyGraph.dependents[ssoId]?.forEach(depId => {
-                    if (dependencyGraph.nodes[depId] && !visitedNodes.has(depId) && depId !== systemId) {
-                        const system = dependencyGraph.nodes[depId];
-                        const impact = calculateSystemImpact(system, 0.8);
-                        highImpact.push({
-                            ...system,
-                            impact,
-                            impactLevel: 'high',
-                            connectionType: 'sso',
-                            sourceNode: ssoId
-                        });
-                        criticalityScore += impact * 0.8;
-                        visitedNodes.add(depId);
-                    }
-                });
+            // Get system data
+            const system = dependencyGraph.nodes[dependentId];
+            if (!system) return; // Skip if system data not found
+            
+            // Determine impact level based on distance from source
+            const nextLevel = level + 1;
+            const impactLevel = impactLevelMap[nextLevel] || 'quaternary'; // Default to quaternary for deep levels
+            
+            // Calculate impact score with diminishing factor by level
+            const tierFactor = Math.max(0.2, 1 - (nextLevel * 0.2));
+            const impact = calculateSystemImpact(system, tierFactor);
+            
+            // Create the impact data object
+            const impactData = {
+                ...system,
+                impact,
+                impactLevel,
+                connectionType: getConnectionType(id, dependentId, dependencyGraph),
+                sourceNode: id, // Track the direct source of this dependency
+                path: [...path, dependentId] // Track the full path for visualization
+            };
+            
+            // Add to appropriate impact array based on level
+            if (nextLevel === 1) {
+                primaryImpact.push(impactData);
+                criticalityScore += impact;
+            } else if (nextLevel === 2) {
+                secondaryImpact.push(impactData);
+                criticalityScore += impact * 0.8;
+            } else if (nextLevel === 3) {
+                tertiaryImpact.push(impactData);
+                criticalityScore += impact * 0.6;
+            } else {
+                quaternaryImpact.push(impactData);
+                criticalityScore += impact * 0.4;
             }
-        }
-        
-        // Sort each tier by impact score (descending)
-        criticalImpact.sort((a, b) => b.impact - a.impact);
-        highImpact.sort((a, b) => b.impact - a.impact);
-        mediumImpact.sort((a, b) => b.impact - a.impact);
-        
-        return {
-            criticalImpact,
-            highImpact,
-            mediumImpact,
-            criticalityScore,
-            recoveryTime: estimateRecoveryTime(criticalImpact, highImpact, mediumImpact),
-            systemsCount: criticalImpact.length + highImpact.length + mediumImpact.length,
-            userImpact: estimateUserImpact(criticalImpact, criticalityScore),
-            businessImpact: estimateBusinessImpact(criticalImpact, highImpact, systemId, dependencyGraph)
-        };
+            
+            // Add to queue for next level processing
+            queue.push({
+                id: dependentId,
+                level: nextLevel,
+                path: [...path, dependentId]
+            });
+        });
     }
+    
+    // Log the results for debugging
+    console.log("Impact tiers calculated:", {
+        primaryImpact,
+        secondaryImpact,
+        tertiaryImpact,
+        quaternaryImpact
+    });
+    
+    // Sort each tier by impact score (descending)
+    primaryImpact.sort((a, b) => b.impact - a.impact);
+    secondaryImpact.sort((a, b) => b.impact - a.impact);
+    tertiaryImpact.sort((a, b) => b.impact - a.impact);
+    quaternaryImpact.sort((a, b) => b.impact - a.impact);
+    
+    return {
+        primaryImpact,
+        secondaryImpact,
+        tertiaryImpact,
+        quaternaryImpact,
+        criticalityScore,
+        recoveryTime: estimateRecoveryTime(primaryImpact, secondaryImpact, tertiaryImpact),
+        systemsCount: primaryImpact.length + secondaryImpact.length + tertiaryImpact.length + quaternaryImpact.length,
+        userImpact: estimateUserImpact(primaryImpact, criticalityScore),
+        businessImpact: estimateBusinessImpact(primaryImpact, secondaryImpact, systemId, dependencyGraph)
+    };
+}
     
     // Helper function to determine the connection type between two systems
     function getConnectionType(sourceId, targetId, graph) {
@@ -1373,31 +1415,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Estimate recovery time based on impact data
-    function estimateRecoveryTime(criticalSystems, highImpactSystems, mediumImpactSystems) {
+    function estimateRecoveryTime(primarySystems, secondaryImpactSystems, tertiaryImpactSystems) {
         // Base recovery time in hours
         let recoveryTime = 2;
         
         // Add time based on number of affected systems
-        recoveryTime += criticalSystems.length * 2; // 2 hours per critical system
-        recoveryTime += highImpactSystems.length * 0.8; // 48 minutes per high impact system
-        recoveryTime += mediumImpactSystems.length * 0.3; // 18 minutes per medium impact system
+        recoveryTime += primarySystems.length * 2; // 2 hours per primary system
+        recoveryTime += secondaryImpactSystems.length * 0.8; // 48 minutes per secondary impact system
+        recoveryTime += tertiaryImpactSystems.length * 0.3; // 18 minutes per tertiary impact system
         
         // Add complexity factor based on system types
-        const hasCore = criticalSystems.some(s => s.category.slug === 'core') || 
-                      highImpactSystems.some(s => s.category.slug === 'core');
+        const hasCore = primarySystems.some(s => s.category.slug === 'core') || 
+                      secondaryImpactSystems.some(s => s.category.slug === 'core');
                       
-        const hasExternal = criticalSystems.some(s => s.category.slug === 'external') || 
-                          highImpactSystems.some(s => s.category.slug === 'external');
+        const hasExternal = primarySystems.some(s => s.category.slug === 'external') || 
+                          secondaryImpactSystems.some(s => s.category.slug === 'external');
         
-        const hasServer = criticalSystems.some(s => s.category.slug === 'server');
+        const hasServer = primarySystems.some(s => s.category.slug === 'server');
         
         if (hasCore) recoveryTime *= 1.5; // Core systems take 50% longer to recover
         if (hasExternal) recoveryTime *= 1.3; // External systems add 30% to recovery time
         if (hasServer) recoveryTime *= 1.8; // Server failures have longest recovery
         
-        // Check for SSO or hosting dependencies in critical impact
-        const hasSsoProvider = criticalSystems.some(s => s.isSsoProvider);
-        const hasHostingProvider = criticalSystems.some(s => s.isHostingProvider);
+        // Check for SSO or hosting dependencies in primary impact
+        const hasSsoProvider = primarySystems.some(s => s.isSsoProvider);
+        const hasHostingProvider = primarySystems.some(s => s.isHostingProvider);
         
         if (hasSsoProvider) recoveryTime *= 1.4; // SSO failures are complex to restore
         if (hasHostingProvider) recoveryTime *= 1.7; // Hosting failures take longest to recover
@@ -1407,21 +1449,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Estimate user impact based on impact data
-    function estimateUserImpact(criticalSystems, criticalityScore) {
-        // Calculate user impact based on critical systems and overall criticality
-        const totalImpact = criticalSystems.reduce((sum, system) => sum + system.impact, 0);
+    function estimateUserImpact(primarySystems, criticalityScore) {
+        // Calculate user impact based on primary systems and overall criticality
+        const totalImpact = primarySystems.reduce((sum, system) => sum + system.impact, 0);
         
         // Include criticality score in assessment
         const combinedScore = totalImpact + (criticalityScore * 0.2);
         
-        if (combinedScore > 50 || criticalSystems.some(s => s.isSsoProvider)) return "Critical";
+        if (combinedScore > 50 || primarySystems.some(s => s.isSsoProvider)) return "Critical";
         if (combinedScore > 35) return "High";
         if (combinedScore > 20) return "Medium";
         return "Low";
     }
     
     // Estimate business impact based on impact data
-    function estimateBusinessImpact(criticalSystems, highImpactSystems, systemId, graph) {
+    function estimateBusinessImpact(primarySystems, secondaryImpactSystems, systemId, graph) {
         // Business impact categories
         const categories = {
             "Multiple Departments": 3,
@@ -1434,20 +1476,20 @@ document.addEventListener('DOMContentLoaded', function() {
         let impact = "Limited";
         
         // Check if core systems are affected
-        if (criticalSystems.some(s => s.category.slug === 'core') || 
-            highImpactSystems.length > 5) {
+        if (primarySystems.some(s => s.category.slug === 'core') || 
+            secondaryImpactSystems.length > 5) {
             impact = "Multiple Departments";
-        } else if (criticalSystems.length > 2 || 
-                 highImpactSystems.some(s => s.category.slug === 'core')) {
+        } else if (primarySystems.length > 2 || 
+                 secondaryImpactSystems.some(s => s.category.slug === 'core')) {
             impact = "Cross-Department";
-        } else if (criticalSystems.length > 0) {
+        } else if (primarySystems.length > 0) {
             impact = "Single Department";
         }
         
         // Special case for SSO or hosting
         if (graph.ssoRelations[systemId] || 
             graph.hostingRelations[systemId] ||
-            criticalSystems.some(s => s.isSsoProvider || s.isHostingProvider)) {
+            primarySystems.some(s => s.isSsoProvider || s.isHostingProvider)) {
             // SSO or hosting failures usually affect multiple departments
             impact = "Multiple Departments";
         }
@@ -1485,7 +1527,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear existing content
         container.innerHTML = '';
         
-        if (systems.length === 0) {
+        if (!systems || systems.length === 0) {
             container.innerHTML = '<div class="p-4 text-sm text-gray-500 text-center">No systems in this impact category</div>';
             return;
         }
@@ -1502,6 +1544,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 connectionType = '<span class="text-xs text-purple-600">Hosting</span>';
             }
             
+            let sourceInfo = '';
+            if (system.sourceNode && system.sourceNode !== {{ system.id }}) {
+                // Find the source system name
+                const sourceName = dependencyGraph.nodes[system.sourceNode]?.name || 'Unknown System';
+                sourceInfo = `<div class="mt-1 text-xs text-gray-500">Dependent on: <a href="#" class="text-blue-600 view-source-btn" data-id="${system.sourceNode}">${sourceName}</a></div>`;
+            }
+            
             systemItem.innerHTML = `
                 <div class="flex justify-between">
                     <div>
@@ -1513,6 +1562,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </span>
                             ${connectionType ? `<span class="ml-2">${connectionType}</span>` : ''}
                         </div>
+                        ${sourceInfo}
                     </div>
                     <div class="flex items-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -1537,6 +1587,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     highlightSystemInGraph(system.id);
+                });
+            }
+            
+            // Add click handler for "View Source" link if present
+            const sourceButton = systemItem.querySelector('.view-source-btn');
+            if (sourceButton) {
+                sourceButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    highlightSystemInGraph(system.sourceNode);
                 });
             }
             
@@ -1566,24 +1625,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const width = Math.max(container.clientWidth, 800); // Use at least 800px
         const height = Math.max(container.clientHeight, 600); // Use at least 600px
         
-        console.log("Container dimensions:", {
-            width,
-            height,
-            offsetWidth: container.offsetWidth,
-            clientWidth: container.clientWidth
-        });
-        
-        
-        
-        // Debug: Log the data we're working with
-        console.log("Creating visualization with data:", {
-            systemId,
-            nodes: dependencyGraph.nodes,
-            criticalImpact: impactData.criticalImpact,
-            highImpact: impactData.highImpact,
-            mediumImpact: impactData.mediumImpact
-        });
-        
         // Clear any existing SVG
         d3.select('#disaster-graph').html('');
         
@@ -1592,9 +1633,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .append('svg')
             .attr('width', width)
             .attr('height', height);
-            
-        // Debug: Check if SVG was created
-        console.log("SVG created:", svg.node());
             
         // Add a definitions section for markers (arrowheads)
         const defs = svg.append('defs');
@@ -1632,6 +1670,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const nodes = [];
         const links = [];
         
+        // Function to add a system to nodes if not already present
+        function addSystemNodeIfNeeded(system) {
+            if (!nodes.some(n => n.id === system.id)) {
+                nodes.push({
+                    id: system.id,
+                    name: system.name,
+                    category: system.category,
+                    status: system.status,
+                    vendor: system.vendor,
+                    impactLevel: system.impactLevel,
+                    isSsoProvider: system.isSsoProvider,
+                    isHostingProvider: system.isHostingProvider
+                });
+            }
+        }
+        
+        // Function to add a link between systems if not already present
+        function addSystemLinkIfNeeded(sourceId, targetId, type) {
+            if (!links.some(l => 
+                (l.source === sourceId && l.target === targetId) || 
+                (l.source.id === sourceId && l.target.id === targetId)
+            )) {
+                links.push({
+                    source: sourceId,
+                    target: targetId,
+                    type: type || 'direct'
+                });
+            }
+        }
+        
         // Add the central system (the one being analyzed)
         nodes.push({
             id: systemId,
@@ -1642,66 +1710,40 @@ document.addEventListener('DOMContentLoaded', function() {
             isMainSystem: true
         });
         
-        // Add critical impact systems and their connections
-        impactData.criticalImpact.forEach(system => {
-            nodes.push({
-                id: system.id,
-                name: system.name,
-                category: system.category,
-                status: system.status,
-                vendor: system.vendor,
-                impactLevel: 'critical',
-                isSsoProvider: system.isSsoProvider,
-                isHostingProvider: system.isHostingProvider
-            });
+        // Add primary impact systems and their connections
+        impactData.primaryImpact.forEach(system => {
+            addSystemNodeIfNeeded(system);
             
-            links.push({
-                source: systemId,
-                target: system.id,
-                type: system.connectionType || 'direct'
-            });
+            // Connect to main system or specified source node
+            const sourceId = system.sourceNode || systemId;
+            addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
         });
         
-        // Add high impact systems and their connections
-        impactData.highImpact.forEach(system => {
-            nodes.push({
-                id: system.id,
-                name: system.name,
-                category: system.category,
-                status: system.status,
-                vendor: system.vendor,
-                impactLevel: 'high'
-            });
+        // Add secondary impact systems and their connections
+        impactData.secondaryImpact.forEach(system => {
+            addSystemNodeIfNeeded(system);
             
-            // Connect to the source node or the main system
+            // Connect to the source node (primary system)
             const sourceId = system.sourceNode || systemId;
-            
-            links.push({
-                source: sourceId,
-                target: system.id,
-                type: system.connectionType || 'direct'
-            });
+            addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
         });
         
-        // Add medium impact systems and their connections
-        impactData.mediumImpact.forEach(system => {
-            nodes.push({
-                id: system.id,
-                name: system.name,
-                category: system.category,
-                status: system.status,
-                vendor: system.vendor,
-                impactLevel: 'medium'
-            });
+        // Add tertiary impact systems and their connections
+        impactData.tertiaryImpact.forEach(system => {
+            addSystemNodeIfNeeded(system);
             
-            // Connect to the source node or the main system
+            // Connect to the source node (secondary system)
             const sourceId = system.sourceNode || systemId;
+            addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
+        });
+        
+        // Add quaternary impact systems if any
+        impactData.quaternaryImpact?.forEach(system => {
+            addSystemNodeIfNeeded(system);
             
-            links.push({
-                source: sourceId,
-                target: system.id,
-                type: system.connectionType || 'direct'
-            });
+            // Connect to the source node (tertiary system)
+            const sourceId = system.sourceNode || systemId;
+            addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
         });
         
         // Set up force simulation
@@ -1847,8 +1889,9 @@ document.addEventListener('DOMContentLoaded', function() {
         function getNodeRadius(node) {
             if (node.isMainSystem) return 25;
             if (node.isSsoProvider || node.isHostingProvider) return 22;
-            if (node.impactLevel === 'critical') return 20;
-            if (node.impactLevel === 'high') return 16;
+            if (node.impactLevel === 'primary') return 20;
+            if (node.impactLevel === 'secondary') return 16;
+            if (node.impactLevel === 'tertiary') return 14;
             return 12;
         }
         
@@ -1857,9 +1900,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (node.isMainSystem) return '#ffd700'; // Gold for main system
             if (node.isSsoProvider) return '#e0f2fe'; // Light blue for SSO provider
             if (node.isHostingProvider) return '#f3e8ff'; // Light purple for hosting provider
-            if (node.impactLevel === 'critical') return '#fee2e2'; // Red bg for critical
-            if (node.impactLevel === 'high') return '#ffedd5'; // Orange bg for high
-            if (node.impactLevel === 'medium') return '#fef9c3'; // Yellow bg for medium
+            if (node.impactLevel === 'primary') return '#fee2e2'; // Red bg for primary
+            if (node.impactLevel === 'secondary') return '#ffedd5'; // Orange bg for secondary
+            if (node.impactLevel === 'tertiary') return '#fef9c3'; // Yellow bg for tertiary
+            if (node.impactLevel === 'quaternary') return '#e0f2fe'; // Light blue for quaternary
             
             // Default by category
             return node.category?.color || '#f5f5f5';
@@ -1870,9 +1914,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (node.isMainSystem) return '#ff8c00'; // Orange stroke for main
             if (node.isSsoProvider) return '#0ea5e9'; // Blue stroke for SSO
             if (node.isHostingProvider) return '#a855f7'; // Purple stroke for hosting
-            if (node.impactLevel === 'critical') return '#ef4444'; // Red for critical
-            if (node.impactLevel === 'high') return '#f97316'; // Orange for high
-            if (node.impactLevel === 'medium') return '#eab308'; // Yellow for medium
+            if (node.impactLevel === 'primary') return '#ef4444'; // Red for primary
+            if (node.impactLevel === 'secondary') return '#f97316'; // Orange for secondary
+            if (node.impactLevel === 'tertiary') return '#eab308'; // Yellow for tertiary
+            if (node.impactLevel === 'quaternary') return '#0ea5e9'; // Blue for quaternary
             
             // Default by category
             return node.category?.text_color || '#999';
@@ -1993,6 +2038,93 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
+    // Show complete failure propagation paths
+    function showFailurePathsInGraph() {
+        // Remove any existing failure paths
+        d3.selectAll('.failure-path').remove();
+        
+        if (!showFullPaths) return;
+        
+        const svg = d3.select('#disaster-graph svg');
+        const g = svg.select('g');
+        
+        // Helper function to find all paths from the main system to other systems
+        function findAllPaths(sourceId, visitedNodes = new Set(), currentPath = []) {
+            // Track this node as visited to avoid cycles
+            visitedNodes.add(sourceId);
+            currentPath.push(sourceId);
+            
+            const paths = [];
+            
+            // Get systems dependent on this one
+            const dependents = dependencyGraph.dependents[sourceId] || [];
+            
+            if (dependents.length === 0) {
+                // We've reached a leaf node, return the current path
+                return [currentPath];
+            }
+            
+            // For each dependent, find all paths from it
+            dependents.forEach(dependentId => {
+                // Skip if already visited to avoid cycles
+                if (visitedNodes.has(dependentId)) return;
+                
+                // Recursively find paths from this dependent
+                const newVisited = new Set(visitedNodes);
+                const dependentPaths = findAllPaths(dependentId, newVisited, [...currentPath]);
+                
+                // Add all paths found from this dependent
+                paths.push(...dependentPaths);
+            });
+            
+            // If no dependents found paths, return the current path
+            if (paths.length === 0) {
+                return [currentPath];
+            }
+            
+            return paths;
+        }
+        
+        // Find all propagation paths from the source system
+        const allPaths = findAllPaths({{ system.id }});
+        
+        // Visualize each path
+        allPaths.forEach((path, pathIndex) => {
+            // Skip paths with just the source system
+            if (path.length <= 1) return;
+            
+            // Create connections for each segment of the path
+            for (let i = 0; i < path.length - 1; i++) {
+                const sourceId = path[i];
+                const targetId = path[i+1];
+                
+                // Find the existing path element
+                const linkId = `link-${sourceId}-${targetId}`;
+                const existingLink = document.getElementById(linkId);
+                
+                if (!existingLink) continue;
+                
+                // Get the path data
+                const pathData = d3.select(existingLink).attr('d');
+                if (!pathData) continue;
+                
+                // Calculate opacity and width based on path distance from source
+                const pathLevel = i;
+                const opacity = Math.max(0.4, 1 - (pathLevel * 0.15));
+                const width = Math.max(1.5, 4 - (pathLevel * 0.8));
+                
+                // Create the failure path element
+                g.append('path')
+                    .attr('d', pathData)
+                    .attr('class', 'failure-path')
+                    .attr('stroke-opacity', opacity)
+                    .attr('stroke-width', width)
+                    .attr('data-path-index', pathIndex)
+                    .attr('data-path-level', pathLevel);
+            }
+        });
+    }
+    
     // Show info panel for a node
     function showInfoPanel(node) {
         const panel = document.getElementById('infoPanel');
@@ -2011,17 +2143,21 @@ document.addEventListener('DOMContentLoaded', function() {
             let impactText;
             
             switch(node.impactLevel) {
-                case 'critical':
+                case 'primary':
                     badgeClass = 'bg-red-100 text-red-800';
-                    impactText = 'Critical Impact';
+                    impactText = 'Primary Impact';
                     break;
-                case 'high':
+                case 'secondary':
                     badgeClass = 'bg-orange-100 text-orange-800';
-                    impactText = 'High Impact';
+                    impactText = 'Secondary Impact';
                     break;
-                case 'medium':
+                case 'tertiary':
                     badgeClass = 'bg-yellow-100 text-yellow-800';
-                    impactText = 'Medium Impact';
+                    impactText = 'Tertiary Impact';
+                    break;
+                case 'quaternary':
+                    badgeClass = 'bg-blue-100 text-blue-800';
+                    impactText = 'Quaternary Impact';
                     break;
                 default:
                     badgeClass = 'bg-gray-100 text-gray-800';
@@ -2072,69 +2208,6 @@ document.addEventListener('DOMContentLoaded', function() {
         panel.style.display = 'none';
     }
     
-    // Show failure paths in the graph
-    function showFailurePathsInGraph() {
-        // Remove any existing failure paths
-        d3.selectAll('.failure-path').remove();
-        
-        if (!showFullPaths) return;
-        
-        const svg = d3.select('#disaster-graph svg');
-        const g = svg.select('g');
-        
-        // Get all links that should be part of the failure path
-        const pathLinks = [];
-        
-        // Start with critical impact systems
-        impactData.criticalImpact.forEach(system => {
-            pathLinks.push({
-                source: {{ system.id }},
-                target: system.id,
-                level: 1
-            });
-        });
-        
-        // Add high impact systems connected to critical ones
-        impactData.highImpact.forEach(system => {
-            if (system.sourceNode) {
-                pathLinks.push({
-                    source: system.sourceNode,
-                    target: system.id,
-                    level: 2
-                });
-            }
-        });
-        
-        // Add medium impact systems connected to high ones
-        impactData.mediumImpact.forEach(system => {
-            if (system.sourceNode) {
-                pathLinks.push({
-                    source: system.sourceNode,
-                    target: system.id,
-                    level: 3
-                });
-            }
-        });
-        
-        // Create paths for each link
-        pathLinks.forEach(link => {
-            // Find existing path for reference
-            const existingPath = document.getElementById(`link-${link.source}-${link.target}`);
-            if (!existingPath) return;
-            
-            // Copy the path data
-            const pathData = d3.select(existingPath).attr('d');
-            if (!pathData) return;
-            
-            // Create new path with failure styling
-            g.append('path')
-                .attr('d', pathData)
-                .attr('class', 'failure-path')
-                .attr('stroke-opacity', 1.0 - (link.level * 0.2)) // Fade out for higher levels
-                .attr('stroke-width', 4 - (link.level * 0.8)); // Thinner for higher levels
-        });
-    }
-    
     // Reset view
     function resetView() {
         // Clear any highlighting
@@ -2174,34 +2247,44 @@ document.addEventListener('DOMContentLoaded', function() {
         centralNode.fx = d3.select('#disaster-graph svg').attr('width') / 2;
         centralNode.fy = d3.select('#disaster-graph svg').attr('height') / 2;
         
-        // Arrange critical nodes in a circle around central node
-        const criticalNodes = simulation.nodes().filter(n => n.impactLevel === 'critical');
-        const criticalRadius = Math.max(150, 80 + criticalNodes.length * 10);
+        // Arrange primary nodes in a circle around central node
+        const primaryNodes = simulation.nodes().filter(n => n.impactLevel === 'primary');
+        const primaryRadius = Math.max(150, 80 + primaryNodes.length * 10);
         
-        criticalNodes.forEach((node, i) => {
-            const angle = (i / criticalNodes.length) * 2 * Math.PI;
-            node.fx = centralNode.fx + criticalRadius * Math.cos(angle);
-            node.fy = centralNode.fy + criticalRadius * Math.sin(angle);
+        primaryNodes.forEach((node, i) => {
+            const angle = (i / primaryNodes.length) * 2 * Math.PI;
+            node.fx = centralNode.fx + primaryRadius * Math.cos(angle);
+            node.fy = centralNode.fy + primaryRadius * Math.sin(angle);
         });
         
-        // Arrange high impact nodes in a wider circle
-        const highNodes = simulation.nodes().filter(n => n.impactLevel === 'high');
-        const highRadius = criticalRadius + 100;
+        // Arrange secondary impact nodes in a wider circle
+        const secondaryNodes = simulation.nodes().filter(n => n.impactLevel === 'secondary');
+        const secondaryRadius = primaryRadius + 100;
         
-        highNodes.forEach((node, i) => {
-            const angle = (i / highNodes.length) * 2 * Math.PI;
-            node.fx = centralNode.fx + highRadius * Math.cos(angle);
-            node.fy = centralNode.fy + highRadius * Math.sin(angle);
+        secondaryNodes.forEach((node, i) => {
+            const angle = (i / secondaryNodes.length) * 2 * Math.PI;
+            node.fx = centralNode.fx + secondaryRadius * Math.cos(angle);
+            node.fy = centralNode.fy + secondaryRadius * Math.sin(angle);
         });
         
-        // Arrange medium impact nodes in the outermost circle
-        const mediumNodes = simulation.nodes().filter(n => n.impactLevel === 'medium');
-        const mediumRadius = highRadius + 100;
+        // Arrange tertiary impact nodes in the outermost circle
+        const tertiaryNodes = simulation.nodes().filter(n => n.impactLevel === 'tertiary');
+        const tertiaryRadius = secondaryRadius + 100;
         
-        mediumNodes.forEach((node, i) => {
-            const angle = (i / mediumNodes.length) * 2 * Math.PI;
-            node.fx = centralNode.fx + mediumRadius * Math.cos(angle);
-            node.fy = centralNode.fy + mediumRadius * Math.sin(angle);
+        tertiaryNodes.forEach((node, i) => {
+            const angle = (i / tertiaryNodes.length) * 2 * Math.PI;
+            node.fx = centralNode.fx + tertiaryRadius * Math.cos(angle);
+            node.fy = centralNode.fy + tertiaryRadius * Math.sin(angle);
+        });
+        
+        // Arrange quaternary nodes in the furthest circle
+        const quaternaryNodes = simulation.nodes().filter(n => n.impactLevel === 'quaternary');
+        const quaternaryRadius = tertiaryRadius + 100;
+        
+        quaternaryNodes.forEach((node, i) => {
+            const angle = (i / quaternaryNodes.length) * 2 * Math.PI;
+            node.fx = centralNode.fx + quaternaryRadius * Math.cos(angle);
+            node.fy = centralNode.fy + quaternaryRadius * Math.sin(angle);
         });
         
         // Restart simulation to apply changes
@@ -2235,16 +2318,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hideIntermediateNodes) {
             button.classList.add('active');
             
-            // Hide medium impact nodes
+            // Hide tertiary and quaternary impact nodes
             d3.selectAll('.node').each(function(d) {
-                if (d && d.impactLevel === 'medium') {
+                if (d && (d.impactLevel === 'tertiary' || d.impactLevel === 'quaternary')) {
                     d3.select(this).style('opacity', 0.2);
                 }
             });
             
-            // Hide links to medium impact nodes
+            // Hide links to tertiary and quaternary impact nodes
             d3.selectAll('.connection').each(function(d) {
-                if (d && d.target && d.target.impactLevel === 'medium') {
+                if (d && d.target && (d.target.impactLevel === 'tertiary' || d.target.impactLevel === 'quaternary')) {
                     d3.select(this).style('opacity', 0.2);
                 }
             });
@@ -2408,256 +2491,90 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
     
-    // Generate custom mitigation strategies based on system type
-    function generateMitigationStrategies(systemCategory, systemCategoryName, impactData) {
-        // Generate custom mitigation strategies based on system type and impact
-        let customStrategiesHTML = '';
+    // Recovery Step Management
+    
+    // Function to open recovery step modal for a new step
+    function openRecoveryStepModal(stepData = null) {
+        const modal = document.getElementById('recoveryStepModal');
+        const form = document.getElementById('recoveryStepForm');
+        const title = document.getElementById('stepModalTitle');
         
-        // Base strategies on system category
-        if (systemCategory === 'core') {
-            customStrategiesHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">High Availability Architecture</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement active-active or active-passive high availability setup for this ${systemCategoryName}.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">SLA Enhancement</p>
-                        <p class="mt-1 text-sm text-gray-500">Establish 24/7 support SLAs with vendor and ensure proper escalation procedures for this critical system.</p>
-                    </div>
-                </div>
-            `;
-        } else if (systemCategory === 'integration') {
-            customStrategiesHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Fault Tolerant Integration Design</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement retry mechanisms, circuit breakers, and dead-letter queues in integration points to handle temporary failures.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Asynchronous Processing</p>
-                        <p class="mt-1 text-sm text-gray-500">Convert synchronous interfaces to asynchronous where possible to reduce tight coupling between systems.</p>
-                    </div>
-                </div>
-            `;
-        } else if (systemCategory === 'custom') {
-            customStrategiesHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Code Review & Documentation</p>
-                        <p class="mt-1 text-sm text-gray-500">Ensure thorough code reviews and maintain up-to-date documentation for this custom component.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Knowledge Transfer</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement cross-training to ensure multiple team members can support and recover this custom system.</p>
-                    </div>
-                </div>
-            `;
-        } else if (systemCategory === 'server') {
-            customStrategiesHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Server Clustering</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement server clustering or load balancing to minimize single points of failure.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Automated Failover</p>
-                        <p class="mt-1 text-sm text-gray-500">Configure automated failover mechanisms to standby infrastructure with regular testing.</p>
-                    </div>
-                </div>
-            `;
+        // Reset form
+        form.reset();
+        
+        // Set title and fields based on whether editing or adding
+        if (stepData) {
+            title.textContent = 'Edit Recovery Step';
+            document.getElementById('stepId').value = stepData.id;
+            document.getElementById('stepTitle').value = stepData.title;
+            document.getElementById('stepDescription').value = stepData.description;
+            document.getElementById('responsibleTeam').value = stepData.responsible_team || '';
+            document.getElementById('estimatedTime').value = stepData.estimated_time || '';
         } else {
-            customStrategiesHTML = `
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Vendor SLA Monitoring</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement regular monitoring of vendor SLA performance and establish escalation procedures.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">API Versioning & Governance</p>
-                        <p class="mt-1 text-sm text-gray-500">Establish strong governance over external API dependencies with versioning and change management.</p>
-                    </div>
-                </div>
-            `;
+            title.textContent = 'Add Recovery Step';
+            document.getElementById('stepId').value = '';
         }
         
-        // Add impact-based strategies
-        if (impactData.criticalImpact.length > 3) {
-            customStrategiesHTML += `
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Critical Path Exercises</p>
-                        <p class="mt-1 text-sm text-gray-500">Conduct regular critical path exercises with all ${impactData.criticalImpact.length} directly dependent systems to minimize cascade failures.</p>
-                    </div>
-                </div>
-            `;
-        }
+        // Show modal
+        modal.classList.remove('hidden');
+    }
+    
+    // Function to close recovery step modal
+    function closeRecoveryStepModal() {
+        document.getElementById('recoveryStepModal').classList.add('hidden');
+    }
+    
+    // Function to edit a recovery step
+    function editRecoveryStep(stepId) {
+        // Fetch step data via API
+        fetch(`/systems/recovery-step/${stepId}/`)
+            .then(response => response.json())
+            .then(data => {
+                openRecoveryStepModal(data);
+            })
+            .catch(error => {
+                console.error('Error fetching recovery step:', error);
+            });
+    }
+    
+    // Function to confirm deletion of a recovery step
+    function confirmDeleteStep(stepId) {
+        document.getElementById('deleteStepId').value = stepId;
         
-        // Add special strategies for hosting or SSO providers
-        if (dependencyGraph.hostingRelations[{{ system.id }}]) {
-            customStrategiesHTML += `
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Hosting Redundancy</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement geographic redundancy for hosting infrastructure with automated failover capabilities.</p>
-                    </div>
-                </div>
-            `;
-        }
+        // Update form action with the correct step ID
+        const form = document.getElementById('deleteStepForm');
+        form.action = form.action.replace(/\/\d+\/$/, `/${stepId}/`);
         
-        if (dependencyGraph.ssoRelations[{{ system.id }}]) {
-            customStrategiesHTML += `
-                <div class="mt-4 flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Authentication Fallback</p>
-                        <p class="mt-1 text-sm text-gray-500">Implement emergency authentication fallback mechanism for SSO failures with regular testing.</p>
-                    </div>
-                </div>
-            `;
-        }
+        document.getElementById('deleteStepModal').classList.remove('hidden');
+    }
+    
+    // Function to move a recovery step up or down
+    function moveRecoveryStep(stepId, direction) {
+        const data = {
+            step_id: stepId,
+            direction: direction
+        };
         
-        // Update the custom mitigation strategies element
-        document.getElementById('custom-mitigation-strategies').innerHTML = customStrategiesHTML;
-        
-        // Add a severity indicator
-        let severityLevel = 'Low';
-        if (impactData.criticalImpact.length > 5 || impactData.criticalityScore > 50) {
-            severityLevel = 'Critical';
-        } else if (impactData.criticalImpact.length > 3 || impactData.criticalityScore > 30) {
-            severityLevel = 'High';
-        } else if (impactData.criticalImpact.length > 1 || impactData.criticalityScore > 15) {
-            severityLevel = 'Medium';
-        }
-        
-        // Create and add a severity indicator if it doesn't exist
-        if (!document.getElementById('failure-severity')) {
-            const severityLi = document.createElement('li');
-            severityLi.className = 'px-4 py-4 sm:px-6';
-            severityLi.id = 'severity-indicator-container';
-            
-            let severityColor = '';
-            if (severityLevel === 'Critical') severityColor = 'impact-badge-red';
-            else if (severityLevel === 'High') severityColor = 'impact-badge-orange';
-            else if (severityLevel === 'Medium') severityColor = 'impact-badge-yellow';
-            else severityColor = 'impact-badge-green';
-            
-            severityLi.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="text-sm font-medium text-gray-900">Overall Failure Severity</div>
-                    <div class="impact-badge ${severityColor}" id="failure-severity">
-                        ${severityLevel}
-                    </div>
-                </div>
-            `;
-            
-            // Add to beginning of the list
-            const mitigationList = document.getElementById('mitigation-strategies');
-            if (mitigationList.firstChild) {
-                mitigationList.insertBefore(severityLi, mitigationList.firstChild);
+        fetch(`/systems/{{ system.id }}/move-recovery-step/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                // Reload the page to reflect changes
+                window.location.reload();
             } else {
-                mitigationList.appendChild(severityLi);
+                console.error('Error moving recovery step');
             }
-        } else {
-            // Update existing severity indicator
-            const severityElement = document.getElementById('failure-severity');
-            severityElement.textContent = severityLevel;
-            
-            // Update color
-            severityElement.className = 'impact-badge';
-            if (severityLevel === 'Critical') {
-                severityElement.classList.add('impact-badge-red');
-            } else if (severityLevel === 'High') {
-                severityElement.classList.add('impact-badge-orange');
-            } else if (severityLevel === 'Medium') {
-                severityElement.classList.add('impact-badge-yellow');
-            } else {
-                severityElement.classList.add('impact-badge-green');
-            }
-        }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     }
 });
 </script>
 {% endblock %}
-        
-
-   

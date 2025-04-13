@@ -2,7 +2,7 @@
 
 from django import forms
 from django.contrib.auth.models import User
-from .models import System, SystemRelationship, SystemDocument, SystemNote, SystemAdministrator, SystemStatus, SystemCategory
+from .models import System, SystemRelationship, SystemDocument, SystemNote, SystemAdministrator, SystemStatus, SystemCategory, DisasterRecoveryStep
 
 class SystemForm(forms.ModelForm):
     class Meta:
@@ -187,3 +187,11 @@ class SystemStatusForm(forms.ModelForm):
         if SystemStatus.objects.filter(slug=slug).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("A status with this slug already exists.")
         return slug
+
+class DisasterRecoveryStepForm(forms.ModelForm):
+    class Meta:
+        model = DisasterRecoveryStep
+        fields = ['title', 'description', 'responsible_team', 'estimated_time']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
