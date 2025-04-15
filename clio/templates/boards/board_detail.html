@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <style>
+    /* Board view specific styles */
     .card-container {
         position: absolute;
         width: 280px;
@@ -118,6 +119,7 @@
         color: #78350f;
     }
     
+    /* Badge styles */
     .type-badge {
         display: inline-block;
         padding: 0.25rem 0.5rem;
@@ -199,9 +201,10 @@
         transition: transform 0.1s ease-out;
     }
     
+    /* Board controls styles */
     .board-controls {
         position: absolute;
-        bottom: 20px;
+        top: 20px;
         right: 20px;
         display: flex;
         gap: 8px;
@@ -301,6 +304,30 @@
         background-color: white;
         padding: 1rem;
         border-bottom: 1px solid #e5e7eb;
+        transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+        overflow: hidden;
+    }
+    
+    .filter-toolbar.collapsed {
+        max-height: 60px;
+        padding: 0.5rem 1rem;
+    }
+    
+    .filter-toolbar-toggle {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        color: #6b7280;
+        padding: 4px;
+        border-top: 1px solid #e5e7eb;
+        transition: background-color 0.2s;
+    }
+    
+    .filter-toolbar-toggle:hover {
+        background-color: #f3f4f6;
     }
     
     /* For list view */
@@ -319,6 +346,17 @@
         padding: 0.75rem 1rem;
         background-color: #f9fafb;
         border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+    }
+    
+    .list-view-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .list-view-table th.sortable:hover {
+        background-color: #f3f4f6;
     }
     
     .list-view-table td {
@@ -354,7 +392,7 @@
     .mini-map {
         position: fixed;
         left: 20px;
-        bottom: 180px;
+        bottom: 320px; /* Increased to provide more space when color legend is expanded */
         width: 200px;
         height: 150px;
         background-color: white;
@@ -390,10 +428,11 @@
         box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
     }
     
-    /* Auto layout button */
+    /* Auto layout button - no longer needed as we moved it to the toolbar */
+    /*
     .auto-layout-button {
         position: fixed;
-        bottom: 70px;
+        top: 80px;
         right: 20px;
         width: 40px;
         height: 40px;
@@ -411,6 +450,7 @@
     .auto-layout-button:hover {
         background-color: #f9fafb;
     }
+    */
     
     /* Quick filter panel */
     .quick-filter-panel {
@@ -450,6 +490,7 @@
         border: none;
         cursor: pointer;
         transition: all 0.2s;
+        position: relative;
     }
     
     .filter-button:hover {
@@ -457,7 +498,22 @@
     }
     
     .filter-button.active {
-        ring: 2px solid #3b82f6;
+        box-shadow: 0 0 0 2px #3b82f6;
+    }
+    
+    .filter-button.exclude {
+        opacity: 0.6;
+    }
+    
+    .filter-button.exclude::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #ef4444;
+        transform: translateY(-50%);
     }
     
     .clear-filters-button {
@@ -476,6 +532,72 @@
     .clear-filters-button:hover {
         background-color: #e5e7eb;
     }
+    
+    /* List View specific styles */
+    .list-view-actions {
+        display: flex;
+        gap: 6px;
+    }
+    
+    .list-view-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background-color: #f3f4f6;
+        border-radius: 4px;
+        color: #6b7280;
+        transition: all 0.2s;
+    }
+    
+    .list-view-action-btn:hover {
+        background-color: #e5e7eb;
+        color: #1f2937;
+    }
+    
+    /* No cards message */
+    .no-cards-message {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6b7280;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        margin: 2rem 0;
+    }
+    
+    .no-cards-message svg {
+        margin: 0 auto 1rem;
+        display: block;
+        color: #9ca3af;
+    }
+    
+    /* Sort indicators */
+    .sort-indicator {
+        display: inline-block;
+        margin-left: 0.5rem;
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+    
+    .sort-indicator.asc svg {
+        transform: rotate(180deg);
+    }
+    
+    /* Bulk actions bar for list view */
+    .bulk-actions-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #f9fafb;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .filtered-cards-count {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
 </style>
 {% endblock %}
 
@@ -492,6 +614,13 @@
         {% endif %}
     </div>
     <div class="mt-4 flex md:mt-0 md:ml-4">
+        <button id="autoLayoutBtn" class="mr-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5z" />
+                <path d="M11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+            </svg>
+            Auto Layout
+        </button>
         <a href="{% url 'boards:board_card_create' board.pk %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
@@ -507,55 +636,71 @@
 
 {% block content %}
 <div class="bg-white shadow rounded-lg">
-    <div class="filter-toolbar">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-4">
-                <div class="view-toggle">
-                    <button class="view-toggle-button active" id="boardViewBtn">
-                        <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                        Board
-                    </button>
-                    <button class="view-toggle-button" id="listViewBtn">
-                        <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                        </svg>
-                        List
+    <div class="filter-toolbar" id="filterToolbar">
+        <div class="flex justify-end mb-2 md:hidden">
+            <button class="text-gray-500 hover:text-gray-700" id="filterToolbarToggleTop">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="filter-toolbar-content" id="filterToolbarContent">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="view-toggle">
+                        <button class="view-toggle-button active" id="boardViewBtn">
+                            <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                            Board
+                        </button>
+                        <button class="view-toggle-button" id="listViewBtn">
+                            <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            List
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-1 max-w-4xl items-center space-x-3">
+                    <div class="relative flex-1">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="Search cards..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                    </div>
+                    <button id="applyFilters" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Search
                     </button>
                 </div>
             </div>
             
-            <div class="flex flex-1 max-w-4xl items-center space-x-3">
-                <div class="relative flex-1">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="Search cards..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                </div>
-                <button id="applyFilters" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Search
+            <div class="text-right mt-4">
+                <label for="sortOption" class="mr-2 text-sm text-gray-500">Group cards by:</label>
+                <select id="sortOption" class="px-3 py-2 border border-gray-300 rounded-md bg-white">
+                    <option value="none">No grouping</option>
+                    <option value="status">Status</option>
+                    <option value="type">Type</option>
+                    <option value="assigned">Assigned To</option>
+                </select>
+                <button id="applySort" class="ml-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Apply Sort
                 </button>
             </div>
         </div>
-        
-        <div class="text-right mt-4">
-            <label for="sortOption" class="mr-2 text-sm text-gray-500">Group cards by:</label>
-            <select id="sortOption" class="px-3 py-2 border border-gray-300 rounded-md bg-white">
-                <option value="none">No grouping</option>
-                <option value="status">Status</option>
-                <option value="type">Type</option>
-                <option value="assigned">Assigned To</option>
-            </select>
-            <button id="applySort" class="ml-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Apply Sort
-            </button>
-        </div>
     </div>
     
-    <!-- Board View -->
+    <div class="filter-toolbar-toggle" id="filterToolbarToggle">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+    </div>
+    
+            <!-- Board View -->
     <div id="boardView" class="board-container">
         <div id="boardCanvas" class="board-canvas">
             {% for card in cards %}
@@ -647,33 +792,107 @@
                 </svg>
             </button>
         </div>
-        
-        <!-- Auto Layout Button -->
-        <button id="autoLayoutBtn" class="auto-layout-button" title="Auto-arrange Cards">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5z" />
-                <path d="M11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-            </svg>
-        </button>
     </div>
+    
+    <!-- Auto Layout Button outside of board container -->
+    <!-- Note: We don't need this anymore since we added the button to the toolbar -->
+    <!--
+    <button id="autoLayoutBtn" class="auto-layout-button" title="Auto-arrange Cards">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" style="margin: 0 auto;">
+            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5z" />
+            <path d="M11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+        </svg>
+    </button>
+    -->
     
     <!-- List View -->
     <div id="listView" class="list-view-container" style="display: none;">
+        <div class="bulk-actions-bar">
+            <span class="filtered-cards-count" id="filteredCardsCount">Showing all cards</span>
+            <div class="filter-dropdown">
+                <!-- Add list-specific filters here if needed -->
+            </div>
+        </div>
+        
         <table class="list-view-table">
             <thead>
                 <tr>
-                    <th>Type</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Primary</th>
-                    <th>Updated</th>
+                    <th class="sortable" data-sort="type">
+                        <div class="flex items-center">
+                            Type
+                            <span class="sort-indicator" data-for="type">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="sortable" data-sort="title">
+                        <div class="flex items-center">
+                            Title
+                            <span class="sort-indicator" data-for="title">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="sortable" data-sort="status">
+                        <div class="flex items-center">
+                            Status
+                            <span class="sort-indicator" data-for="status">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="sortable" data-sort="assigned">
+                        <div class="flex items-center">
+                            Assigned To
+                            <span class="sort-indicator" data-for="assigned">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="sortable" data-sort="primary">
+                        <div class="flex items-center">
+                            Primary
+                            <span class="sort-indicator" data-for="primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="sortable" data-sort="updated">
+                        <div class="flex items-center">
+                            Updated
+                            <span class="sort-indicator" data-for="updated">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="listViewBody">
                 {% for card in cards %}
-                <tr>
+                <tr class="list-card-row" 
+                    data-id="{{ card.id }}" 
+                    data-type="{{ card.type }}" 
+                    data-type-display="{{ card.get_type_display }}" 
+                    data-status="{{ card.status }}" 
+                    data-status-display="{{ card.get_status_display }}"
+                    data-title="{{ card.title }}"
+                    data-assigned-to="{% if card.assigned_to %}{{ card.assigned_to.get_full_name|default:card.assigned_to.username }}{% else %}Unassigned{% endif %}"
+                    data-primary="{% if card.primary_system %}{{ card.primary_system.name }}{% elif card.primary_workflow %}{{ card.primary_workflow.name }}{% elif card.primary_script %}{{ card.primary_script.name }}{% else %}None{% endif %}"
+                    data-updated="{{ card.updated_at|date:"Y-m-d" }}"
+                    data-updated-display="{{ card.updated_at|date:"M d, Y" }}">
                     <td>
                         <span class="type-badge type-{{ card.type }}">
                             {{ card.get_type_display }}
@@ -721,9 +940,24 @@
                         </div>
                     </td>
                     <td>
-                        <a href="{% url 'boards:card_detail' card.id %}" class="text-blue-600 hover:text-blue-900">
-                            View
-                        </a>
+                        <div class="list-view-actions">
+                            <a href="{% url 'boards:card_detail' card.id %}" class="list-view-action-btn" title="View Card">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </a>
+                            <a href="{% url 'boards:card_update' card.id %}" class="list-view-action-btn" title="Edit Card">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </a>
+                            <a href="{% url 'boards:card_checkout' card.id %}" class="list-view-action-btn" title="{% if card.checked_out %}Check In{% else %}Check Out{% endif %}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                </svg>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
@@ -735,6 +969,18 @@
                 {% endfor %}
             </tbody>
         </table>
+        
+        <!-- No cards message will be shown dynamically when needed -->
+        <div id="noCardsMessage" class="no-cards-message" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="text-lg font-medium mb-2">No cards found</h3>
+            <p class="text-sm">No cards match your current filters or search criteria.</p>
+            <button id="clearFiltersInline" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                Clear Filters
+            </button>
+        </div>
     </div>
 </div>
 
@@ -748,7 +994,7 @@
 </div>
 
 <!-- Quick Filter Panel -->
-<div class="quick-filter-panel">
+<div class="quick-filter-panel" id="quickFilterPanel">
     <h3 class="text-sm font-semibold mb-3">Quick Filters</h3>
     
     <div class="filter-group">
@@ -777,6 +1023,15 @@
         <div class="filter-buttons">
             <button data-filter-type="assigned" data-filter-value="me" class="filter-button" style="background-color: #dbeafe; color: #1e40af;">Assigned to me</button>
             <button data-filter-type="assigned" data-filter-value="unassigned" class="filter-button" style="background-color: #f3f4f6; color: #4b5563;">Unassigned</button>
+        </div>
+    </div>
+
+    <div class="mt-2 mb-3 text-xs text-gray-500">
+        <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Click once to include, twice to exclude
         </div>
     </div>
     
@@ -931,7 +1186,16 @@
         const boardView = document.getElementById('boardView');
         const boardCanvas = document.getElementById('boardCanvas');
         const listView = document.getElementById('listView');
-        
+        const listViewBody = document.getElementById('listViewBody');
+        const noCardsMessage = document.getElementById('noCardsMessage');
+        const filteredCardsCount = document.getElementById('filteredCardsCount');
+
+        // Filter toolbar
+        const filterToolbar = document.getElementById('filterToolbar');
+        const filterToolbarContent = document.getElementById('filterToolbarContent');
+        const filterToolbarToggle = document.getElementById('filterToolbarToggle');
+        const filterToolbarToggleTop = document.getElementById('filterToolbarToggleTop');
+
         // View toggle buttons
         const boardViewBtn = document.getElementById('boardViewBtn');
         const listViewBtn = document.getElementById('listViewBtn');
@@ -941,6 +1205,9 @@
         const colorKeyToggle = document.getElementById('colorKeyToggle');
         const colorKeyContent = document.getElementById('colorKeyContent');
         const colorKeyChevron = document.getElementById('colorKeyChevron');
+        
+        // Quick filter panel
+        const quickFilterPanel = document.getElementById('quickFilterPanel');
         
         // Mini-map elements
         const miniMap = document.getElementById('miniMap');
@@ -954,9 +1221,16 @@
         // Quick filter elements
         const quickFilterButtons = document.querySelectorAll('[data-filter-type]');
         const clearFiltersBtn = document.getElementById('clearFilters');
+        const clearFiltersInlineBtn = document.getElementById('clearFiltersInline');
         
         // Card containers
         const cardContainers = document.querySelectorAll('.card-container');
+        
+        // List view rows
+        const listCardRows = document.querySelectorAll('.list-card-row');
+        
+        // List view sortable headers
+        const sortableHeaders = document.querySelectorAll('th.sortable');
         
         // Card detail buttons
         const cardDetailButtons = document.querySelectorAll('.card-detail-button');
@@ -984,6 +1258,9 @@
         const zoomInBtn = document.getElementById('zoomIn');
         const zoomOutBtn = document.getElementById('zoomOut');
         const resetViewBtn = document.getElementById('resetView');
+        
+        // Auto layout button
+        const autoLayoutBtn = document.getElementById('autoLayoutBtn');
         
         // Constants for the mini-map scaling
         const MINIMAP_WIDTH = 184; // Actual size minus padding
@@ -1014,13 +1291,24 @@
         
         // Active filters state
         let activeFilters = {
-            type: null,
-            status: null,
-            assigned: null
+            type: {},
+            status: {},
+            assigned: {}
+        };
+        
+        // List view sorting state
+        let listSortState = {
+            column: null,
+            direction: null
         };
         
         // Initialize canvas position
         updateBoardTransform();
+        
+        // Auto-collapse filter toolbar on load for mobile
+        if (window.innerWidth < 768) {
+            toggleFilterToolbar(true);
+        }
         
         // Initialize color key as expanded
         colorKeyContainer.classList.remove('collapsed');
@@ -1028,6 +1316,29 @@
         
         // Initialize mini-map
         updateMiniMap();
+        
+        // Toggle filter toolbar
+        filterToolbarToggle.addEventListener('click', function() {
+            toggleFilterToolbar();
+        });
+        
+        if (filterToolbarToggleTop) {
+            filterToolbarToggleTop.addEventListener('click', function() {
+                toggleFilterToolbar();
+            });
+        }
+        
+        function toggleFilterToolbar(forceCollapse) {
+            if (forceCollapse || !filterToolbar.classList.contains('collapsed')) {
+                filterToolbar.classList.add('collapsed');
+                filterToolbarContent.style.display = 'none';
+                filterToolbarToggle.querySelector('svg').style.transform = 'rotate(0deg)';
+            } else {
+                filterToolbar.classList.remove('collapsed');
+                filterToolbarContent.style.display = 'block';
+                filterToolbarToggle.querySelector('svg').style.transform = 'rotate(180deg)';
+            }
+        }
         
         // Toggle color key
         colorKeyToggle.addEventListener('click', function() {
@@ -1045,8 +1356,6 @@
                 // Prevent default action and stop event propagation
                 e.preventDefault();
                 e.stopPropagation();
-                
-                console.log("Card detail button clicked");
                 
                 const cardId = this.dataset.id;
                 const cardContainer = document.querySelector(`.card-container[data-id="${cardId}"]`);
@@ -1415,6 +1724,14 @@
         
         // Update mini-map to show current board state
         function updateMiniMap() {
+            // Hide mini-map in list view
+            if (isListView) {
+                miniMap.style.display = 'none';
+                return;
+            } else {
+                miniMap.style.display = 'block';
+            }
+            
             // Clear existing card indicators
             const existingIndicators = miniMapContainer.querySelectorAll('.card-indicator');
             existingIndicators.forEach(indicator => indicator.remove());
@@ -1514,34 +1831,14 @@
         // Handle filter changes - client-side filtering
         function applyFilters() {
             const searchVal = searchInput.value.toLowerCase();
-            
-            // If search is empty, just show all cards
-            if (!searchVal) {
-                cardContainers.forEach(card => {
-                    card.style.display = 'block';
-                });
-                updateMiniMap();
-                return;
-            }
-            
-            // Search filter logic - client-side filtering instead of redirecting
-            cardContainers.forEach(card => {
-                const cardTitle = card.querySelector('h3').textContent.toLowerCase();
-                const cardDesc = card.querySelector('p').textContent.toLowerCase();
-                
-                if (cardTitle.includes(searchVal) || cardDesc.includes(searchVal)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            // Update mini-map to reflect filtered cards
-            updateMiniMap();
+            applyBoardFilters(searchVal);
+            applyListFilters(searchVal);
         }
         
         // Add input event for real-time search
-        searchInput.addEventListener('input', applyFilters);
+        searchInput.addEventListener('input', function() {
+            applyFilters();
+        });
         
         // Add event listeners to quick filter buttons
         quickFilterButtons.forEach(button => {
@@ -1549,20 +1846,22 @@
                 const filterType = this.dataset.filterType;
                 const filterValue = this.dataset.filterValue;
                 
-                // Toggle active state
-                if (activeFilters[filterType] === filterValue) {
-                    // If already active, clear this filter
-                    activeFilters[filterType] = null;
-                    this.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500');
+                // Toggle active state (include/exclude/inactive)
+                if (!activeFilters[filterType][filterValue]) {
+                    // If inactive, set to include
+                    activeFilters[filterType][filterValue] = 'include';
+                    this.classList.add('active');
+                    this.classList.remove('exclude');
+                } else if (activeFilters[filterType][filterValue] === 'include') {
+                    // If include, set to exclude
+                    activeFilters[filterType][filterValue] = 'exclude';
+                    this.classList.remove('active');
+                    this.classList.add('exclude');
                 } else {
-                    // Clear previous selection of this type
-                    document.querySelectorAll(`[data-filter-type="${filterType}"]`).forEach(btn => {
-                        btn.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500');
-                    });
-                    
-                    // Set new filter
-                    activeFilters[filterType] = filterValue;
-                    this.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500');
+                    // If exclude, set to inactive
+                    delete activeFilters[filterType][filterValue];
+                    this.classList.remove('active');
+                    this.classList.remove('exclude');
                 }
                 
                 applyQuickFilters();
@@ -1570,26 +1869,44 @@
         });
         
         // Clear all filters
-        clearFiltersBtn.addEventListener('click', function() {
+        function clearAllFilters() {
             activeFilters = {
-                type: null,
-                status: null,
-                assigned: null
+                type: {},
+                status: {},
+                assigned: {}
             };
             
             quickFilterButtons.forEach(btn => {
-                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500');
+                btn.classList.remove('active');
+                btn.classList.remove('exclude');
             });
             
             // Reset search box
             searchInput.value = '';
             
             applyQuickFilters();
-        });
+        }
         
-        // Apply quick filters
+        // Add event listeners to clear filter buttons
+        clearFiltersBtn.addEventListener('click', clearAllFilters);
+        if (clearFiltersInlineBtn) {
+            clearFiltersInlineBtn.addEventListener('click', clearAllFilters);
+        }
+        
+        // Apply quick filters to both views
         function applyQuickFilters() {
+            applyBoardFilters();
+            applyListFilters();
+        }
+        
+        // Apply filters to board view
+        function applyBoardFilters(searchVal) {
+            let visibleCount = 0;
+            let totalCount = 0;
+            
             cardContainers.forEach(card => {
+                totalCount++;
+                
                 // Start with visible
                 let shouldShow = true;
                 
@@ -1601,7 +1918,6 @@
                 const isUnassigned = assignedElement && assignedElement.textContent.trim() === 'Unassigned';
                 
                 // Check search filter
-                const searchVal = searchInput.value.toLowerCase();
                 if (searchVal) {
                     const cardTitle = card.querySelector('h3').textContent.toLowerCase();
                     const cardDesc = card.querySelector('p').textContent.toLowerCase();
@@ -1610,64 +1926,319 @@
                     }
                 }
                 
-                // Check type filter
-                if (activeFilters.type && cardType !== activeFilters.type) {
+                // Check type filters
+                const hasTypeIncludes = Object.values(activeFilters.type).includes('include');
+                const hasTypeExcludes = Object.values(activeFilters.type).includes('exclude');
+                
+                if (hasTypeIncludes && !activeFilters.type[cardType]?.includes('include')) {
                     shouldShow = false;
                 }
                 
-                // Check status filter
-                if (activeFilters.status && cardStatus !== activeFilters.status) {
+                if (hasTypeExcludes && activeFilters.type[cardType]?.includes('exclude')) {
+                    shouldShow = false;
+                }
+                
+                // Check status filters
+                const hasStatusIncludes = Object.values(activeFilters.status).includes('include');
+                const hasStatusExcludes = Object.values(activeFilters.status).includes('exclude');
+                
+                if (hasStatusIncludes && !activeFilters.status[cardStatus]?.includes('include')) {
+                    shouldShow = false;
+                }
+                
+                if (hasStatusExcludes && activeFilters.status[cardStatus]?.includes('exclude')) {
                     shouldShow = false;
                 }
                 
                 // Check assigned filter
-                if (activeFilters.assigned) {
-                    if (activeFilters.assigned === 'unassigned' && !isUnassigned) {
-                        shouldShow = false;
-                    } else if (activeFilters.assigned === 'me' && isUnassigned) {
-                        shouldShow = false;
-                    }
+                if (activeFilters.assigned['me']?.includes('include') && isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['unassigned']?.includes('include') && !isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['me']?.includes('exclude') && !isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['unassigned']?.includes('exclude') && isUnassigned) {
+                    shouldShow = false;
                 }
                 
                 // Apply visibility
                 card.style.display = shouldShow ? 'block' : 'none';
+                
+                if (shouldShow) {
+                    visibleCount++;
+                }
             });
             
             // Update mini-map to reflect filtered cards
             updateMiniMap();
+            
+            return { visibleCount, totalCount };
         }
         
-        // Sort functionality
-        const sortOptionSelect = document.getElementById('sortOption');
-        const applySortBtn = document.getElementById('applySort');
+        // Apply filters to list view
+        function applyListFilters(searchVal) {
+            let visibleCount = 0;
+            let totalCount = 0;
+            let allHidden = true;
+            
+            listCardRows.forEach(row => {
+                totalCount++;
+                
+                // Start with visible
+                let shouldShow = true;
+                
+                // Get card data from data attributes
+                const cardType = row.dataset.type;
+                const cardStatus = row.dataset.status;
+                const cardTitle = row.dataset.title;
+                const cardAssignedTo = row.dataset.assignedTo;
+                const isUnassigned = cardAssignedTo === 'Unassigned';
+                
+                // Check search filter
+                if (searchVal) {
+                    const titleCell = row.querySelector('td:nth-child(2)');
+                    const cardTitle = titleCell.querySelector('div:first-child').textContent.toLowerCase();
+                    const cardDesc = titleCell.querySelector('div:last-child').textContent.toLowerCase();
+                    
+                    if (!(cardTitle.includes(searchVal.toLowerCase()) || cardDesc.includes(searchVal.toLowerCase()))) {
+                        shouldShow = false;
+                    }
+                }
+                
+                // Check type filters
+                const hasTypeIncludes = Object.values(activeFilters.type).includes('include');
+                const hasTypeExcludes = Object.values(activeFilters.type).includes('exclude');
+                
+                if (hasTypeIncludes && !activeFilters.type[cardType]?.includes('include')) {
+                    shouldShow = false;
+                }
+                
+                if (hasTypeExcludes && activeFilters.type[cardType]?.includes('exclude')) {
+                    shouldShow = false;
+                }
+                
+                // Check status filters
+                const hasStatusIncludes = Object.values(activeFilters.status).includes('include');
+                const hasStatusExcludes = Object.values(activeFilters.status).includes('exclude');
+                
+                if (hasStatusIncludes && !activeFilters.status[cardStatus]?.includes('include')) {
+                    shouldShow = false;
+                }
+                
+                if (hasStatusExcludes && activeFilters.status[cardStatus]?.includes('exclude')) {
+                    shouldShow = false;
+                }
+                
+                // Check assigned filter
+                if (activeFilters.assigned['me']?.includes('include') && isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['unassigned']?.includes('include') && !isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['me']?.includes('exclude') && !isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                if (activeFilters.assigned['unassigned']?.includes('exclude') && isUnassigned) {
+                    shouldShow = false;
+                }
+                
+                // Apply visibility
+                row.style.display = shouldShow ? 'table-row' : 'none';
+                
+                if (shouldShow) {
+                    visibleCount++;
+                    allHidden = false;
+                }
+            });
+            
+            // Update count display
+            if (filteredCardsCount) {
+                if (visibleCount === totalCount) {
+                    filteredCardsCount.textContent = `Showing all ${totalCount} cards`;
+                } else {
+                    filteredCardsCount.textContent = `Showing ${visibleCount} of ${totalCount} cards`;
+                }
+            }
+            
+            // Show/hide no cards message
+            if (noCardsMessage) {
+                noCardsMessage.style.display = allHidden ? 'block' : 'none';
+                
+                // If there are no cards visible, hide the table
+                const listViewTable = document.querySelector('.list-view-table');
+                if (listViewTable) {
+                    listViewTable.style.display = allHidden ? 'none' : 'table';
+                }
+            }
+            
+            return { visibleCount, totalCount };
+        }
         
-        if (applySortBtn && sortOptionSelect) {
-            applySortBtn.addEventListener('click', function() {
-                const sortValue = sortOptionSelect.value;
-                applySort(sortValue);
+        // Sort functionality for list view
+        sortableHeaders.forEach(header => {
+            header.addEventListener('click', function() {
+                const column = this.dataset.sort;
+                
+                // Toggle sort direction or set to ascending if new column
+                if (listSortState.column === column) {
+                    listSortState.direction = listSortState.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    listSortState.column = column;
+                    listSortState.direction = 'asc';
+                }
+                
+                // Update sort indicators
+                sortableHeaders.forEach(h => {
+                    const indicator = h.querySelector('.sort-indicator');
+                    if (h.dataset.sort === column) {
+                        indicator.classList.add(listSortState.direction);
+                        indicator.classList.remove(listSortState.direction === 'asc' ? 'desc' : 'asc');
+                    } else {
+                        indicator.classList.remove('asc', 'desc');
+                    }
+                });
+                
+                // Sort rows
+                sortListRows(column, listSortState.direction);
+            });
+        });
+        
+        // Sort list view rows
+        function sortListRows(column, direction) {
+            const rows = Array.from(listViewBody.querySelectorAll('.list-card-row'));
+            
+            // Sort rows based on the column and direction
+            rows.sort((rowA, rowB) => {
+                let valueA, valueB;
+                
+                // Get values based on column
+                switch (column) {
+                    case 'type':
+                        valueA = rowA.dataset.typeDisplay;
+                        valueB = rowB.dataset.typeDisplay;
+                        break;
+                    case 'title':
+                        valueA = rowA.dataset.title;
+                        valueB = rowB.dataset.title;
+                        break;
+                    case 'status':
+                        valueA = rowA.dataset.statusDisplay;
+                        valueB = rowB.dataset.statusDisplay;
+                        break;
+                    case 'assigned':
+                        valueA = rowA.dataset.assignedTo;
+                        valueB = rowB.dataset.assignedTo;
+                        break;
+                    case 'primary':
+                        valueA = rowA.dataset.primary;
+                        valueB = rowB.dataset.primary;
+                        break;
+                    case 'updated':
+                        valueA = rowA.dataset.updated;
+                        valueB = rowB.dataset.updated;
+                        break;
+                    default:
+                        valueA = '';
+                        valueB = '';
+                }
+                
+                // Compare values
+                if (valueA < valueB) {
+                    return direction === 'asc' ? -1 : 1;
+                }
+                if (valueA > valueB) {
+                    return direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+            
+            // Reorder rows in the DOM
+            rows.forEach(row => {
+                listViewBody.appendChild(row);
             });
         }
         
         // Set up view toggle
         boardViewBtn.addEventListener('click', function() {
             if (isListView) {
-                boardView.style.display = 'block';
-                listView.style.display = 'none';
-                boardViewBtn.classList.add('active');
-                listViewBtn.classList.remove('active');
-                isListView = false;
+                switchToCardView();
             }
         });
         
         listViewBtn.addEventListener('click', function() {
             if (!isListView) {
-                boardView.style.display = 'none';
-                listView.style.display = 'block';
-                boardViewBtn.classList.remove('active');
-                listViewBtn.classList.add('active');
-                isListView = true;
+                switchToListView();
             }
         });
+        
+        // Hide sort option in list view or show it in card view
+        function toggleSortOption(isListView) {
+            const sortOptionContainer = document.querySelector('.text-right.mt-4');
+            if (sortOptionContainer) {
+                sortOptionContainer.style.display = isListView ? 'none' : 'block';
+            }
+        }
+        
+        function switchToCardView() {
+            boardView.style.display = 'block';
+            listView.style.display = 'none';
+            boardViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+            isListView = false;
+            
+            // Show board-specific UI elements
+            if (quickFilterPanel) quickFilterPanel.style.display = 'block';
+            if (colorKeyContainer) colorKeyContainer.style.display = 'block';
+            if (miniMap) miniMap.style.display = 'block';
+            
+            // Show auto layout button (now in page header)
+            const autoLayoutBtn = document.getElementById('autoLayoutBtn');
+            if (autoLayoutBtn) autoLayoutBtn.style.display = 'inline-flex';
+            
+            // Show sort options
+            toggleSortOption(false);
+            
+            updateMiniMap();
+            
+            // Save view preference
+            localStorage.setItem('boardViewPreference', 'card');
+        }
+        
+        function switchToListView() {
+            boardView.style.display = 'none';
+            listView.style.display = 'block';
+            boardViewBtn.classList.remove('active');
+            listViewBtn.classList.add('active');
+            isListView = true;
+            
+            // Hide board-specific UI elements
+            if (quickFilterPanel) quickFilterPanel.style.display = 'none';
+            if (colorKeyContainer) colorKeyContainer.style.display = 'none';
+            if (miniMap) miniMap.style.display = 'none';
+            
+            // Hide auto layout button (now in page header)
+            const autoLayoutBtn = document.getElementById('autoLayoutBtn');
+            if (autoLayoutBtn) autoLayoutBtn.style.display = 'none';
+            
+            // Hide sort options for grouping
+            toggleSortOption(true);
+            
+            // Apply filters to list view
+            applyListFilters(searchInput.value);
+            
+            // Save view preference
+            localStorage.setItem('boardViewPreference', 'list');
+        }
         
         // Apply sorting to the board
         function applySort(sortType) {
@@ -1687,6 +2258,9 @@
             
             // Create groups based on sort type
             cardElements.forEach(card => {
+                // Skip hidden cards
+                if (card.style.display === 'none') return;
+                
                 let groupKey = 'Unknown';
                 let groupName = 'Unknown';
                 const cardElement = card.querySelector('.card');
@@ -1740,6 +2314,9 @@
                 const { key, name } = group;
                 const cards = groups[key].cards;
                 
+                // Skip empty groups
+                if (cards.length === 0) return;
+                
                 // Create group container
                 const groupContainer = document.createElement('div');
                 groupContainer.className = 'group-container';
@@ -1789,7 +2366,10 @@
         
         // Set filter values from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('search')) searchInput.value = urlParams.get('search');
+        if (urlParams.has('search')) {
+            searchInput.value = urlParams.get('search');
+            applyFilters();
+        }
         
         // Local storage for board state
         function saveBoardState() {
@@ -1826,6 +2406,19 @@
             }
         }
         
+        // Load saved view preference
+        const viewPreference = localStorage.getItem('boardViewPreference');
+        if (viewPreference === 'list') {
+            switchToListView();
+        } else {
+            // Ensure sort options visibility is correct on initial load
+            toggleSortOption(false);
+            
+            // Make sure auto layout button is visible in card view
+            const autoLayoutBtn = document.getElementById('autoLayoutBtn');
+            if (autoLayoutBtn) autoLayoutBtn.style.display = 'inline-flex';
+        }
+        
         // Save board state when leaving the page
         window.addEventListener('beforeunload', saveBoardState);
         
@@ -1833,13 +2426,24 @@
         loadBoardState();
         
         // Auto-layout functionality
-        const autoLayoutBtn = document.getElementById('autoLayoutBtn');
+        if (autoLayoutBtn) {
+            autoLayoutBtn.addEventListener('click', function() {
+                autoLayoutCards();
+            });
+        }
         
-        autoLayoutBtn.addEventListener('click', function() {
-            autoLayoutCards();
-        });
+        // Apply sort button events
+        const applySortBtn = document.getElementById('applySort');
+        const sortOptionSelect = document.getElementById('sortOption');
         
-        // Auto layout cards based on type and status
+        if (applySortBtn && sortOptionSelect) {
+            applySortBtn.addEventListener('click', function() {
+                const sortValue = sortOptionSelect.value;
+                applySort(sortValue);
+            });
+        }
+        
+        // Auto layout cards based on type and status with auto-zoom
         function autoLayoutCards() {
             // First, reset any existing sorting
             resetSort();
@@ -1889,13 +2493,19 @@
             const CARD_WIDTH = 300;
             const CARD_HEIGHT = 250;
             const HORIZONTAL_GAP = 20;
-            const VERTICAL_GAP = 30;
-            const SECTION_GAP = 80;
+            const VERTICAL_GAP = 20;
+            const SECTION_GAP = 40;
             const CARDS_PER_ROW = 4;
             
             let currentX = 50;
             let currentY = 50;
             let maxHeightInRow = 0;
+            
+            // Track layout boundaries for auto-zoom
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
             
             // Position cards by type and status
             const typeNames = Object.keys(cardsByType).sort();
@@ -1906,6 +2516,9 @@
             
             typeNames.forEach(typeName => {
                 const cards = cardsByType[typeName];
+                
+                // Skip empty types
+                if (cards.length === 0) return;
                 
                 // Start a new section for each type
                 currentX = 50;
@@ -1922,6 +2535,10 @@
                 typeHeader.style.fontWeight = 'bold';
                 typeHeader.style.fontSize = '16px';
                 boardCanvas.appendChild(typeHeader);
+                
+                // Update boundary for auto-zoom
+                minX = Math.min(minX, currentX);
+                minY = Math.min(minY, currentY - 40);
                 
                 // Position cards in this type group
                 let cardCount = 0;
@@ -1941,6 +2558,10 @@
                     // Calculate new position
                     const targetX = currentX;
                     const targetY = currentY;
+                    
+                    // Update boundaries for auto-zoom
+                    maxX = Math.max(maxX, targetX + CARD_WIDTH);
+                    maxY = Math.max(maxY, targetY + CARD_HEIGHT);
                     
                     // Calculate animation duration based on distance
                     const distance = Math.sqrt(
@@ -2018,7 +2639,10 @@
                 if (!allDone) {
                     requestAnimationFrame(animateCards);
                 } else {
-                    // All animations complete, update mini-map
+                    // All animations complete, auto-zoom to fit all cards
+                    autoZoomToFit(minX, minY, maxX, maxY);
+                    
+                    // Update mini-map
                     updateMiniMap();
                 }
             }
@@ -2026,8 +2650,48 @@
             // Start animations
             requestAnimationFrame(animateCards);
             
-            // Update mini-map after layout is complete
-            setTimeout(updateMiniMap, longestAnimation + 100);
+            // Auto-zoom to fit cards after layout is complete
+            setTimeout(() => {
+                autoZoomToFit(minX, minY, maxX, maxY);
+                updateMiniMap();
+            }, longestAnimation + 100);
+        }
+        
+        // Auto-zoom to fit all cards
+        function autoZoomToFit(minX, minY, maxX, maxY) {
+            if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
+                return; // Invalid boundaries
+            }
+            
+            // Calculate width and height of content
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+            
+            // Calculate available space in board container
+            const boardRect = boardView.getBoundingClientRect();
+            const availableWidth = boardRect.width;
+            const availableHeight = boardRect.height;
+            
+            // Calculate zoom level to fit all content
+            const horizontalScale = availableWidth / (contentWidth + 100); // Add padding
+            const verticalScale = availableHeight / (contentHeight + 100); // Add padding
+            
+            // Use the smaller scale to ensure all content fits
+            scale = Math.min(horizontalScale, verticalScale);
+            
+            // Limit scale to a reasonable range
+            scale = Math.max(0.2, Math.min(scale, 1.5));
+            
+            // Calculate center point of content
+            const contentCenterX = minX + contentWidth / 2;
+            const contentCenterY = minY + contentHeight / 2;
+            
+            // Calculate offset to center content
+            offsetX = (availableWidth / 2) - (contentCenterX * scale);
+            offsetY = (availableHeight / 2) - (contentCenterY * scale);
+            
+            // Apply zoom and position
+            updateBoardTransform();
         }
     });
 </script>
