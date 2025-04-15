@@ -18,26 +18,77 @@
     }
     
     .card {
-        background-color: white;
         border-radius: 0.375rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
         border: 1px solid #e5e7eb;
         overflow: hidden;
     }
     
+    /* Status-based background colors for card header */
     .card-header {
         padding: 0.75rem 1rem;
         border-bottom: 1px solid #e5e7eb;
     }
     
-    .card-body {
-        padding: 0.75rem 1rem;
+    .card.status-backlog .card-header {
+        background-color: #f3f4f6;
+        color: #1f2937;
     }
     
+    .card.status-in-progress .card-header {
+        background-color: #fef3c7;
+        color: #78350f;
+    }
+    
+    .card.status-review .card-header {
+        background-color: #dbeafe;
+        color: #1e3a8a;
+    }
+    
+    .card.status-done .card-header {
+        background-color: #d1fae5;
+        color: #064e3b;
+    }
+    
+    .card.status-archived .card-header {
+        background-color: #e5e7eb;
+        color: #374151;
+    }
+    
+    .card-body {
+        padding: 0.75rem 1rem;
+        background-color: white;
+    }
+    
+    /* Type-based background colors for card footer */
     .card-footer {
         padding: 0.5rem 1rem;
-        background-color: #f9fafb;
         border-top: 1px solid #e5e7eb;
+    }
+    
+    .card.type-issue .card-footer {
+        background-color: #fee2e2;
+        color: #7f1d1d;
+    }
+    
+    .card.type-idea .card-footer {
+        background-color: #d1fae5;
+        color: #064e3b;
+    }
+    
+    .card.type-feature .card-footer {
+        background-color: #dbeafe;
+        color: #1e3a8a;
+    }
+    
+    .card.type-refinement .card-footer {
+        background-color: #e9d5ff;
+        color: #581c87;
+    }
+    
+    .card.type-task .card-footer {
+        background-color: #fef3c7;
+        color: #78350f;
     }
     
     .type-badge {
@@ -109,8 +160,50 @@
     .board-container {
         position: relative;
         height: calc(100vh - 200px);
-        overflow: auto;
+        overflow: hidden;
         background-color: #f3f4f6;
+    }
+    
+    .board-canvas {
+        position: absolute;
+        width: 5000px;
+        height: 5000px;
+        transform-origin: 0 0;
+        transition: transform 0.1s ease-out;
+    }
+    
+    .board-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        gap: 8px;
+        z-index: 900;
+    }
+    
+    .board-controls button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+    }
+    
+    .board-controls button:hover {
+        background-color: #f9fafb;
+    }
+    
+    .color-key-container {
+        margin-bottom: 20px;
+    }
+    
+    .group-container {
+        margin-bottom: 30px;
     }
     
     .card-detail-modal {
@@ -286,80 +379,177 @@
                     <option value="not_checked_out">Not Checked Out</option>
                     <option value="checked_out_by_me">Checked Out by Me</option>
                 </select>
+                <button id="applyFilters" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Color key for statuses and types -->
+    <div class="color-key-container bg-white shadow rounded-md p-4 mb-4">
+        <div class="flex flex-wrap items-start gap-6">
+            <div>
+                <h3 class="text-sm font-medium mb-2">Status Colors (Header)</h3>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-gray-100 mr-2 rounded"></div>
+                        <span class="text-sm">Backlog</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-yellow-100 mr-2 rounded"></div>
+                        <span class="text-sm">In Progress</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-blue-100 mr-2 rounded"></div>
+                        <span class="text-sm">Review</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-100 mr-2 rounded"></div>
+                        <span class="text-sm">Done</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-gray-200 mr-2 rounded"></div>
+                        <span class="text-sm">Archived</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-sm font-medium mb-2">Type Colors (Footer)</h3>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-red-100 mr-2 rounded"></div>
+                        <span class="text-sm">Issue</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-100 mr-2 rounded"></div>
+                        <span class="text-sm">Idea</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-blue-100 mr-2 rounded"></div>
+                        <span class="text-sm">Feature</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-purple-100 mr-2 rounded"></div>
+                        <span class="text-sm">Refinement</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-yellow-100 mr-2 rounded"></div>
+                        <span class="text-sm">Task</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-medium mb-2">Sort Options</h3>
+                <div class="space-y-2">
+                    <div>
+                        <label for="sortOption" class="block text-sm text-gray-500">Group cards by:</label>
+                        <select id="sortOption" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="none">No grouping</option>
+                            <option value="status">Status</option>
+                            <option value="type">Type</option>
+                            <option value="assigned">Assigned To</option>
+                        </select>
+                    </div>
+                    <div class="text-right">
+                        <button id="applySort" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Apply Sort
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Board View -->
     <div id="boardView" class="board-container">
-        {% for card in cards %}
-        <div class="card-container" data-id="{{ card.id }}" style="left: {{ card.position_x }}px; top: {{ card.position_y }}px;">
-            <div class="card">
-                <div class="card-header">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex space-x-2">
-                            <span class="type-badge type-{{ card.type }}">
-                                {{ card.get_type_display }}
-                            </span>
-                            <span class="status-badge status-{{ card.status }}">
-                                {{ card.get_status_display }}
-                            </span>
-                        </div>
-                        {% if card.checked_out %}
-                        <div class="text-xs font-medium text-blue-600">
-                            <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
-                                <path d="M3 8a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-                            </svg>
-                            Checked Out
-                        </div>
-                        {% endif %}
-                    </div>
-                    <h3 class="font-medium text-gray-900 mb-1">{{ card.title }}</h3>
-                    <p class="text-sm text-gray-600 line-clamp-2">{{ card.description|truncatechars:100 }}</p>
-                    
-                    <!-- Primary relationships -->
-                    <div class="flex flex-wrap gap-1 mt-2">
-                        {% if card.primary_system %}
-                        <span class="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full flex items-center">
-                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                            {{ card.primary_system.name }}
-                        </span>
-                        {% endif %}
-                        {% if card.primary_workflow %}
-                        <span class="px-2 py-0.5 bg-blue-50 text-blue-800 text-xs rounded-full flex items-center">
-                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                            {{ card.primary_workflow.name }}
-                        </span>
-                        {% endif %}
-                        {% if card.primary_script %}
-                        <span class="px-2 py-0.5 bg-purple-50 text-purple-800 text-xs rounded-full flex items-center">
-                            <span class="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
-                            {{ card.primary_script.name }}
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <div class="flex items-center justify-between text-xs text-gray-500">
-                        <div>
-                            <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd" />
-                            </svg>
-                            {{ card.comments.count }}
-                        </div>
-                        <div>
-                            {% if card.assigned_to %}
-                            <span class="font-medium">{{ card.assigned_to.get_full_name|default:card.assigned_to.username }}</span>
-                            {% else %}
-                            <span class="text-gray-400">Unassigned</span>
+        <div id="boardCanvas" class="board-canvas">
+            {% for card in cards %}
+            <div class="card-container" data-id="{{ card.id }}" style="left: {{ card.position_x }}px; top: {{ card.position_y }}px;">
+                <div class="card type-{{ card.type }} status-{{ card.status }}">
+                    <div class="card-header">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex space-x-2">
+                                <span class="status-badge status-{{ card.status }}">
+                                    {{ card.get_status_display }}
+                                </span>
+                            </div>
+                            {% if card.checked_out %}
+                            <div class="text-xs font-medium text-blue-600">
+                                <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
+                                    <path d="M3 8a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                                </svg>
+                                Checked Out
+                            </div>
                             {% endif %}
+                        </div>
+                        <h3 class="font-medium mb-1">{{ card.title }}</h3>
+                        <p class="text-sm line-clamp-2">{{ card.description|truncatechars:100 }}</p>
+                        
+                        <!-- Primary relationships -->
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            {% if card.primary_system %}
+                            <span class="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full flex items-center">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                {{ card.primary_system.name }}
+                            </span>
+                            {% endif %}
+                            {% if card.primary_workflow %}
+                            <span class="px-2 py-0.5 bg-blue-50 text-blue-800 text-xs rounded-full flex items-center">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                {{ card.primary_workflow.name }}
+                            </span>
+                            {% endif %}
+                            {% if card.primary_script %}
+                            <span class="px-2 py-0.5 bg-purple-50 text-purple-800 text-xs rounded-full flex items-center">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+                                {{ card.primary_script.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="flex items-center justify-between text-xs">
+                            <div>
+                                <svg class="-ml-0.5 mr-1 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd" />
+                                </svg>
+                                {{ card.comments.count }} • Type: {{ card.get_type_display }}
+                            </div>
+                            <div>
+                                {% if card.assigned_to %}
+                                <span class="font-medium">{{ card.assigned_to.get_full_name|default:card.assigned_to.username }}</span>
+                                {% else %}
+                                <span>Unassigned</span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        
+        <div class="board-controls">
+            <button id="zoomIn" title="Zoom In">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <button id="zoomOut" title="Zoom Out">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <button id="resetView" title="Reset View">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
     </div>
     
     <!-- List View -->
@@ -442,6 +632,78 @@
         </table>
     </div>
 </div>
+
+<!-- Card Detail Modal -->
+<div id="cardDetailModal" class="card-detail-modal" style="display: none;">
+    <div class="card-detail-content">
+        <div class="card-detail-header">
+            <h2 class="text-xl font-bold text-gray-900" id="modalCardTitle"></h2>
+            <button id="closeCardModal" class="text-gray-500 hover:text-gray-700">
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="card-detail-body">
+            <div class="grid grid-cols-3 gap-6">
+                <div class="col-span-2">
+                    <div class="mb-6">
+                        <div class="flex space-x-2 mb-2">
+                            <span id="modalCardType" class="type-badge"></span>
+                            <span id="modalCardStatus" class="status-badge"></span>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Description</h3>
+                        <div id="modalCardDescription" class="mt-1 text-sm text-gray-600 space-y-4"></div>
+                    </div>
+                    
+                    <div id="modalCardRelated" class="mb-6" style="display: none;">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Related Items</h3>
+                        <div id="modalCardRelatedItems" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a id="viewFullCardLink" href="#" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            View Full Details
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="border rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Card Details</h3>
+                        
+                        <div class="space-y-4 text-sm">
+                            <div>
+                                <div class="text-gray-500 mb-1">Assigned To</div>
+                                <div id="modalCardAssignedTo" class="font-medium"></div>
+                            </div>
+                            
+                            <div id="modalCardPrimarySystemContainer" style="display: none;">
+                                <div class="text-gray-500 mb-1">Primary System</div>
+                                <div id="modalCardPrimarySystem" class="font-medium"></div>
+                            </div>
+                            
+                            <div id="modalCardPrimaryWorkflowContainer" style="display: none;">
+                                <div class="text-gray-500 mb-1">Primary Workflow</div>
+                                <div id="modalCardPrimaryWorkflow" class="font-medium"></div>
+                            </div>
+                            
+                            <div id="modalCardPrimaryScriptContainer" style="display: none;">
+                                <div class="text-gray-500 mb-1">Primary Script</div>
+                                <div id="modalCardPrimaryScript" class="font-medium"></div>
+                            </div>
+                            
+                            <div>
+                                <div class="text-gray-500 mb-1">Last Updated</div>
+                                <div id="modalCardUpdated" class="font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -452,6 +714,7 @@
         
         // Reference to board container
         const boardView = document.getElementById('boardView');
+        const boardCanvas = document.getElementById('boardCanvas');
         const listView = document.getElementById('listView');
         
         // View toggle buttons
@@ -464,86 +727,389 @@
         const statusFilter = document.getElementById('statusFilter');
         const assignedFilter = document.getElementById('assignedFilter');
         const checkoutFilter = document.getElementById('checkoutFilter');
+        const applyFiltersBtn = document.getElementById('applyFilters');
         
         // Card containers
         const cardContainers = document.querySelectorAll('.card-container');
+        
+        // Modal elements
+        const cardDetailModal = document.getElementById('cardDetailModal');
+        const closeCardModal = document.getElementById('closeCardModal');
+        const modalCardTitle = document.getElementById('modalCardTitle');
+        const modalCardType = document.getElementById('modalCardType');
+        const modalCardStatus = document.getElementById('modalCardStatus');
+        const modalCardDescription = document.getElementById('modalCardDescription');
+        const modalCardAssignedTo = document.getElementById('modalCardAssignedTo');
+        const modalCardPrimarySystem = document.getElementById('modalCardPrimarySystem');
+        const modalCardPrimaryWorkflow = document.getElementById('modalCardPrimaryWorkflow');
+        const modalCardPrimaryScript = document.getElementById('modalCardPrimaryScript');
+        const modalCardPrimarySystemContainer = document.getElementById('modalCardPrimarySystemContainer');
+        const modalCardPrimaryWorkflowContainer = document.getElementById('modalCardPrimaryWorkflowContainer');
+        const modalCardPrimaryScriptContainer = document.getElementById('modalCardPrimaryScriptContainer');
+        const modalCardUpdated = document.getElementById('modalCardUpdated');
+        const modalCardRelated = document.getElementById('modalCardRelated');
+        const modalCardRelatedItems = document.getElementById('modalCardRelatedItems');
+        const viewFullCardLink = document.getElementById('viewFullCardLink');
+        
+        // Zoom controls
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetViewBtn = document.getElementById('resetView');
+        
+        // Zoom and pan state
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isPanning = false;
+        let startX = 0;
+        let startY = 0;
         
         // Set up drag and drop functionality
         let isDragging = false;
         let draggedCard = null;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
+        let initialCardX = 0;
+        let initialCardY = 0;
+        let lastPosition = {};
         
-        // Initialize draggable cards
+        // Initialize canvas position
+        updateBoardTransform();
+        
+        // Fix for card clicking vs. dragging issue
         cardContainers.forEach(card => {
+            // Add click event to the card div
+            const cardDiv = card.querySelector('.card');
+            
+            // Track if click started on this card
+            let clickStarted = false;
+            let moved = false;
+            
+            // On mousedown, mark that click started here but don't trigger click yet
+            cardDiv.addEventListener('mousedown', function(e) {
+                // Only handle left mouse button
+                if (e.button !== 0) return;
+                
+                clickStarted = true;
+                moved = false;
+                
+                // Stop event propagation to prevent board panning
+                e.stopPropagation();
+            });
+            
+            // On mousemove, mark that movement occurred
+            cardDiv.addEventListener('mousemove', function(e) {
+                if (clickStarted) {
+                    moved = true;
+                }
+            });
+            
+            // On mouseup, check if movement occurred
+            cardDiv.addEventListener('mouseup', function(e) {
+                // Only trigger click if mousedown started on this card and no movement
+                if (clickStarted && !moved && !isDragging && !isPanning) {
+                    const cardId = card.dataset.id;
+                    
+                    // Get card data
+                    const cardTitle = cardDiv.querySelector('h3').textContent;
+                    const cardDescription = cardDiv.querySelector('p').textContent;
+                    const cardTypeElement = cardDiv.querySelector('.type-badge');
+                    const cardStatusElement = cardDiv.querySelector('.status-badge');
+                    const cardType = cardTypeElement ? cardTypeElement.textContent.trim() : '';
+                    const cardStatus = cardStatusElement ? cardStatusElement.textContent.trim() : '';
+                    const cardTypeClass = cardTypeElement ? cardTypeElement.classList[1] : ''; // Get the type-xxx class
+                    const cardStatusClass = cardStatusElement ? cardStatusElement.classList[1] : ''; // Get the status-xxx class
+                    
+                    // Get assigned user if available
+                    let assignedTo = "Unassigned";
+                    const assignedElement = cardDiv.querySelector('.card-footer div:last-child span');
+                    if (assignedElement) {
+                        assignedTo = assignedElement.textContent.trim();
+                    }
+                    
+                    // Setup modal
+                    modalCardTitle.textContent = cardTitle;
+                    if (cardTypeElement) {
+                        modalCardType.textContent = cardType;
+                        modalCardType.className = `type-badge ${cardTypeClass}`;
+                    }
+                    if (cardStatusElement) {
+                        modalCardStatus.textContent = cardStatus;
+                        modalCardStatus.className = `status-badge ${cardStatusClass}`;
+                    }
+                    modalCardDescription.textContent = cardDescription;
+                    modalCardAssignedTo.textContent = assignedTo;
+                    
+                    // Get updated date (you can add a data attribute to the card if needed)
+                    modalCardUpdated.textContent = "Recently updated"; // Placeholder
+                    
+                    // Check for primary relationships
+                    const primarySystem = cardDiv.querySelector('.px-2.py-0.5.bg-gray-100');
+                    const primaryWorkflow = cardDiv.querySelector('.px-2.py-0.5.bg-blue-50');
+                    const primaryScript = cardDiv.querySelector('.px-2.py-0.5.bg-purple-50');
+                    
+                    // Reset display
+                    modalCardPrimarySystemContainer.style.display = 'none';
+                    modalCardPrimaryWorkflowContainer.style.display = 'none';
+                    modalCardPrimaryScriptContainer.style.display = 'none';
+                    modalCardRelated.style.display = 'none';
+                    modalCardRelatedItems.innerHTML = '';
+                    
+                    // Add primary system if exists
+                    if (primarySystem) {
+                        modalCardPrimarySystemContainer.style.display = 'block';
+                        modalCardPrimarySystem.textContent = primarySystem.textContent.trim();
+                        modalCardRelated.style.display = 'block';
+                        modalCardRelatedItems.innerHTML += primarySystem.outerHTML;
+                    }
+                    
+                    // Add primary workflow if exists
+                    if (primaryWorkflow) {
+                        modalCardPrimaryWorkflowContainer.style.display = 'block';
+                        modalCardPrimaryWorkflow.textContent = primaryWorkflow.textContent.trim();
+                        modalCardRelated.style.display = 'block';
+                        modalCardRelatedItems.innerHTML += primaryWorkflow.outerHTML;
+                    }
+                    
+                    // Add primary script if exists
+                    if (primaryScript) {
+                        modalCardPrimaryScriptContainer.style.display = 'block';
+                        modalCardPrimaryScript.textContent = primaryScript.textContent.trim();
+                        modalCardRelated.style.display = 'block';
+                        modalCardRelatedItems.innerHTML += primaryScript.outerHTML;
+                    }
+                    
+                    // Set view full details link
+                    viewFullCardLink.href = `{% url 'boards:card_detail' 0 %}`.replace('0', cardId);
+                    
+                    // Show modal
+                    cardDetailModal.style.display = 'flex';
+                    
+                    // Prevent event from bubbling up to parent elements
+                    e.stopPropagation();
+                }
+                
+                // Reset click tracking
+                clickStarted = false;
+            });
+            
+            // Initialize draggable cards
             card.addEventListener('mousedown', function(e) {
                 // Only handle left mouse button
                 if (e.button !== 0) return;
                 
+                // Don't start dragging if clicking on a link or button
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+                    return;
+                }
+                
                 e.preventDefault();
                 
-                isDragging = true;
+                isDragging = false; // Reset drag state
                 draggedCard = card;
+                
+                // Store initial position for detecting actual movement
+                initialCardX = parseInt(card.style.left) || 0;
+                initialCardY = parseInt(card.style.top) || 0;
                 
                 // Calculate offset from the top-left corner of the card
                 const rect = card.getBoundingClientRect();
                 dragOffsetX = e.clientX - rect.left;
                 dragOffsetY = e.clientY - rect.top;
                 
-                // Add dragging class for styling
-                card.classList.add('dragging');
+                // Add dragging class for styling after a small delay to distinguish between clicks and drags
+                setTimeout(function() {
+                    if (draggedCard === card) {
+                        card.classList.add('dragging');
+                    }
+                }, 150);
+                
+                // Stop event propagation
+                e.stopPropagation();
             });
         });
         
-        // Handle mouse move
-        document.addEventListener('mousemove', function(e) {
-            if (!isDragging || !draggedCard) return;
+        // Board panning functionality
+        boardView.addEventListener('mousedown', function(e) {
+            // Only handle left mouse button
+            if (e.button !== 0) return;
             
-            const boardRect = boardView.getBoundingClientRect();
-            const newX = e.clientX - boardRect.left - dragOffsetX;
-            const newY = e.clientY - boardRect.top - dragOffsetY;
+            // Don't start panning if clicking on a card or control
+            if (e.target.closest('.card-container') || e.target.closest('.board-controls')) {
+                return;
+            }
             
-            // Update card position
-            draggedCard.style.left = `${newX}px`;
-            draggedCard.style.top = `${newY}px`;
+            isPanning = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+            boardView.style.cursor = 'grabbing';
         });
         
-        // Handle mouse up - end dragging
-        document.addEventListener('mouseup', function() {
-            if (isDragging && draggedCard) {
-                // Remove dragging class
-                draggedCard.classList.remove('dragging');
-                
-                // Save position to server
-                const cardId = draggedCard.dataset.id;
-                const posX = parseInt(draggedCard.style.left);
-                const posY = parseInt(draggedCard.style.top);
-                
-                // Send position update to server
-                saveCardPosition(cardId, posX, posY);
-                
-                isDragging = false;
-                draggedCard = null;
+        // Close modal when clicking the close button
+        closeCardModal.addEventListener('click', function() {
+            cardDetailModal.style.display = 'none';
+        });
+        
+        // Close modal when clicking outside of it
+        cardDetailModal.addEventListener('click', function(e) {
+            if (e.target === cardDetailModal) {
+                cardDetailModal.style.display = 'none';
             }
         });
         
+        // Handle mouse move (for both dragging cards and panning)
+        document.addEventListener('mousemove', function(e) {
+            // Handle card dragging
+            if (draggedCard) {
+                // Set dragging to true after a small movement to distinguish from clicks
+                if (!isDragging) {
+                    const moveX = Math.abs(e.clientX - (initialCardX + dragOffsetX));
+                    const moveY = Math.abs(e.clientY - (initialCardY + dragOffsetY));
+                    
+                    // Only consider it a drag after moving 5+ pixels
+                    if (moveX > 5 || moveY > 5) {
+                        isDragging = true;
+                        draggedCard.classList.add('dragging');
+                    } else {
+                        return;
+                    }
+                }
+                
+                // Calculate position taking into account the current scale
+                const boardCanvasRect = boardCanvas.getBoundingClientRect();
+                const newX = (e.clientX - boardCanvasRect.left - dragOffsetX) / scale;
+                const newY = (e.clientY - boardCanvasRect.top - dragOffsetY) / scale;
+                
+                // Update card position
+                draggedCard.style.left = `${newX}px`;
+                draggedCard.style.top = `${newY}px`;
+                
+                // Store last position for final update
+                lastPosition = {
+                    cardId: draggedCard.dataset.id,
+                    x: newX,
+                    y: newY
+                };
+            }
+            
+            // Handle board panning
+            if (isPanning) {
+                offsetX = e.clientX - startX;
+                offsetY = e.clientY - startY;
+                updateBoardTransform();
+            }
+        });
+        
+        // Handle mouse up - end dragging or panning
+        document.addEventListener('mouseup', function() {
+            // End card dragging
+            if (draggedCard) {
+                // Remove dragging class
+                draggedCard.classList.remove('dragging');
+                
+                // Save position to server if actually dragged
+                if (isDragging && lastPosition.cardId) {
+                    saveCardPosition(lastPosition.cardId, lastPosition.x, lastPosition.y);
+                }
+                
+                isDragging = false;
+                draggedCard = null;
+                lastPosition = {};
+            }
+            
+            // End board panning
+            if (isPanning) {
+                isPanning = false;
+                boardView.style.cursor = 'auto';
+            }
+        });
+        
+        // Zoom controls
+        zoomInBtn.addEventListener('click', function() {
+            scale *= 1.2;
+            updateBoardTransform();
+        });
+        
+        zoomOutBtn.addEventListener('click', function() {
+            scale /= 1.2;
+            if (scale < 0.2) scale = 0.2;
+            updateBoardTransform();
+        });
+        
+        resetViewBtn.addEventListener('click', function() {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            updateBoardTransform();
+        });
+        
+        // Mouse wheel zoom
+        boardView.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            
+            // Get mouse position relative to the board
+            const rect = boardView.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Calculate the point on the canvas under the mouse
+            const canvasX = (mouseX - offsetX) / scale;
+            const canvasY = (mouseY - offsetY) / scale;
+            
+            // Zoom in or out
+            if (e.deltaY < 0) {
+                scale *= 1.1;
+            } else {
+                scale /= 1.1;
+                if (scale < 0.2) scale = 0.2;
+            }
+            
+            // Adjust offset to keep the point under the mouse
+            offsetX = mouseX - canvasX * scale;
+            offsetY = mouseY - canvasY * scale;
+            
+            updateBoardTransform();
+        });
+        
+        // Update board transform
+        function updateBoardTransform() {
+            boardCanvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        }
+        
         // Save card position to server using fetch API
         function saveCardPosition(cardId, x, y) {
+            // Get CSRF token
+            const csrftoken = getCookie('csrftoken');
+            
+            // Ensure position is numeric and not NaN
+            const posX = parseInt(x) || 0;
+            const posY = parseInt(y) || 0;
+            
+            // Log the position being saved for debugging
+            console.log(`Saving card ${cardId} position: x=${posX}, y=${posY}`);
+            
             fetch('{% url "boards:save_card_position" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': csrftoken
                 },
                 body: JSON.stringify({
                     id: cardId,
-                    x: x,
-                    y: y
+                    x: posX,
+                    y: posY
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                if (!data.success) {
+                if (data.success) {
+                    console.log(`Successfully saved position for card ${cardId}`);
+                } else {
                     console.error('Error saving card position:', data.error);
                 }
             })
@@ -566,6 +1132,22 @@
                 }
             }
             return cookieValue;
+        }
+        
+        // Apply filters button event
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', applyFilters);
+        }
+        
+        // Sort functionality
+        const sortOptionSelect = document.getElementById('sortOption');
+        const applySortBtn = document.getElementById('applySort');
+        
+        if (applySortBtn && sortOptionSelect) {
+            applySortBtn.addEventListener('click', function() {
+                const sortValue = sortOptionSelect.value;
+                applySort(sortValue);
+            });
         }
         
         // Set up view toggle
@@ -601,6 +1183,7 @@
             const url = new URL(window.location.href);
             
             // Clear existing params
+            const path = url.pathname;
             url.search = '';
             
             // Add filter params if they have values
@@ -614,17 +1197,127 @@
             window.location.href = url.toString();
         }
         
-        // Set up filter event listeners
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                applyFilters();
-            }
-        });
+        // Apply sorting to the board
+        function applySort(sortType) {
+            // Get all cards
+            const cardElements = document.querySelectorAll('.card-container');
+            if (!cardElements.length) return;
+            
+            // Reset any previous sorting
+            resetSort();
+            
+            // If no sorting selected, just return
+            if (sortType === 'none') return;
+            
+            // Group cards by the selected sorting criteria
+            const groups = {};
+            let groupNames = [];
+            
+            // Create groups based on sort type
+            cardElements.forEach(card => {
+                let groupKey = 'Unknown';
+                let groupName = 'Unknown';
+                const cardElement = card.querySelector('.card');
+                
+                if (sortType === 'status') {
+                    const statusBadge = cardElement.querySelector('.status-badge');
+                    if (statusBadge) {
+                        groupKey = statusBadge.classList[1].replace('status-', '');
+                        groupName = statusBadge.textContent.trim();
+                    }
+                } else if (sortType === 'type') {
+                    // Find the type info in the footer
+                    const typeInfo = cardElement.querySelector('.card-footer').textContent;
+                    const match = typeInfo.match(/Type:\s*(.*?)(?:\s*$|\s*•)/);
+                    if (match && match[1]) {
+                        groupName = match[1].trim();
+                        // Convert to lowercase and remove spaces for the key
+                        groupKey = groupName.toLowerCase().replace(/\s+/g, '-');
+                    }
+                } else if (sortType === 'assigned') {
+                    const assignedElement = cardElement.querySelector('.card-footer div:last-child span');
+                    if (assignedElement) {
+                        groupName = assignedElement.textContent.trim();
+                        groupKey = groupName === 'Unassigned' ? 'unassigned' : groupName.toLowerCase().replace(/\s+/g, '-');
+                    }
+                }
+                
+                // Create group if it doesn't exist
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        name: groupName,
+                        cards: []
+                    };
+                    groupNames.push({ key: groupKey, name: groupName });
+                }
+                
+                // Add card to its group
+                groups[groupKey].cards.push(card);
+            });
+            
+            // Sort group names for consistent display
+            groupNames.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Create group containers
+            const boardCanvas = document.getElementById('boardCanvas');
+            const groupContainersWrapper = document.createElement('div');
+            groupContainersWrapper.className = 'group-containers';
+            groupContainersWrapper.style.position = 'absolute';
+            groupContainersWrapper.style.top = '0';
+            groupContainersWrapper.style.left = '0';
+            groupContainersWrapper.style.width = '100%';
+            
+            // Calculate vertical spacing
+            const verticalSpacing = 350; // Adjust based on your card height
+            
+            // Create group containers and move cards into them
+            groupNames.forEach((group, index) => {
+                const { key, name } = group;
+                const cards = groups[key].cards;
+                
+                // Create group container
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'group-container';
+                groupContainer.dataset.group = key;
+                groupContainer.style.position = 'absolute';
+                groupContainer.style.top = `${index * verticalSpacing}px`;
+                groupContainer.style.left = '20px';
+                groupContainer.style.width = 'calc(100% - 40px)';
+                
+                // Add group header
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.style.padding = '8px 12px';
+                groupHeader.style.backgroundColor = 'white';
+                groupHeader.style.borderRadius = '6px';
+                groupHeader.style.marginBottom = '12px';
+                groupHeader.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                groupHeader.style.fontWeight = 'bold';
+                groupHeader.textContent = name;
+                groupContainer.appendChild(groupHeader);
+                
+                // Add cards to this group with horizontal spacing
+                cards.forEach((card, cardIndex) => {
+                    // Update card position
+                    card.style.left = `${cardIndex * 300}px`; // Adjust spacing as needed
+                    card.style.top = `${index * verticalSpacing + 50}px`; // Add some space below the header
+                });
+                
+                // Add group container to wrapper
+                groupContainersWrapper.appendChild(groupContainer);
+            });
+            
+            // Add the group containers to the board
+            boardCanvas.appendChild(groupContainersWrapper);
+        }
         
-        typeFilter.addEventListener('change', applyFilters);
-        statusFilter.addEventListener('change', applyFilters);
-        assignedFilter.addEventListener('change', applyFilters);
-        checkoutFilter.addEventListener('change', applyFilters);
+        // Reset sorting
+        function resetSort() {
+            const groupContainers = document.querySelector('.group-containers');
+            if (groupContainers) {
+                groupContainers.remove();
+            }
+        }
         
         // Set filter values from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
