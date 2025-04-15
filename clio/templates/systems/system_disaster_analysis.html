@@ -1,6 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Disaster Impact Analysis - {{ system.name }} - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Disaster Impact Analysis: {{ system.name }}
+        </h2>
+        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      style="background-color: {{ system.category.color }}; color: {{ system.category.text_color }}">
+                    {{ system.category.name }}
+                </span>
+            </div>
+            <div class="mt-2 flex items-center text-sm text-gray-500">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      style="background-color: {{ system.status.color }}; color: {{ system.status.text_color }}">
+                    {{ system.status.name }}
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <button id="runDisasterSimulation" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500" style="background-color: #F1C052; border-color: #E5B142;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Run Simulation
+        </button>
+        <a href="{% url 'systems:detail' system.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to System
+        </a>
+    </div>
+</div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -34,80 +70,8 @@
         color: #0369a1;
     }
     
-    /* Graph visualization styles */
-    #diagram-container {
-        position: relative;
-        width: 100%;
-        height: 600px;
-        margin-bottom: 20px;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    
-    #disaster-graph {
-        width: 100%;
-        height: 100%;
-        background-color: #f9fafb;
-    }
-    
-    .system-node {
-        stroke-width: 2px;
-        cursor: pointer;
-    }
-    
-    .system-label {
-        font-size: 10px;
-        text-anchor: middle;
-        pointer-events: none;
-        font-weight: normal;
-    }
-    
-    .main-system .system-label {
-        font-weight: bold;
-    }
-    
-    .label-background {
-        fill: white;
-        fill-opacity: 0.8;
-        stroke: #ddd;
-        stroke-width: 0.5;
-    }
-    
-    .connection {
-        stroke: #999;
-        stroke-width: 1.5px;
-        fill: none;
-        marker-end: url(#arrowhead);
-    }
-    
-    .connection-direct {
-        stroke-dasharray: none;
-    }
-    
-    .connection-sso {
-        stroke-dasharray: 5, 3;
-    }
-    
-    .connection-hosting {
-        stroke-dasharray: 1, 3;
-    }
-    
-    .connection-highlighted {
-        stroke: #ff5722;
-        stroke-width: 2.5px;
-    }
-    
-    .highlighted {
-        stroke-width: 3px;
-        stroke: #ff5722;
-    }
-
     /* Legend styling */
     .legend {
-        position: absolute;
-        top: 10px;
-        right: 10px;
         display: flex;
         flex-direction: column;
         padding: 8px;
@@ -115,8 +79,7 @@
         border-radius: 4px;
         border: 1px solid #e5e7eb;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        z-index: 10;
-        max-width: 180px;
+        margin-bottom: 1rem;
     }
     
     .legend-title {
@@ -137,105 +100,6 @@
         height: 12px;
         margin-right: 8px;
         border-radius: 3px;
-    }
-    
-    /* Info panel styling */
-    #infoPanel {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background-color: white;
-        border: 1px solid #ddd;
-        padding: 15px;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        max-width: 300px;
-        display: none;
-        z-index: 10;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    
-    /* Zoom controls */
-    .zoom-controls {
-        position: absolute;
-        right: 20px;
-        top: 160px;
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        z-index: 10;
-    }
-    
-    .zoom-controls button {
-        display: block;
-        width: 34px;
-        height: 34px;
-        background-color: white;
-        border: none;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        font-size: 18px;
-        padding: 0;
-        text-align: center;
-    }
-    
-    .zoom-controls button:last-child {
-        border-bottom: none;
-    }
-    
-    .zoom-controls button:hover {
-        background-color: #f5f5f5;
-    }
-    
-    /* Loading indicator */
-    .loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.7);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        font-size: 18px;
-        font-weight: bold;
-        color: #4285f4;
-    }
-    
-    .spinner {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        border: 3px solid rgba(66, 133, 244, 0.3);
-        border-radius: 50%;
-        border-top-color: #4285f4;
-        animation: spin 1s ease-in-out infinite;
-        margin-right: 10px;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    /* Path visualization */
-    .failure-path {
-        stroke: #ef4444;
-        stroke-width: 3px;
-        fill: none;
-        stroke-dasharray: none;
-        pointer-events: none;
-        stroke-linecap: round;
-        animation: pathPulse 2s infinite;
-    }
-    
-    @keyframes pathPulse {
-        0% { stroke-opacity: 1; }
-        50% { stroke-opacity: 0.6; }
-        100% { stroke-opacity: 1; }
     }
     
     /* Better empty state */
@@ -311,18 +175,7 @@
         font-size: 0.875rem;
     }
     
-    /* Node pulsing animation */
-    @keyframes pulse-node {
-        0% { stroke-width: 2px; r: attr(data-original-r px); }
-        50% { stroke-width: 3px; r: calc(attr(data-original-r px) * 1.2); }
-        100% { stroke-width: 2px; r: attr(data-original-r px); }
-    }
-    
-    .pulse-animation {
-        animation: pulse-node 2s infinite;
-    }
-    
-    /* Path chain visualization styles */
+    /* Path visualization */
     .impact-path {
         border: 1px solid #e5e7eb;
         border-radius: 0.5rem;
@@ -436,19 +289,99 @@
         max-height: 0;
     }
     
-    /* Responsive adjustments */
+    /* System card styling */
+    .system-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .system-card:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-color: #d1d5db;
+    }
+    
+    .system-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .system-card-body {
+        font-size: 0.875rem;
+        color: #4b5563;
+    }
+    
+    .system-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+        font-size: 0.75rem;
+    }
+    
+    /* Recovery Plan Integration */
+    .system-recovery-plan {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #f3f4f6;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .recovery-step-link {
+        display: inline-flex;
+        align-items: center;
+        color: #2563eb;
+        font-weight: 500;
+    }
+    
+    .recovery-step-link svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        margin-right: 0.25rem;
+    }
+    
+    /* Filter and sort controls */
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #4b5563;
+        margin-bottom: 0.25rem;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+        border-radius: 0.25rem;
+        border: 1px solid #d1d5db;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
     @media (max-width: 640px) {
-        #diagram-container {
-            height: 400px;
-        }
-        
-        .legend {
-            max-width: 140px;
-            font-size: 0.75rem;
-        }
-        
-        #infoPanel {
-            max-width: 250px;
+        .filter-bar {
+            flex-direction: column;
         }
         
         .dependency-chain {
@@ -468,41 +401,6 @@
 </style>
 {% endblock %}
 
-{% block page_header %}
-<div class="md:flex md:items-center md:justify-between">
-    <div class="flex-1 min-w-0">
-        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Disaster Impact Analysis: {{ system.name }}
-        </h2>
-        <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-            <div class="mt-2 flex items-center text-sm text-gray-500">
-                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      style="background-color: {{ system.category.color }}; color: {{ system.category.text_color }}">
-                    {{ system.category.name }}
-                </span>
-            </div>
-            <div class="mt-2 flex items-center text-sm text-gray-500">
-                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      style="background-color: {{ system.status.color }}; color: {{ system.status.text_color }}">
-                    {{ system.status.name }}
-                </span>
-            </div>
-        </div>
-    </div>
-    <div class="mt-4 flex md:mt-0 md:ml-4">
-        <button id="runDisasterSimulation" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Run Simulation
-        </button>
-        <a href="{% url 'systems:detail' system.id %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Back to System
-        </a>
-    </div>
-</div>
-{% endblock %}
-
 {% block content %}
 <div class="bg-white shadow overflow-hidden sm:rounded-lg">
     <div class="px-4 py-5 sm:px-6 bg-amber-50">
@@ -517,7 +415,7 @@
                     Failure Impact Assessment
                 </h3>
                 <p class="mt-1 text-sm text-gray-500">
-                    This analysis shows the cascading impact of a failure in {{ system.name }}. The visualization displays dependency relationships and failure propagation paths.
+                    This analysis shows the cascading impact of a failure in {{ system.name }}. The analysis displays dependency relationships and how failures would propagate through connected systems.
                 </p>
             </div>
         </div>
@@ -537,63 +435,10 @@
                 </div>
             </div>
             
-            <!-- Visualization controls -->
-            <div class="controls-panel">
-                <button type="button" id="resetViewButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Reset View
-                </button>
-                <button type="button" id="optimizeLayoutButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    Optimize Layout
-                </button>
-                <button type="button" id="showFullPathButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Show Full Paths
-                </button>
-                <button type="button" id="toggleIntermediateButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    Hide Intermediate
-                </button>
-                <button type="button" id="toggleHostingButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                    </svg>
-                    Show Hosting
-                </button>
-                <button type="button" id="toggleSsoButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Show SSO
-                </button>
-                <button type="button" id="showImmediateImpactsButton" class="control-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Focus on Direct
-                </button>
-            </div>
-            
-            <!-- Dependency Graph Visualization -->
-            <div id="diagram-container" style="width: 100%; min-height: 600px;">
-                <div id="disaster-graph"></div>
-                
-                <!-- Legend -->
-                <div class="legend">
-                    <div class="legend-title">Impact Legend</div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #ffd700; border: 1px solid #ff8c00;"></div>
-                        <span>Current System</span>
-                    </div>
+            <!-- Impact Legend -->
+            <div class="legend mb-4">
+                <div class="legend-title">Impact Legend</div>
+                <div class="flex flex-wrap gap-3">
                     <div class="legend-item">
                         <div class="legend-color" style="background-color: #fee2e2; border: 1px solid #ef4444;"></div>
                         <span>Primary Impact</span>
@@ -619,29 +464,10 @@
                         <span>Hosting Dependency</span>
                     </div>
                 </div>
-                
-                <!-- Zoom controls -->
-                <div class="zoom-controls">
-                    <button id="zoomInButton" title="Zoom In">+</button>
-                    <button id="zoomOutButton" title="Zoom Out">−</button>
-                    <button id="fitViewButton" title="Fit All">⌂</button>
-                </div>
-                
-                <!-- Info panel -->
-                <div id="infoPanel">
-                    <h3 id="infoPanelTitle" class="text-lg font-medium mb-2"></h3>
-                    <div id="infoPanelContent"></div>
-                </div>
-                
-                <!-- Loading overlay -->
-                <div class="loading-overlay">
-                    <div class="spinner"></div>
-                    <span>Analyzing failure impact...</span>
-                </div>
             </div>
             
             <!-- Impact Metrics -->
-            <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-4">
+            <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="bg-white overflow-hidden shadow rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <dl>
@@ -685,9 +511,9 @@
                     <div class="px-4 py-5 sm:p-6">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">
-                                Business Impact
+                                Estimated Downtime Cost
                             </dt>
-                            <dd id="business-impact" class="mt-1 text-3xl font-semibold text-gray-900">
+                            <dd id="estimated-cost" class="mt-1 text-3xl font-semibold text-gray-900">
                                 --
                             </dd>
                         </dl>
@@ -695,14 +521,156 @@
                 </div>
             </div>
             
-            <!-- NEW: Complete Downstream Impact Paths -->
+            <!-- Impact Lists -->
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4 collapse-trigger" id="impactBreakdownHeader">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Impact Breakdown
+                    </h3>
+                </div>
+                
+                <div class="collapsible-content" id="impactBreakdownContent">
+                    <!-- Filter Bar -->
+                    <div class="filter-bar mb-4">
+                        <div class="filter-group">
+                            <label for="categoryFilter">Filter by Category</label>
+                            <select id="categoryFilter" class="text-sm">
+                                <option value="all">All Categories</option>
+                                {% for category in all_categories %}
+                                <option value="{{ category.slug }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="vendorFilter">Filter by Vendor</label>
+                            <select id="vendorFilter" class="text-sm">
+                                <option value="all">All Vendors</option>
+                                {% for vendor in all_vendors %}
+                                <option value="{{ vendor }}">{{ vendor }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="systemSort">Sort by</label>
+                            <select id="systemSort" class="text-sm">
+                                <option value="impact">Impact Score (High to Low)</option>
+                                <option value="name">Name (A-Z)</option>
+                                <option value="recovery">Recovery Time (Longest First)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="connectionTypeFilter">Connection Types</label>
+                            <div class="flex gap-3 mt-1">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="h-4 w-4" id="showDirectConnections" checked>
+                                    <span class="ml-1 text-sm">Direct</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="h-4 w-4" id="showSSOConnections" checked>
+                                    <span class="ml-1 text-sm">SSO</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="h-4 w-4" id="showHostingConnections" checked>
+                                    <span class="ml-1 text-sm">Hosting</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <!-- Primary Impact (Tier 1) -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 bg-red-50">
+                                <h4 class="text-base font-medium text-red-700 flex items-center">
+                                    <span class="inline-block w-3 h-3 bg-red-700 rounded-full mr-2"></span>
+                                    Primary Impact Systems
+                                </h4>
+                                <p class="mt-1 text-xs text-red-600">
+                                    Systems directly dependent on {{ system.name }}
+                                </p>
+                            </div>
+                            <div class="border-t border-gray-200">
+                                <div id="primary-impact-systems" class="divide-y divide-gray-200">
+                                    <!-- Will be populated by JavaScript -->
+                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Secondary Impact (Tier 2) -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 bg-orange-50">
+                                <h4 class="text-base font-medium text-orange-700 flex items-center">
+                                    <span class="inline-block w-3 h-3 bg-orange-600 rounded-full mr-2"></span>
+                                    Secondary Impact Systems
+                                </h4>
+                                <p class="mt-1 text-xs text-orange-600">
+                                    Systems dependent on primary impact systems
+                                </p>
+                            </div>
+                            <div class="border-t border-gray-200">
+                                <div id="secondary-impact-systems" class="divide-y divide-gray-200">
+                                    <!-- Will be populated by JavaScript -->
+                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tertiary Impact (Tier 3) -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 bg-yellow-50">
+                                <h4 class="text-base font-medium text-yellow-700 flex items-center">
+                                    <span class="inline-block w-3 h-3 bg-yellow-600 rounded-full mr-2"></span>
+                                    Tertiary Impact Systems
+                                </h4>
+                                <p class="mt-1 text-xs text-yellow-600">
+                                    Systems dependent on secondary impact systems
+                                </p>
+                            </div>
+                            <div class="border-t border-gray-200">
+                                <div id="tertiary-impact-systems" class="divide-y divide-gray-200">
+                                    <!-- Will be populated by JavaScript -->
+                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quaternary Impact (Tier 4+) -->
+                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                            <div class="px-4 py-5 sm:px-6 bg-blue-50">
+                                <h4 class="text-base font-medium text-blue-700 flex items-center">
+                                    <span class="inline-block w-3 h-3 bg-blue-600 rounded-full mr-2"></span>
+                                    Distant Impact Systems
+                                </h4>
+                                <p class="mt-1 text-xs text-blue-600">
+                                    Systems with 4+ degrees of separation
+                                </p>
+                            </div>
+                            <div class="border-t border-gray-200">
+                                <div id="quaternary-impact-systems" class="divide-y divide-gray-200">
+                                    <!-- Will be populated by JavaScript -->
+                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Complete Downstream Impact Paths -->
             <div class="mt-8">
                 <div class="flex items-center justify-between mb-4 collapse-trigger" id="impactPathsHeader">
                     <h3 class="text-lg font-medium text-gray-900 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
-                        Complete Downstream Impact Paths
+                        Complete Dependency Chains
                     </h3>
                     <span class="text-sm text-gray-500" id="totalPathsCount">0 paths identified</span>
                 </div>
@@ -735,15 +703,15 @@
                                 <label for="connectionTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Connection types:</label>
                                 <div class="flex items-center gap-3 mt-2">
                                     <label class="inline-flex items-center">
-                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showDirectConnections" checked>
+                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showDirectConnectionsPath" checked>
                                         <span class="ml-2 text-sm text-gray-700">Direct</span>
                                     </label>
                                     <label class="inline-flex items-center">
-                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showSSOConnections" checked>
+                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showSSOConnectionsPath" checked>
                                         <span class="ml-2 text-sm text-gray-700">SSO</span>
                                     </label>
                                     <label class="inline-flex items-center">
-                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showHostingConnections" checked>
+                                        <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" id="showHostingConnectionsPath" checked>
                                         <span class="ml-2 text-sm text-gray-700">Hosting</span>
                                     </label>
                                 </div>
@@ -760,72 +728,8 @@
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900">Run the simulation to see complete impact paths</h3>
                             <p class="mt-1 text-sm text-gray-500">
-                                Failure paths will be displayed here after running the impact analysis.
+                                Failure dependency chains will be displayed here after running the impact analysis.
                             </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Impact Lists -->
-            <div class="mt-8">
-                <div class="flex items-center justify-between mb-4 collapse-trigger" id="impactBreakdownHeader">
-                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                        Impact Breakdown
-                    </h3>
-                </div>
-                
-                <div class="collapsible-content" id="impactBreakdownContent">
-                    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        <!-- Primary Impact (Tier 1) -->
-                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                            <div class="px-4 py-5 sm:px-6 bg-red-50">
-                                <h4 class="text-base font-medium text-red-700 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-red-700 rounded-full mr-2"></span>
-                                    Primary Impact Systems
-                                </h4>
-                            </div>
-                            <div class="border-t border-gray-200">
-                                <div id="primary-impact-systems" class="divide-y divide-gray-200">
-                                    <!-- Will be populated by JavaScript -->
-                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Secondary Impact (Tier 2) -->
-                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                            <div class="px-4 py-5 sm:px-6 bg-orange-50">
-                                <h4 class="text-base font-medium text-orange-700 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-orange-600 rounded-full mr-2"></span>
-                                    Secondary Impact Systems
-                                </h4>
-                            </div>
-                            <div class="border-t border-gray-200">
-                                <div id="secondary-impact-systems" class="divide-y divide-gray-200">
-                                    <!-- Will be populated by JavaScript -->
-                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Tertiary Impact (Tier 3) -->
-                        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                            <div class="px-4 py-5 sm:px-6 bg-yellow-50">
-                                <h4 class="text-base font-medium text-yellow-700 flex items-center">
-                                    <span class="inline-block w-3 h-3 bg-yellow-600 rounded-full mr-2"></span>
-                                    Tertiary Impact Systems
-                                </h4>
-                            </div>
-                            <div class="border-t border-gray-200">
-                                <div id="tertiary-impact-systems" class="divide-y divide-gray-200">
-                                    <!-- Will be populated by JavaScript -->
-                                    <div class="p-4 text-sm text-gray-500 text-center">No systems found</div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -842,7 +746,7 @@
                     Click "Run Simulation" to analyze the potential impact of a failure in this system.
                 </p>
                 <div class="mt-6">
-                    <button type="button" id="runSimulationFromPlaceholder" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <button type="button" id="runSimulationFromPlaceholder" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500" style="background-color: #F1C052; border-color: #E5B142;">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
@@ -1007,20 +911,117 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
+// Initialize global variables for system data
+const currentSystemId = {{ system.id }};
+const currentSystemName = "{{ system.name }}";
+const currentSystemCategory = "{{ system.category.slug }}";
+const currentSystemCategoryName = "{{ system.category.name }}";
+const currentSystemCategoryColor = "{{ system.category.color }}";
+const currentSystemCategoryTextColor = "{{ system.category.text_color }}";
+const currentSystemStatusSlug = "{{ system.status.slug }}";
+const currentSystemStatusName = "{{ system.status.name }}";
+const currentSystemStatusColor = "{{ system.status.color }}";
+const currentSystemStatusTextColor = "{{ system.status.text_color }}";
+const currentSystemVendor = "{{ system.vendor|default:'Unknown' }}";
+const currentSystemSsoId = {% if system.sso_system %}{{ system.sso_system.id }}{% else %}null{% endif %};
+const currentSystemHostingId = {% if system.hosting_system %}{{ system.hosting_system.id }}{% else %}null{% endif %};
+
+// Initialize arrays for related systems
+const dependencies = [
+    {% for dep in dependencies %}
+    {
+        id: {{ dep.id }},
+        name: "{{ dep.name }}",
+        category: {
+            slug: "{{ dep.category.slug }}",
+            name: "{{ dep.category.name }}",
+            color: "{{ dep.category.color }}",
+            text_color: "{{ dep.category.text_color }}"
+        },
+        status: {
+            slug: "{{ dep.status.slug }}",
+            name: "{{ dep.status.name }}",
+            color: "{{ dep.status.color }}",
+            text_color: "{{ dep.status.text_color }}"
+        },
+        vendor: "{{ dep.vendor|default:'Unknown' }}"
+    },
+    {% endfor %}
+];
+
+const dependents = [
+    {% for dep in dependents %}
+    {
+        id: {{ dep.id }},
+        name: "{{ dep.name }}",
+        category: {
+            slug: "{{ dep.category.slug }}",
+            name: "{{ dep.category.name }}",
+            color: "{{ dep.category.color }}",
+            text_color: "{{ dep.category.text_color }}"
+        },
+        status: {
+            slug: "{{ dep.status.slug }}",
+            name: "{{ dep.status.name }}",
+            color: "{{ dep.status.color }}",
+            text_color: "{{ dep.status.text_color }}"
+        },
+        vendor: "{{ dep.vendor|default:'Unknown' }}"
+    },
+    {% endfor %}
+];
+
+const ssoDependents = [
+    {% for dep in sso_dependents %}
+    {
+        id: {{ dep.id }},
+        name: "{{ dep.name }}",
+        category: {
+            slug: "{{ dep.category.slug }}",
+            name: "{{ dep.category.name }}",
+            color: "{{ dep.category.color }}",
+            text_color: "{{ dep.category.text_color }}"
+        },
+        status: {
+            slug: "{{ dep.status.slug }}",
+            name: "{{ dep.status.name }}",
+            color: "{{ dep.status.color }}",
+            text_color: "{{ dep.status.text_color }}"
+        },
+        vendor: "{{ dep.vendor|default:'Unknown' }}"
+    },
+    {% endfor %}
+];
+
+const hostedSystems = [
+    {% for sys in hosted_systems %}
+    {
+        id: {{ sys.id }},
+        name: "{{ sys.name }}",
+        category: {
+            slug: "{{ sys.category.slug }}",
+            name: "{{ sys.category.name }}",
+            color: "{{ sys.category.color }}",
+            text_color: "{{ sys.category.text_color }}"
+        },
+        status: {
+            slug: "{{ sys.status.slug }}",
+            name: "{{ sys.status.name }}",
+            color: "{{ sys.status.color }}",
+            text_color: "{{ sys.status.text_color }}"
+        },
+        vendor: "{{ sys.vendor|default:'Unknown' }}"
+    },
+    {% endfor %}
+];
+
+// JAVASCRIPT FUNCTIONALITY
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize variables
     let dependencyGraph = null;
     let impactData = null;
-    let simulation = null;
-    let zoomInstance = null;
-    let showFullPaths = true; // Show all paths by default
-    let hideIntermediateNodes = false;
-    let showHostingDependencies = true;
-    let showSsoDependencies = true;
-    let nodes = []; // Global nodes array for reference in utility functions
-    let completeImpactPaths = []; // Store complete impact paths
+    let completeImpactPaths = [];
     
     // Get DOM elements
     const runDisasterSimulationBtn = document.getElementById('runDisasterSimulation');
@@ -1041,24 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const showSSOConnections = document.getElementById('showSSOConnections');
     const showHostingConnections = document.getElementById('showHostingConnections');
     
-    // Visualization control buttons
-    const resetViewButton = document.getElementById('resetViewButton');
-    const optimizeLayoutButton = document.getElementById('optimizeLayoutButton');
-    const showFullPathButton = document.getElementById('showFullPathButton');
-    const toggleIntermediateButton = document.getElementById('toggleIntermediateButton');
-    const toggleHostingButton = document.getElementById('toggleHostingButton');
-    const toggleSsoButton = document.getElementById('toggleSsoButton');
-    const showImmediateImpactsButton = document.getElementById('showImmediateImpactsButton');
-    
-    // Zoom control buttons
-    const zoomInButton = document.getElementById('zoomInButton');
-    const zoomOutButton = document.getElementById('zoomOutButton');
-    const fitViewButton = document.getElementById('fitViewButton');
-    
-    // Recovery step buttons
-    const addRecoveryStepBtn = document.getElementById('addRecoveryStepBtn');
-    const cancelStepModalBtn = document.getElementById('cancelStepModal');
-    const cancelDeleteStepBtn = document.getElementById('cancelDeleteStep');
+    console.log("DOM loaded - disaster analysis script initialized");
     
     // Setup collapsible sections
     if (impactPathsHeader) {
@@ -1109,83 +1093,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners
     if (runDisasterSimulationBtn) {
-        runDisasterSimulationBtn.addEventListener('click', startSimulation);
+        console.log("Found simulation button, adding event listener");
+        runDisasterSimulationBtn.addEventListener('click', function() {
+            console.log("Run Simulation button clicked!");
+            startSimulation();
+        });
     }
     
     if (runSimulationFromPlaceholderBtn) {
-        runSimulationFromPlaceholderBtn.addEventListener('click', startSimulation);
-    }
-    
-    if (resetViewButton) {
-        resetViewButton.addEventListener('click', resetView);
-    }
-    
-    if (optimizeLayoutButton) {
-        optimizeLayoutButton.addEventListener('click', optimizeLayout);
-    }
-    
-    if (showFullPathButton) {
-        showFullPathButton.addEventListener('click', toggleFullPath);
-        // Initialize as active since showFullPaths is true by default
-        showFullPathButton.classList.add('active');
-    }
-    
-    if (toggleIntermediateButton) {
-        toggleIntermediateButton.addEventListener('click', toggleIntermediate);
-    }
-    
-    if (toggleHostingButton) {
-        toggleHostingButton.addEventListener('click', toggleHosting);
-    }
-    
-    if (toggleSsoButton) {
-        toggleSsoButton.addEventListener('click', toggleSso);
-    }
-    
-    if (showImmediateImpactsButton) {
-        showImmediateImpactsButton.addEventListener('click', function() {
-            this.classList.toggle('active');
-            if (this.classList.contains('active')) {
-                showImmediateImpacts();
-            } else {
-                resetView();
-            }
-        });
-    }
-    
-    if (zoomInButton) {
-        zoomInButton.addEventListener('click', zoomIn);
-    }
-    
-    if (zoomOutButton) {
-        zoomOutButton.addEventListener('click', zoomOut);
-    }
-    
-    if (fitViewButton) {
-        fitViewButton.addEventListener('click', fitAllNodes);
-    }
-    
-    // Recovery step event listeners
-    if (addRecoveryStepBtn) {
-        addRecoveryStepBtn.addEventListener('click', function() {
-            openRecoveryStepModal();
-        });
-    }
-    
-    if (cancelStepModalBtn) {
-        cancelStepModalBtn.addEventListener('click', function() {
-            closeRecoveryStepModal();
-        });
-    }
-    
-    if (cancelDeleteStepBtn) {
-        cancelDeleteStepBtn.addEventListener('click', function() {
-            document.getElementById('deleteStepModal').classList.add('hidden');
+        console.log("Found placeholder simulation button, adding event listener");
+        runSimulationFromPlaceholderBtn.addEventListener('click', function() {
+            console.log("Placeholder button clicked!");
+            startSimulation();
         });
     }
     
     // Attach event listeners to dynamic elements
     function attachDynamicEventListeners() {
+        // View path in graph buttons
+        document.querySelectorAll('.view-path-btn').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const pathId = this.getAttribute('data-path-id');
+                const targetId = this.getAttribute('data-target-id');
+                highlightPath(pathId, targetId);
+            });
+        });
+
         // Edit step buttons
         document.querySelectorAll('.edit-step').forEach(function(button) {
             button.addEventListener('click', function() {
@@ -1217,24 +1151,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 moveRecoveryStep(stepId, 'down');
             });
         });
-        
-        // View path in graph buttons
-        document.querySelectorAll('.view-path-btn').forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const pathId = this.getAttribute('data-path-id');
-                const targetId = this.getAttribute('data-target-id');
-                highlightPathInGraph(pathId, targetId);
-            });
-        });
     }
     
     // Call this initially to set up existing buttons
     attachDynamicEventListeners();
     
     // Function to start the simulation
-    function startSimulation() {
-        // Show loading state
+function startSimulation() {
+    console.log("Starting simulation...");
+    
+    // Show loading state
+    if (runDisasterSimulationBtn) {
         runDisasterSimulationBtn.disabled = true;
         runDisasterSimulationBtn.innerHTML = `
             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1243,28 +1170,34 @@ document.addEventListener('DOMContentLoaded', function() {
             </svg>
             Running Simulation...
         `;
+    }
+    
+    if (runSimulationFromPlaceholderBtn) {
+        runSimulationFromPlaceholderBtn.disabled = true;
+        runSimulationFromPlaceholderBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Running Simulation...
+        `;
+    }
+    
+    // Make sure disasterSimulationResults is visible before we try to update elements inside it
+    if (disasterSimulationResults) {
+        disasterSimulationResults.style.display = 'block';
+    }
+    
+    if (disasterSimulationPlaceholder) {
+        disasterSimulationPlaceholder.style.display = 'none';
+    }
+    
+    // Simulate delay for better UX
+    setTimeout(function() {
+        performDisasterImpactAnalysis();
         
-        if (runSimulationFromPlaceholderBtn) {
-            runSimulationFromPlaceholderBtn.disabled = true;
-            runSimulationFromPlaceholderBtn.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Running Simulation...
-            `;
-        }
-        
-        // Simulate delay for better UX
-        setTimeout(function() {
-            performDisasterImpactAnalysis();
-            
-            // Update UI
-            disasterSimulationPlaceholder.style.display = 'none';
-            disasterSimulationResults.style.display = 'block';
-            const forceReflow = document.body.offsetHeight;
-            
-            // Reset button
+        // Reset button
+        if (runDisasterSimulationBtn) {
             runDisasterSimulationBtn.disabled = false;
             runDisasterSimulationBtn.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1272,28 +1205,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 </svg>
                 Run Simulation
             `;
-            
-            if (runSimulationFromPlaceholderBtn) {
-                runSimulationFromPlaceholderBtn.disabled = false;
-                runSimulationFromPlaceholderBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Run Simulation
-                `;
-            }
-        }, 1000);
-    }
+        }
+        
+        if (runSimulationFromPlaceholderBtn) {
+            runSimulationFromPlaceholderBtn.disabled = false;
+            runSimulationFromPlaceholderBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Run Simulation
+            `;
+        }
+    }, 1000);
+}
     
     // Perform the impact analysis
     function performDisasterImpactAnalysis() {
         console.log("Starting disaster impact analysis...");
         
         // Get current system information
-        const systemId = {{ system.id }};
-        const systemName = "{{ system.name }}";
-        const systemCategory = "{{ system.category.slug }}";
-        const systemCategoryName = "{{ system.category.name }}";
+        const systemId = currentSystemId;
+        const systemName = currentSystemName;
+        const systemCategory = currentSystemCategory;
+        const systemCategoryName = currentSystemCategoryName;
         
         // Build a complete dependency graph from the relationship data
         dependencyGraph = buildDependencyGraph();
@@ -1310,22 +1244,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the impact summary
         updateImpactSummary(impactData);
         
-        // Create the dependency graph visualization
-        createDependencyVisualization(systemId, dependencyGraph, impactData);
-        
         // Populate the impacted systems by tier
         populateImpactedSystems('primary-impact-systems', impactData.primaryImpact);
         populateImpactedSystems('secondary-impact-systems', impactData.secondaryImpact);
         populateImpactedSystems('tertiary-impact-systems', impactData.tertiaryImpact);
+        populateImpactedSystems('quaternary-impact-systems', impactData.quaternaryImpact);
         
         // Populate the complete downstream impact paths
         populateImpactPaths(completeImpactPaths);
         
         // Update recovery metrics
         updateRecoveryMetrics(systemCategory, impactData);
-        
-        // Show failure paths by default since showFullPaths is true
-        setTimeout(showFailurePathsInGraph, 500);
         
         console.log("Disaster impact analysis completed.");
     }
@@ -1348,21 +1277,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add the current system
         const currentSystem = {
-            id: {{ system.id }},
-            name: "{{ system.name }}",
+            id: currentSystemId,
+            name: currentSystemName,
             category: {
-                slug: "{{ system.category.slug }}",
-                name: "{{ system.category.name }}",
-                color: "{{ system.category.color }}",
-                text_color: "{{ system.category.text_color }}"
+                slug: currentSystemCategory,
+                name: currentSystemCategoryName,
+                color: currentSystemCategoryColor,
+                text_color: currentSystemCategoryTextColor
             },
             status: {
-                slug: "{{ system.status.slug }}",
-                name: "{{ system.status.name }}",
-                color: "{{ system.status.color }}",
-                text_color: "{{ system.status.text_color }}"
+                slug: currentSystemStatusSlug,
+                name: currentSystemStatusName,
+                color: currentSystemStatusColor,
+                text_color: currentSystemStatusTextColor
             },
-            vendor: "{{ system.vendor|default:'Unknown' }}"
+            vendor: currentSystemVendor || 'Unknown'
         };
         
         allSystems.push(currentSystem);
@@ -1375,94 +1304,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Add all systems that this system depends on
-        {% for dep in dependencies %}
-        addSystemToCollection({
-            id: {{ dep.id }},
-            name: "{{ dep.name }}",
-            category: {
-                slug: "{{ dep.category.slug }}",
-                name: "{{ dep.category.name }}",
-                color: "{{ dep.category.color }}",
-                text_color: "{{ dep.category.text_color }}"
-            },
-            status: {
-                slug: "{{ dep.status.slug }}",
-                name: "{{ dep.status.name }}",
-                color: "{{ dep.status.color }}",
-                text_color: "{{ dep.status.text_color }}"
-            },
-            vendor: "{{ dep.vendor|default:'Unknown' }}"
+        // Process dependencies from server-side data
+        dependencies.forEach(dep => {
+            addSystemToCollection(dep);
         });
-        {% endfor %}
         
-        // Add all systems that depend on this system
-        {% for dep in dependents %}
-        addSystemToCollection({
-            id: {{ dep.id }},
-            name: "{{ dep.name }}",
-            category: {
-                slug: "{{ dep.category.slug }}",
-                name: "{{ dep.category.name }}",
-                color: "{{ dep.category.color }}",
-                text_color: "{{ dep.category.text_color }}"
-            },
-            status: {
-                slug: "{{ dep.status.slug }}",
-                name: "{{ dep.status.name }}",
-                color: "{{ dep.status.color }}",
-                text_color: "{{ dep.status.text_color }}"
-            },
-            vendor: "{{ dep.vendor|default:'Unknown' }}"
+        // Process dependents from server-side data
+        dependents.forEach(dep => {
+            addSystemToCollection(dep);
         });
-        {% endfor %}
         
-        // Add systems from other related collections
-        // Add systems from SSO dependents
-        {% if sso_dependents %}
-        {% for sso_dep in sso_dependents %}
-        addSystemToCollection({
-            id: {{ sso_dep.id }},
-            name: "{{ sso_dep.name }}",
-            category: {
-                slug: "{{ sso_dep.category.slug }}",
-                name: "{{ sso_dep.category.name }}",
-                color: "{{ sso_dep.category.color }}",
-                text_color: "{{ sso_dep.category.text_color }}"
-            },
-            status: {
-                slug: "{{ sso_dep.status.slug }}",
-                name: "{{ sso_dep.status.name }}",
-                color: "{{ sso_dep.status.color }}",
-                text_color: "{{ sso_dep.status.text_color }}"
-            },
-            vendor: "{{ sso_dep.vendor|default:'Unknown' }}"
+        // Process SSO dependents from server-side data
+        ssoDependents.forEach(dep => {
+            addSystemToCollection(dep);
         });
-        {% endfor %}
-        {% endif %}
         
-        // Add systems from hosted systems
-        {% if hosted_systems %}
-        {% for hosted in hosted_systems %}
-        addSystemToCollection({
-            id: {{ hosted.id }},
-            name: "{{ hosted.name }}",
-            category: {
-                slug: "{{ hosted.category.slug }}",
-                name: "{{ hosted.category.name }}",
-                color: "{{ hosted.category.color }}",
-                text_color: "{{ hosted.category.text_color }}"
-            },
-            status: {
-                slug: "{{ hosted.status.slug }}",
-                name: "{{ hosted.status.name }}",
-                color: "{{ hosted.status.color }}",
-                text_color: "{{ hosted.status.text_color }}"
-            },
-            vendor: "{{ hosted.vendor|default:'Unknown' }}"
+        // Process hosted systems from server-side data
+        hostedSystems.forEach(sys => {
+            addSystemToCollection(sys);
         });
-        {% endfor %}
-        {% endif %}
         
         // Add all systems to the graph
         allSystems.forEach(system => {
@@ -1470,6 +1330,7 @@ document.addEventListener('DOMContentLoaded', function() {
             graph.dependencies[system.id] = [];
             graph.dependents[system.id] = [];
         });
+        
         // Add direct dependency relationships
         function addDependencyRelationship(sourceId, targetId, type) {
             // Skip if either node doesn't exist
@@ -1503,36 +1364,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Add direct dependencies: these systems depend on the current system
-        {% for dep in dependents %}
-        addDependencyRelationship({{ dep.id }}, {{ system.id }}, 'direct');
-        {% endfor %}
+        // Process direct dependencies from server-side data
+        dependencies.forEach(dep => {
+            addDependencyRelationship(currentSystemId, dep.id, 'direct');
+        });
         
-        // Add direct dependencies: current system depends on these
-        {% for dep in dependencies %}
-        addDependencyRelationship({{ system.id }}, {{ dep.id }}, 'direct');
-        {% endfor %}
+        // Process dependents from server-side data
+        dependents.forEach(dep => {
+            addDependencyRelationship(dep.id, currentSystemId, 'direct');
+        });
         
-        // Add SSO and hosting relationships
-        {% if system.sso_system %}
-        addDependencyRelationship({{ system.id }}, {{ system.sso_system.id }}, 'sso');
-        {% endif %}
+        // Process SSO relationships
+        if (currentSystemSsoId) {
+            addDependencyRelationship(currentSystemId, currentSystemSsoId, 'sso');
+        }
         
-        {% if system.hosting_system %}
-        addDependencyRelationship({{ system.id }}, {{ system.hosting_system.id }}, 'hosting');
-        {% endif %}
+        // Process hosting relationships
+        if (currentSystemHostingId) {
+            addDependencyRelationship(currentSystemId, currentSystemHostingId, 'hosting');
+        }
         
-        {% if sso_dependents %}
-        {% for sso_dep in sso_dependents %}
-        addDependencyRelationship({{ sso_dep.id }}, {{ system.id }}, 'sso');
-        {% endfor %}
-        {% endif %}
+        // Process SSO dependents
+        ssoDependents.forEach(dep => {
+            addDependencyRelationship(dep.id, currentSystemId, 'sso');
+        });
         
-        {% if hosted_systems %}
-        {% for hosted in hosted_systems %}
-        addDependencyRelationship({{ hosted.id }}, {{ system.id }}, 'hosting');
-        {% endfor %}
-        {% endif %}
+        // Process hosting dependents
+        hostedSystems.forEach(sys => {
+            addDependencyRelationship(sys.id, currentSystemId, 'hosting');
+        });
         
         return graph;
     }
@@ -1657,7 +1517,8 @@ document.addEventListener('DOMContentLoaded', function() {
             systemsCount: directImpactSystems.length + secondLevelImpactSystems.length + 
                          thirdLevelImpactSystems.length + distantImpactSystems.length,
             userImpact: estimateUserImpact(directImpactSystems, criticalityScore),
-            businessImpact: estimateBusinessImpact(directImpactSystems, secondLevelImpactSystems, systemId, dependencyGraph)
+            businessImpact: estimateBusinessImpact(directImpactSystems, secondLevelImpactSystems, systemId, dependencyGraph),
+            estimatedCost: estimateDowntimeCost(directImpactSystems, secondLevelImpactSystems, thirdLevelImpactSystems)
         };
     }
     
@@ -1978,26 +1839,87 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return impact;
     }
-    // Update the impact summary on the page
-    function updateImpactSummary(impactData) {
-        // Update affected systems count
-        document.getElementById('total-affected-count').textContent = 
-            `${impactData.systemsCount} systems affected`;
+
+    // Estimate downtime cost based on impact data
+    function estimateDowntimeCost(primarySystems, secondaryImpactSystems, tertiaryImpactSystems) {
+        // Base cost per hour of downtime (this would be configured per organization)
+        const baseCostPerHour = 1000; // $1000 per hour
         
-        // Update the impact progress bar - scale to match the calculated criticality
+        // Calculate impact-based multiplier
+        let impactMultiplier = 1.0;
+        
+        // Factor in system categories and counts
+        if (primarySystems.some(s => s.category.slug === 'core')) {
+            impactMultiplier *= 3.0; // Core systems triple the cost
+        }
+        
+        if (primarySystems.some(s => s.isSsoProvider || s.category.slug === 'server')) {
+            impactMultiplier *= 2.5; // SSO or server failures are very costly
+        }
+        
+        // Scale based on number of affected systems
+        const systemsCount = primarySystems.length + 
+                          (secondaryImpactSystems.length * 0.5) + 
+                          (tertiaryImpactSystems.length * 0.2);
+                          
+        if (systemsCount > 20) impactMultiplier *= 2.0;
+        else if (systemsCount > 10) impactMultiplier *= 1.5;
+        else if (systemsCount > 5) impactMultiplier *= 1.2;
+        
+        // Estimate recovery time
+        const recoveryHours = estimateRecoveryTime(primarySystems, secondaryImpactSystems, tertiaryImpactSystems);
+        
+        // Calculate total cost
+        const totalCost = Math.round(baseCostPerHour * impactMultiplier * recoveryHours);
+        
+        return totalCost;
+    }
+    
+    // Update the impact summary on the page
+function updateImpactSummary(impactData) {
+    // Check if elements exist before trying to update them
+    const totalAffectedEl = document.getElementById('total-affected-count');
+    if (totalAffectedEl) {
+        totalAffectedEl.textContent = `${impactData.systemsCount} systems affected`;
+    }
+    
+    // Update the impact progress bar - scale to match the calculated criticality
+    const progressEl = document.getElementById('impact-progress');
+    if (progressEl) {
         const maxCriticality = 100; // Maximum possible criticality score for scaling
         const progressPercentage = Math.min(100, (impactData.criticalityScore / maxCriticality) * 100);
-        document.getElementById('impact-progress').style.width = progressPercentage + "%";
-        
-        // Update recovery metrics
-        document.getElementById('systems-affected').textContent = impactData.systemsCount;
-        document.getElementById('recovery-time').textContent = 
-            impactData.recoveryTime <= 24 ? 
+        progressEl.style.width = progressPercentage + "%";
+    }
+    
+    // Update recovery metrics
+    const systemsAffectedEl = document.getElementById('systems-affected');
+    if (systemsAffectedEl) {
+        systemsAffectedEl.textContent = impactData.systemsCount;
+    }
+    
+    const recoveryTimeEl = document.getElementById('recovery-time');
+    if (recoveryTimeEl) {
+        recoveryTimeEl.textContent = impactData.recoveryTime <= 24 ? 
             `${impactData.recoveryTime} hours` : 
             `${Math.round(impactData.recoveryTime / 24)} days`;
-        document.getElementById('user-impact').textContent = impactData.userImpact;
-        document.getElementById('business-impact').textContent = impactData.businessImpact;
     }
+    
+    const userImpactEl = document.getElementById('user-impact');
+    if (userImpactEl) {
+        userImpactEl.textContent = impactData.userImpact;
+    }
+    
+    const businessImpactEl = document.getElementById('business-impact');
+    if (businessImpactEl) {
+        businessImpactEl.textContent = impactData.businessImpact;
+    }
+    
+    // Update estimated cost if element exists
+    const costElement = document.getElementById('estimated-cost');
+    if (costElement && impactData.estimatedCost) {
+        costElement.textContent = `$${impactData.estimatedCost.toLocaleString()}`;
+    }
+}
     
     // Update recovery metrics based on impact data
     function updateRecoveryMetrics(systemCategory, impactData) {
@@ -2015,6 +1937,143 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update systems affected count
         document.getElementById('systems-affected').textContent = impactData.systemsCount;
+    }
+    
+    // Populate the impacted systems by tier
+    function populateImpactedSystems(containerId, systems) {
+        const container = document.getElementById(containerId);
+        
+        if (!container) return;
+        
+        // Clear existing content
+        container.innerHTML = '';
+        
+        if (!systems || systems.length === 0) {
+            container.innerHTML = '<div class="p-4 text-sm text-gray-500 text-center">No systems in this impact category</div>';
+            return;
+        }
+        
+        // Add each system to the container
+        systems.forEach(system => {
+            const systemItem = document.createElement('div');
+            systemItem.className = 'p-4 hover:bg-gray-50 transition-colors';
+            
+            let connectionType = '';
+            if (system.connectionType === 'sso') {
+                connectionType = '<span class="text-xs text-blue-600">SSO</span>';
+            } else if (system.connectionType === 'hosting') {
+                connectionType = '<span class="text-xs text-purple-600">Hosting</span>';
+            }
+            
+            let sourceInfo = '';
+            if (system.sourceNode && system.sourceNode !== currentSystemId) {
+                // Find the source system name
+                const sourceName = dependencyGraph.nodes[system.sourceNode]?.name || 'Unknown System';
+                sourceInfo = `<div class="mt-1 text-xs text-gray-500">Dependent on: <a href="#" class="text-blue-600 view-source-btn" data-id="${system.sourceNode}">${sourceName}</a></div>`;
+            }
+            
+            systemItem.innerHTML = `
+                <div class="flex justify-between">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-900">${system.name}</h3>
+                        <div class="flex items-center mt-1 space-x-2">
+                            <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full"
+                                style="background-color: ${system.category.color}; color: ${system.category.text_color}">
+                                ${system.category.name}
+                            </span>
+                            ${connectionType ? `<span class="ml-2">${connectionType}</span>` : ''}
+                        </div>
+                        ${sourceInfo}
+                    </div>
+                    <div class="flex items-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Impact: ${system.impact}
+                        </span>
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                    ${system.vendor && system.vendor !== 'Unknown' ? `Vendor: ${system.vendor}` : ''}
+                    ${system.status ? `<br>Status: ${system.status.name}` : ''}
+                </p>
+                <div class="mt-2 flex justify-between">
+                    <div class="text-xs text-gray-600">
+                        <span class="font-medium">Est. Recovery:</span> ${calculateSystemRecoveryTime(system)} hours
+                    </div>
+                    <a href="/systems/${system.id}/" class="text-xs text-blue-600 hover:text-blue-800">
+                        View System Details
+                    </a>
+                </div>
+            `;
+            
+            // Add click handler for "View Source" link if present
+            const sourceButton = systemItem.querySelector('.view-source-btn');
+            if (sourceButton) {
+                sourceButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sourceId = this.getAttribute('data-id');
+                    const sourceName = this.textContent;
+                    // Redirect to the source system details page
+                    window.location.href = `/systems/${sourceId}/`;
+                });
+            }
+            
+            container.appendChild(systemItem);
+        });
+    }
+    
+    // Calculate recovery time for an individual system
+    function calculateSystemRecoveryTime(system) {
+        // Base recovery time for a system in hours
+        let recoveryTime = 1;
+        
+        // Adjust by system category
+        switch (system.category.slug) {
+            case 'core':
+                recoveryTime = 4;
+                break;
+            case 'integration':
+                recoveryTime = 3;
+                break;
+            case 'server':
+                recoveryTime = 5;
+                break;
+            case 'custom':
+                recoveryTime = 2.5;
+                break;
+            case 'external':
+                recoveryTime = 2;
+                break;
+        }
+        
+        // Adjust by connection type
+        if (system.connectionType === 'sso') {
+            recoveryTime *= 1.3; // SSO connections take longer to recover
+        } else if (system.connectionType === 'hosting') {
+            recoveryTime *= 1.5; // Hosting dependencies are most complex
+        }
+        
+        // Adjust by impact level (distance from source)
+        // Primary impacts recover in parallel with source, others have dependencies
+        if (system.impactLevel === 'primary') {
+            // No adjustment needed
+        } else if (system.impactLevel === 'secondary') {
+            recoveryTime *= 0.8; // Less time after primary systems are back
+        } else if (system.impactLevel === 'tertiary') {
+            recoveryTime *= 0.6; // Even less time after secondaries are back
+        } else {
+            recoveryTime *= 0.4; // Minimal time for distant systems
+        }
+        
+        // Factor in system impact score
+        recoveryTime = recoveryTime * (0.8 + (system.impact / 20));
+        
+        // Round to 1 decimal place
+        return Math.round(recoveryTime * 10) / 10;
+    }
+    
+    // Function to highlight a specific path
+    function highlightPath(pathId, targetSystemId) {
+        alert(`Path highlighting feature is not implemented in this version. You can view the details of target system ${targetSystemId} on its detail page.`);
     }
     
     // Populate the impact paths section
@@ -2215,17 +2274,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         body.appendChild(chain);
         
-        // Add view in graph button
+        // Add view path button
         const viewButton = document.createElement('div');
         viewButton.className = 'mt-3 text-right';
         viewButton.innerHTML = `
-            <button type="button" class="view-path-btn inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" data-path-id="${path.id}" data-target-id="${targetSystem.id}">
+            <a href="/systems/${targetSystem.id}/" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                View in Graph
-            </button>
+                View System Details
+            </a>
         `;
         
         body.appendChild(viewButton);
@@ -2310,1486 +2369,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pathItemsContainer.appendChild(item);
             });
         });
-    }
-    
-    // Populate the impacted systems by tier
-    function populateImpactedSystems(containerId, systems) {
-        const container = document.getElementById(containerId);
-        
-        if (!container) return;
-        
-        // Clear existing content
-        container.innerHTML = '';
-        
-        if (!systems || systems.length === 0) {
-            container.innerHTML = '<div class="p-4 text-sm text-gray-500 text-center">No systems in this impact category</div>';
-            return;
-        }
-        
-        // Add each system to the container
-        systems.forEach(system => {
-            const systemItem = document.createElement('div');
-            systemItem.className = 'p-4 hover:bg-gray-50 transition-colors';
-            
-            let connectionType = '';
-            if (system.connectionType === 'sso') {
-                connectionType = '<span class="text-xs text-blue-600">SSO</span>';
-            } else if (system.connectionType === 'hosting') {
-                connectionType = '<span class="text-xs text-purple-600">Hosting</span>';
-            }
-            
-            let sourceInfo = '';
-            if (system.sourceNode && system.sourceNode !== {{ system.id }}) {
-                // Find the source system name
-                const sourceName = dependencyGraph.nodes[system.sourceNode]?.name || 'Unknown System';
-                sourceInfo = `<div class="mt-1 text-xs text-gray-500">Dependent on: <a href="#" class="text-blue-600 view-source-btn" data-id="${system.sourceNode}">${sourceName}</a></div>`;
-            }
-            
-            systemItem.innerHTML = `
-                <div class="flex justify-between">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900">${system.name}</h3>
-                        <div class="flex items-center mt-1 space-x-2">
-                            <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full"
-                                style="background-color: ${system.category.color}; color: ${system.category.text_color}">
-                                ${system.category.name}
-                            </span>
-                            ${connectionType ? `<span class="ml-2">${connectionType}</span>` : ''}
-                        </div>
-                        ${sourceInfo}
-                    </div>
-                    <div class="flex items-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Impact: ${system.impact}
-                        </span>
-                    </div>
-                </div>
-                <p class="mt-2 text-xs text-gray-500">
-                    ${system.vendor && system.vendor !== 'Unknown' ? `Vendor: ${system.vendor}` : ''}
-                    ${system.status ? `<br>Status: ${system.status.name}` : ''}
-                </p>
-                <div class="mt-2 text-right">
-                    <a href="#" class="text-xs text-blue-600 hover:text-blue-800 view-system-btn" data-id="${system.id}">
-                        View in Graph
-                    </a>
-                </div>
-            `;
-            
-            // Add click handler for "View in Graph" link
-            const viewButton = systemItem.querySelector('.view-system-btn');
-            if (viewButton) {
-                viewButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    highlightSystemInGraph(system.id);
-                });
-            }
-            
-            // Add click handler for "View Source" link if present
-            const sourceButton = systemItem.querySelector('.view-source-btn');
-            if (sourceButton) {
-                sourceButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    highlightSystemInGraph(system.sourceNode);
-                });
-            }
-            
-            container.appendChild(systemItem);
-        });
-    }
-    
-    // Create the dependency graph visualization
-    function createDependencyVisualization(systemId, dependencyGraph, impactData) {
-       // Force diagram container to be visible
-       const container = document.getElementById('diagram-container');
-       const disasterGraph = document.getElementById('disaster-graph');
-       
-       // Make sure container is visible and has width
-       if (container.offsetWidth === 0) {
-           const parentWidth = container.parentElement.offsetWidth;
-           container.style.width = parentWidth ? (parentWidth + 'px') : '100%';
-       }
-       
-       // Ensure the disaster-graph div takes full width
-       disasterGraph.style.width = '100%';
-       disasterGraph.style.height = '100%';
-       
-       // Force a layout calculation
-       const forceLayout = container.offsetWidth;
-       
-       const width = Math.max(container.clientWidth, 800); // Use at least 800px
-       const height = Math.max(container.clientHeight, 600); // Use at least 600px
-       
-       // Clear any existing SVG
-       d3.select('#disaster-graph').html('');
-       
-       // Create SVG element
-       const svg = d3.select('#disaster-graph')
-           .append('svg')
-           .attr('width', width)
-           .attr('height', height);
-           
-       // Add a definitions section for markers (arrowheads)
-       const defs = svg.append('defs');
-       
-       // Add arrow marker for regular connections
-       defs.append('marker')
-           .attr('id', 'arrowhead')
-           .attr('viewBox', '0 -5 10 10')
-           .attr('refX', 20)
-           .attr('refY', 0)
-           .attr('markerWidth', 6)
-           .attr('markerHeight', 6)
-           .attr('orient', 'auto')
-           .append('path')
-           .attr('d', 'M0,-5L10,0L0,5')
-           .attr('fill', '#999');
-           
-       // Add arrow marker for highlighted connections
-       defs.append('marker')
-           .attr('id', 'arrowhead-highlighted')
-           .attr('viewBox', '0 -5 10 10')
-           .attr('refX', 20)
-           .attr('refY', 0)
-           .attr('markerWidth', 6)
-           .attr('markerHeight', 6)
-           .attr('orient', 'auto')
-           .append('path')
-           .attr('d', 'M0,-5L10,0L0,5')
-           .attr('fill', '#ff5722');
-       
-       // Create a group for all elements that will be transformed
-       const g = svg.append('g');
-       
-       // Create graph data structure for D3
-       nodes = []; // Use the global nodes array
-       const links = [];
-       
-       // Function to add a system to nodes if not already present
-       function addSystemNodeIfNeeded(system) {
-           // If provided as a simple ID, convert to object with all necessary properties
-           if (typeof system === 'number' || typeof system === 'string') {
-               const systemData = dependencyGraph.nodes[system];
-               if (!systemData) {
-                   console.log(`System ID ${system} not found in dependencyGraph`);
-                   return null;
-               }
-               
-               system = {
-                   id: parseInt(system),
-                   name: systemData.name,
-                   category: systemData.category,
-                   status: systemData.status,
-                   vendor: systemData.vendor
-               };
-           }
-           
-           if (!nodes.some(n => n.id === system.id)) {
-               const nodeObj = {
-                   id: system.id,
-                   name: system.name,
-                   category: system.category,
-                   status: system.status,
-                   vendor: system.vendor,
-                   impactLevel: system.impactLevel,
-                   distanceFromSource: system.distanceFromSource || 0,
-                   isSsoProvider: system.isSsoProvider,
-                   isHostingProvider: system.isHostingProvider
-               };
-               
-               nodes.push(nodeObj);
-               console.log(`Added node: ${system.name} (ID: ${system.id})`);
-               return nodeObj;
-           }
-           
-           return nodes.find(n => n.id === system.id);
-       }
-       
-       // Function to add a link between systems if not already present
-       function addSystemLinkIfNeeded(sourceId, targetId, type) {
-           sourceId = parseInt(sourceId);
-           targetId = parseInt(targetId);
-           
-           // Skip if source or target is missing
-           if (!sourceId || !targetId) {
-               console.log(`Invalid source or target ID: ${sourceId} -> ${targetId}`);
-               return null;
-           }
-           
-           if (!links.some(l => 
-               (l.source === sourceId && l.target === targetId) || 
-               (l.source.id === sourceId && l.target.id === targetId)
-           )) {
-               const link = {
-                   source: sourceId,
-                   target: targetId,
-                   type: type || 'direct'
-               };
-               links.push(link);
-               console.log(`Added link: ${sourceId} -> ${targetId} (${type || 'direct'})`);
-               return link;
-           }
-           
-           return links.find(l => 
-               (l.source === sourceId && l.target === targetId) || 
-               (l.source.id === sourceId && l.target.id === targetId)
-           );
-       }
-       
-       // Add the central system (the one being analyzed)
-       nodes.push({
-           id: systemId,
-           name: dependencyGraph.nodes[systemId].name,
-           category: dependencyGraph.nodes[systemId].category,
-           status: dependencyGraph.nodes[systemId].status,
-           vendor: dependencyGraph.nodes[systemId].vendor,
-           isMainSystem: true,
-           distanceFromSource: 0
-       });
-       
-       console.log("Added main system:", dependencyGraph.nodes[systemId].name);
-       
-       // IMPORTANT: Add ALL systems and connections from completeImpactPaths
-       // This ensures that the graph contains the complete downstream paths
-       
-       console.log(`Adding systems and connections from ${completeImpactPaths.length} impact paths`);
-       completeImpactPaths.forEach((path, index) => {
-           console.log(`Processing path ${index + 1}: ${path.path.map(s => s.name || s).join(' → ')}`);
-           
-           // Ensure all systems in the path are added to the nodes array
-           path.path.forEach(system => {
-               addSystemNodeIfNeeded(system);
-           });
-           
-           // Add all connections in the path
-           path.connections.forEach(connection => {
-               addSystemLinkIfNeeded(connection.source, connection.target, connection.type);
-           });
-       });
-       
-       // Also add nodes and connections from impactData to ensure consistency
-       // Primary impact systems
-       impactData.primaryImpact.forEach(system => {
-           addSystemNodeIfNeeded(system);
-           const sourceId = system.sourceNode || systemId;
-           addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
-       });
-       
-       // Secondary impact systems
-       impactData.secondaryImpact.forEach(system => {
-           addSystemNodeIfNeeded(system);
-           const sourceId = system.sourceNode || systemId;
-           addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
-       });
-       
-       // Tertiary impact systems
-       impactData.tertiaryImpact.forEach(system => {
-           addSystemNodeIfNeeded(system);
-           const sourceId = system.sourceNode || systemId;
-           addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
-       });
-       
-       // Quaternary impact systems
-       impactData.quaternaryImpact?.forEach(system => {
-           addSystemNodeIfNeeded(system);
-           const sourceId = system.sourceNode || systemId;
-           addSystemLinkIfNeeded(sourceId, system.id, system.connectionType);
-       });
-       
-       console.log(`Visualization will contain ${nodes.length} nodes and ${links.length} links`);
-       
-       // Set up force simulation
-       simulation = d3.forceSimulation(nodes)
-           .force('link', d3.forceLink(links).id(d => d.id).distance(100))
-           .force('charge', d3.forceManyBody().strength(-500))
-           .force('center', d3.forceCenter(width / 2, height / 2))
-           .force('collision', d3.forceCollide().radius(30));
-       
-       // Create links
-       const link = g.append('g')
-           .selectAll('path')
-           .data(links)
-           .join('path')
-           .attr('class', d => `connection connection-${d.type}`)
-           .attr('id', d => `link-${d.source.id || d.source}-${d.target.id || d.target}`)
-           .attr('marker-end', 'url(#arrowhead)');
-       
-       // Create node groups
-       const node = g.append('g')
-           .selectAll('.node')
-           .data(nodes)
-           .join('g')
-           .attr('class', 'node')
-           .attr('id', d => `node-${d.id}`)
-           .call(d3.drag()
-               .on('start', dragStarted)
-               .on('drag', dragged)
-               .on('end', dragEnded));
-       
-       // Add circles to nodes
-       node.append('circle')
-           .attr('r', d => getNodeRadius(d))
-           .attr('data-original-r', d => getNodeRadius(d)) // Store original radius for animations
-           .attr('fill', d => getNodeFill(d))
-           .attr('stroke', d => getNodeStroke(d))
-           .attr('class', 'system-node')
-           .on('mouseover', handleNodeMouseOver)
-           .on('mouseout', handleNodeMouseOut)
-           .on('click', handleNodeClick);
-       
-       // Add text background rectangles
-       const textBg = node.append('rect')
-           .attr('class', 'label-background')
-           .attr('x', -40)
-           .attr('y', d => getNodeRadius(d) + 5)
-           .attr('width', 80)
-           .attr('height', 16)
-           .attr('rx', 3);
-       
-       // Add text labels
-       const text = node.append('text')
-           .attr('class', d => `system-label ${d.isMainSystem ? 'main-system' : ''}`)
-           .attr('y', d => getNodeRadius(d) + 15)
-           .text(d => d.name)
-           .each(function(d) {
-               // Truncate text if too long
-               const textElement = d3.select(this);
-               let textContent = d.name;
-               
-               if (textContent.length > 20) {
-                   textContent = textContent.substring(0, 17) + '...';
-               }
-               
-               textElement.text(textContent);
-               
-               // Update background rectangle size based on text width
-               const textWidth = this.getComputedTextLength();
-               const paddingX = 4;
-               
-               d3.select(this.parentNode)
-                   .select('rect.label-background')
-                   .attr('x', -textWidth/2 - paddingX)
-                   .attr('width', textWidth + paddingX * 2);
-           });
-       
-       // Set up zoom behavior
-       zoomInstance = d3.zoom()
-           .scaleExtent([0.1, 8])
-           .on('zoom', event => {
-               g.attr('transform', event.transform);
-           });
-           
-       svg.call(zoomInstance);
-       
-       // Apply connection styles
-       updateConnectionStyles();
-       
-       // Tick function for the force simulation
-       simulation.on('tick', () => {
-           // Keep nodes within the viewport
-           nodes.forEach(node => {
-               node.x = Math.max(50, Math.min(width - 50, node.x));
-               node.y = Math.max(50, Math.min(height - 50, node.y));
-           });
-           
-           // Update link positions
-           link.attr('d', d => {
-               const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
-               const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
-               
-               // Skip if node data is not available
-               if (!sourceNode || !targetNode) return 'M0,0L0,0';
-               
-               // Calculate path
-               const dx = targetNode.x - sourceNode.x;
-               const dy = targetNode.y - sourceNode.y;
-               const dr = Math.sqrt(dx * dx + dy * dy);
-               
-               // Account for node radius
-               const sourceRadius = getNodeRadius(sourceNode);
-               const targetRadius = getNodeRadius(targetNode);
-               
-               // Calculate start and end points adjusting for radius
-               const angle = Math.atan2(dy, dx);
-               const startX = sourceNode.x + sourceRadius * Math.cos(angle);
-               const startY = sourceNode.y + sourceRadius * Math.sin(angle);
-               const endX = targetNode.x - targetRadius * Math.cos(angle);
-               const endY = targetNode.y - targetRadius * Math.sin(angle);
-               
-               // Create curved path
-               return `M${startX},${startY}A${dr*1.2},${dr*1.2} 0 0,1 ${endX},${endY}`;
-           });
-           
-           // Update node positions
-           node.attr('transform', d => `translate(${d.x},${d.y})`);
-       });
-       
-       // Show failure path if requested
-       if (showFullPaths) {
-           setTimeout(() => {
-               showFailurePathsInGraph();
-           }, 500);
-       }
-       
-       // Apply optimal layout after a short delay
-       setTimeout(optimizeLayout, 200);
-       
-       // Hide loading overlay
-       document.querySelector('.loading-overlay').style.display = 'none';
-       
-       // Expose simulation for later use
-       simulation.nodes(nodes);
-       this.simulation = simulation;
-       
-       // Drag handlers
-       function dragStarted(event) {
-           if (!event.active) simulation.alphaTarget(0.3).restart();
-           event.subject.fx = event.subject.x;
-           event.subject.fy = event.subject.y;
-       }
-       
-       function dragged(event) {
-           event.subject.fx = event.x;
-           event.subject.fy = event.y;
-       }
-       
-       function dragEnded(event) {
-           if (!event.active) simulation.alphaTarget(0);
-           // Keep position fixed to allow manual arrangement
-           // event.subject.fx = null;
-           // event.subject.fy = null;
-       }
-       
-       // Mouse event handlers
-       function handleNodeMouseOver(event, d) {
-           // Highlight the node
-           d3.select(this).classed('highlighted', true);
-           
-           // Highlight connected links
-           link.each(function(l) {
-               if (l.source.id === d.id || l.source === d.id || 
-                   l.target.id === d.id || l.target === d.id) {
-                   d3.select(this).classed('connection-highlighted', true)
-                       .attr('marker-end', 'url(#arrowhead-highlighted)');
-               }
-           });
-           
-           // Show info panel
-           showInfoPanel(d);
-       }
-       
-       function handleNodeMouseOut(event, d) {
-           // Remove highlight if not clicked
-           if (!d3.select(this.parentNode).classed('clicked')) {
-               d3.select(this).classed('highlighted', false);
-               
-               // Reset links
-               link.each(function(l) {
-                   if (!d3.select(this).classed('failure-path')) {
-                       d3.select(this)
-                           .classed('connection-highlighted', false)
-                           .attr('marker-end', 'url(#arrowhead)');
-                   }
-               });
-               
-               // Hide info panel if not clicked
-               if (!d3.select('.node.clicked').size()) {
-                   hideInfoPanel();
-               }
-           }
-       }
-       
-       function handleNodeClick(event, d) {
-           // Reset all nodes
-           node.classed('clicked', false)
-               .select('circle')
-               .classed('highlighted', false);
-               
-           // Reset all links
-           link.each(function() {
-               if (!d3.select(this).classed('failure-path')) {
-                   d3.select(this)
-                       .classed('connection-highlighted', false)
-                       .attr('marker-end', 'url(#arrowhead)');
-               }
-           });
-               
-           // Highlight this node
-           d3.select(this.parentNode).classed('clicked', true);
-           d3.select(this).classed('highlighted', true);
-           
-           // Highlight connected links
-           link.each(function(l) {
-               if (l.source.id === d.id || l.source === d.id || 
-                   l.target.id === d.id || l.target === d.id) {
-                   d3.select(this)
-                       .classed('connection-highlighted', true)
-                       .attr('marker-end', 'url(#arrowhead-highlighted)');
-               }
-           });
-           
-           // Show info panel
-           showInfoPanel(d);
-           
-           // If this is the main system and full paths are enabled, show all paths
-           if (d.isMainSystem && showFullPaths) {
-               showFailurePathsInGraph();
-           }
-       }
-       
-       // Function to highlight a specific system in the graph
-       window.highlightSystemInGraph = function(systemId) {
-           // Find the node element
-           const nodeElement = document.getElementById(`node-${systemId}`);
-           if (!nodeElement) return;
-           
-           // Find the D3 data for this node
-           const nodeData = nodes.find(n => n.id === parseInt(systemId));
-           if (!nodeData) return;
-           
-           // Trigger click on the node
-           handleNodeClick({}, nodeData);
-           
-           // Center view on this node
-           centerOnNode(nodeData);
-       };
-    }
-    
-    // Helper: Get node radius based on node type
-    function getNodeRadius(node) {
-        if (node.isMainSystem) return 30; // Larger main system for emphasis
-        if (node.isSsoProvider) return 24; // Larger SSO providers
-        if (node.isHostingProvider) return 24; // Larger hosting providers
-        
-        // Size by impact level and category importance
-        let baseSize = 12; // Default size
-        
-        // Adjust by impact level (closer to source = larger)
-        if (node.impactLevel === 'primary') baseSize = 22;
-        else if (node.impactLevel === 'secondary') baseSize = 18;
-        else if (node.impactLevel === 'tertiary') baseSize = 15;
-        else baseSize = 12; // Quaternary+
-        
-        // Adjust size by system category if available
-        if (node.category && node.category.slug) {
-            // Core systems are slightly larger
-            if (node.category.slug === 'core') baseSize *= 1.15;
-            else if (node.category.slug === 'server') baseSize *= 1.1;
-        }
-        
-        return baseSize;
-    }
-    
-    // Helper: Get node fill color based on node type and impact level
-    function getNodeFill(node) {
-        // Special nodes get special colors
-        if (node.isMainSystem) return '#ffd700'; // Gold for main system
-        if (node.isSsoProvider) return '#e0f2fe'; // Light blue for SSO provider
-        if (node.isHostingProvider) return '#f3e8ff'; // Light purple for hosting provider
-        
-        // Impact levels
-        if (node.impactLevel === 'primary') return '#fee2e2'; // Red bg for primary
-        if (node.impactLevel === 'secondary') return '#ffedd5'; // Orange bg for secondary
-        if (node.impactLevel === 'tertiary') return '#fef9c3'; // Yellow bg for tertiary
-        
-        // Use distance to determine opacity for quaternary nodes
-        const opacity = node.distanceFromSource ? 
-            Math.max(0.5, 1 - ((node.distanceFromSource - 3) * 0.1)) : 0.6;
-        
-        // For quaternary, return a color with appropriate opacity
-        const rgbaColor = `rgba(219, 234, 254, ${opacity})`;
-        return rgbaColor;
-    }
-    
-    // Helper: Get node stroke color
-    function getNodeStroke(node) {
-        // Special nodes
-        if (node.isMainSystem) return '#ff8c00'; // Orange stroke for main
-        if (node.isSsoProvider) return '#0ea5e9'; // Blue stroke for SSO
-        if (node.isHostingProvider) return '#a855f7'; // Purple stroke for hosting
-        
-        // Impact levels get distinct colors
-        if (node.impactLevel === 'primary') return '#ef4444'; // Red for primary
-        if (node.impactLevel === 'secondary') return '#f97316'; // Orange for secondary
-        if (node.impactLevel === 'tertiary') return '#eab308'; // Yellow for tertiary
-        
-        // Calculate stroke opacity for distant nodes
-        const opacity = node.distanceFromSource ? 
-            Math.max(0.6, 1 - ((node.distanceFromSource - 3) * 0.1)) : 0.7;
-        
-        // Convert to rgba
-        return `rgba(96, 165, 250, ${opacity})`; // Blue for quaternary with opacity
-    }
-    
-    // Show complete failure propagation paths
-    function showFailurePathsInGraph() {
-        // Remove any existing failure paths
-        d3.selectAll('.failure-path').remove();
-        
-        if (!showFullPaths) return;
-        
-        console.log("Showing failure paths in graph");
-        
-        // Use completeImpactPaths directly
-        if (!completeImpactPaths || completeImpactPaths.length === 0) {
-            console.log("No impact paths available to visualize");
-            return;
-        }
-        
-        const svg = d3.select('#disaster-graph svg');
-        const g = svg.select('g');
-        
-        console.log(`Visualizing ${completeImpactPaths.length} impact paths`);
-        
-        // Create a color scale based on impact level
-        const impactColorScale = d3.scaleOrdinal()
-            .domain(['primary', 'secondary', 'tertiary', 'quaternary'])
-            .range(['#ef4444', '#f97316', '#eab308', '#60a5fa']);
-        
-        // Create a unique visual for each path
-        completeImpactPaths.forEach((path, pathIndex) => {
-            // Skip paths with just the source system
-            if (path.path.length <= 1) {
-                console.log("Skipping path with only one node");
-                return;
-            }
-            
-            console.log(`Visualizing path ${pathIndex + 1}:`, 
-                        path.path.map(s => s.name || s).join(' → '));
-            
-            // Get the impact level for this path
-            const impactLevel = path.targetSystem.impactLevel || 'quaternary';
-            const pathColor = impactColorScale(impactLevel);
-            
-            // Process each connection in the path
-            path.connections.forEach((conn, connIndex) => {
-                const sourceId = conn.source;
-                const targetId = conn.target;
-                
-                console.log(`  Connection ${connIndex + 1}: ${sourceId} → ${targetId}`);
-                
-                // Find the link element
-                const linkId = `link-${sourceId}-${targetId}`;
-                const linkElement = document.getElementById(linkId);
-                
-                if (!linkElement) {
-                    console.warn(`  Link element not found: ${linkId}`);
-                    return;
-                }
-                
-                // Get the path data
-                const pathData = d3.select(linkElement).attr('d');
-                if (!pathData) {
-                    console.warn(`  No path data for link: ${linkId}`);
-                    return;
-                }
-                
-                // Calculate visual properties based on path length and position in path
-                // Shorter paths have higher opacity and width
-                const pathLength = path.connections.length;
-                const positionFactor = 1 - (connIndex / (pathLength || 1));
-                const opacity = 0.7 + (positionFactor * 0.3); // 0.7 to 1.0 opacity
-                const width = 2 + (positionFactor * 2); // 2 to 4 px width
-                
-                // Create failure path visualization
-                g.append('path')
-                    .attr('d', pathData)
-                    .attr('class', 'failure-path')
-                    .attr('stroke', pathColor) // Use impact level color
-                    .attr('stroke-opacity', opacity)
-                    .attr('stroke-width', width)
-                    .attr('data-path-index', pathIndex)
-                    .attr('data-connection-index', connIndex)
-                    .attr('data-source', sourceId)
-                    .attr('data-target', targetId)
-                    .attr('data-impact-level', impactLevel);
-                
-                console.log(`  Added failure path visualization for ${sourceId} → ${targetId}`);
-            });
-        });
-        
-        // Ensure highlighted paths are properly layered (higher levels on top)
-        g.selectAll('.failure-path')
-            .sort((a, b) => {
-                const aImpact = d3.select(a).attr('data-impact-level');
-                const bImpact = d3.select(b).attr('data-impact-level');
-                const impactOrder = { 'primary': 3, 'secondary': 2, 'tertiary': 1, 'quaternary': 0 };
-                return impactOrder[aImpact] - impactOrder[bImpact];
-            });
-        
-        console.log(`Added ${d3.selectAll('.failure-path').size()} failure path visualizations`);
-    }
-    
-    // Update link opacity and stroke width based on connection type
-    function updateConnectionStyles() {
-        // For the links
-        d3.selectAll('.connection')
-            .attr('stroke-width', function(d) {
-                // Determine tier level from target node
-                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
-                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
-                
-                if (!targetNode) return 1.5;
-                
-                // Highlight links connected to main system
-                if (sourceNode && sourceNode.isMainSystem) {
-                    return 3; // Make direct connections from main system thicker
-                }
-                
-                const level = targetNode.impactLevel;
-                
-                // Adjust width based on connection type as well
-                let baseWidth = 1.5;
-                if (level === 'primary') baseWidth = 2.5;
-                else if (level === 'secondary') baseWidth = 2;
-                else if (level === 'tertiary') baseWidth = 1.5;
-                else baseWidth = 1; // Quaternary+
-                
-                // Make SSO and hosting connections slightly thinner
-                if (d.type === 'sso') return baseWidth * 0.9;
-                if (d.type === 'hosting') return baseWidth * 0.8;
-                
-                return baseWidth;
-            })
-            .attr('stroke-opacity', function(d) {
-                // Determine tier level from target node
-                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
-                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
-                
-                if (!targetNode) return 0.6;
-                
-                // Highlight links connected to main system
-                if (sourceNode && sourceNode.isMainSystem) {
-                    return 1.0; // Make direct connections from main system fully visible
-                }
-                
-                const level = targetNode.impactLevel;
-                
-                // Direct connections more visible
-                let baseOpacity = 0.4;
-                if (level === 'primary') baseOpacity = 0.8;
-                else if (level === 'secondary') baseOpacity = 0.7;
-                else if (level === 'tertiary') baseOpacity = 0.6;
-                else baseOpacity = 0.4; // Quaternary+
-                
-                // Adjust opacity based on connection type too
-                if (d.type === 'sso') return baseOpacity * 0.9;
-                if (d.type === 'hosting') return baseOpacity * 0.8;
-                
-                return baseOpacity;
-            })
-            .attr('stroke-dasharray', function(d) {
-                // Use different dash patterns for different connection types
-                if (d.type === 'sso') return '5, 3'; // Dashed line for SSO
-                if (d.type === 'hosting') return '1, 3'; // Dotted line for hosting
-                return 'none'; // Solid line for direct dependencies
-            });
-    }
-    
-    // Function to highlight a specific path in the graph
-    function highlightPathInGraph(pathId, targetSystemId) {
-        // Find the path data
-        const path = completeImpactPaths.find(p => p.id === parseInt(pathId));
-        if (!path) return;
-        
-        // Reset all highlights
-        resetView();
-        
-        // Clear any existing failure paths
-        d3.selectAll('.failure-path').remove();
-        
-        // Get the SVG group
-        const svg = d3.select('#disaster-graph svg');
-        const g = svg.select('g');
-        
-        // Create a unique path visualization
-        const nodeIds = path.path.map(node => node.id || node);
-        
-        // Set other nodes to low opacity
-        d3.selectAll('.node').style('opacity', 0.3);
-        
-        // Highlight each node in the path
-        nodeIds.forEach((nodeId, index) => {
-            const nodeElement = document.getElementById(`node-${nodeId}`);
-            if (nodeElement) {
-                // Set to full opacity
-                d3.select(nodeElement).style('opacity', 1);
-                
-                // Apply special highlighting to the node
-                if (index === 0) {
-                    // Source node
-                    d3.select(nodeElement).select('circle')
-                        .classed('highlighted', true)
-                        .style('stroke-width', '3px');
-                } else if (index === nodeIds.length - 1) {
-                    // Target node (end of path)
-                    d3.select(nodeElement).classed('clicked', true);
-                    d3.select(nodeElement).select('circle')
-                        .classed('highlighted', true)
-                        .style('stroke-width', '3px');
-                    
-                    // Add pulsing animation to target node
-                    const circle = d3.select(nodeElement).select('circle');
-                    const originalRadius = parseFloat(circle.attr('r'));
-                    
-                    circle.transition()
-                        .duration(800)
-                        .attr('r', originalRadius * 1.2)
-                        .transition()
-                        .duration(800)
-                        .attr('r', originalRadius)
-                        .on('end', function repeat() {
-                            d3.select(this)
-                                .transition()
-                                .duration(800)
-                                .attr('r', originalRadius * 1.2)
-                                .transition()
-                                .duration(800)
-                                .attr('r', originalRadius)
-                                .on('end', repeat);
-                        });
-                } else {
-                    // Intermediate nodes
-                    d3.select(nodeElement).select('circle')
-                        .classed('highlighted', true)
-                        .style('stroke-width', '2px');
-                }
-            }
-        });
-        
-        // Set all connections to low opacity
-        d3.selectAll('.connection').style('opacity', 0.2);
-        
-        // Determine path color based on impact level
-        const impactLevel = path.targetSystem.impactLevel || 'quaternary';
-        const pathColorMap = {
-            'primary': '#ef4444',    // red
-            'secondary': '#f97316',  // orange
-            'tertiary': '#eab308',   // yellow
-            'quaternary': '#60a5fa'  // blue
-        };
-        const pathColor = pathColorMap[impactLevel];
-        
-        // Create highlighted connections for each segment of the path
-        for (let i = 0; i < path.connections.length; i++) {
-            const connection = path.connections[i];
-            const sourceId = connection.source;
-            const targetId = connection.target;
-            
-            // Find the existing link element
-            const linkId = `link-${sourceId}-${targetId}`;
-            const existingLink = document.getElementById(linkId);
-            
-            if (!existingLink) continue;
-            
-            // Get the path data
-            const pathData = d3.select(existingLink).attr('d');
-            if (!pathData) continue;
-            
-            // Make the original connection fully visible
-            d3.select(existingLink)
-                .style('opacity', 1)
-                .classed('connection-highlighted', true)
-                .attr('marker-end', 'url(#arrowhead-highlighted)');
-            
-            // Calculate position factor (start is thicker/more opaque than end)
-            const pathLength = path.connections.length;
-            const positionFactor = 1 - (i / (pathLength || 1));
-            
-            // Create the failure path element with animated dash array for flowing effect
-            g.append('path')
-                .attr('d', pathData)
-                .attr('class', 'failure-path')
-                .attr('stroke', pathColor)
-                .attr('stroke-opacity', 0.8 + (positionFactor * 0.2))
-                .attr('stroke-width', 3 + (positionFactor * 2))
-                .attr('stroke-dasharray', '4,2')
-                .attr('data-path-index', pathId)
-                .attr('data-impact-level', impactLevel);
-        }
-        
-        // Focus on the target system
-        if (targetSystemId) {
-            const targetNode = nodes.find(n => n.id === parseInt(targetSystemId));
-            if (targetNode) {
-                // Center view on target node
-                centerOnNode(targetNode);
-                
-                // Show info panel for target node
-                showInfoPanel(targetNode);
-            }
-        }
-        
-        // Add animation to make the path "flow"
-        // This creates a moving dashed line effect along the path
-        d3.selectAll('.failure-path')
-            .style('animation', 'dashOffset 30s linear infinite');
-            
-        // Add a style for the animation if it doesn't exist
-        if (!document.getElementById('dash-animation-style')) {
-            const style = document.createElement('style');
-            style.id = 'dash-animation-style';
-            style.textContent = `
-                @keyframes dashOffset {
-                    from {
-                        stroke-dashoffset: 0;
-                    }
-                    to {
-                        stroke-dashoffset: 100;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-    }
-    
-    // Reset view
-    function resetView() {
-        // Clear any highlighting
-        d3.selectAll('.node').classed('clicked', false);
-        d3.selectAll('.system-node').classed('highlighted', false);
-        d3.selectAll('.connection')
-            .classed('connection-highlighted', false)
-            .attr('marker-end', 'url(#arrowhead)');
-        
-        // Remove failure paths
-        d3.selectAll('.failure-path').remove();
-        
-        // Reset simulation
-        if (simulation) {
-            simulation.alpha(0.3).restart();
-        }
-        
-        // Reset zoom
-        const svg = d3.select('#disaster-graph svg');
-        svg.transition().duration(750).call(
-            zoomInstance.transform, d3.zoomIdentity
-        );
-        
-        // Set normal opacity for all nodes
-        d3.selectAll('.node').style('opacity', 1);
-        
-        // Apply standard connection styling
-        updateConnectionStyles();
-        
-        // Stop any animations
-        d3.selectAll('.system-node').interrupt();
-        
-        // Reset to original radius
-        d3.selectAll('.system-node').each(function(d) {
-            const originalRadius = d3.select(this).attr('data-original-r');
-            d3.select(this).attr('r', originalRadius);
-        });
-        
-        // Hide info panel
-        hideInfoPanel();
-    }
-    
-    // Function to show immediate impacts
-    function showImmediateImpacts() {
-        console.log("Showing immediate impacts");
-        
-        // Hide the failure paths first
-        d3.selectAll('.failure-path').remove();
-        
-        // Focus on primary impacts
-        d3.selectAll('.node').each(function(d) {
-            if (d) {
-                if (d.impactLevel === 'primary') {
-                    d3.select(this).style('opacity', 1);
-                    
-                    // Add pulsing animation to primary impact nodes
-                    const circle = d3.select(this).select('circle');
-                    
-                    // Store original radius
-                    const originalRadius = parseFloat(circle.attr('r'));
-                    
-                    // Add pulsing animation
-                    circle.transition()
-                        .duration(800)
-                        .attr('r', originalRadius * 1.2)
-                        .transition()
-                        .duration(800)
-                        .attr('r', originalRadius)
-                        .on('end', function repeat() {
-                            d3.select(this)
-                                .transition()
-                                .duration(800)
-                                .attr('r', originalRadius * 1.2)
-                                .transition()
-                                .duration(800)
-                                .attr('r', originalRadius)
-                                .on('end', repeat);
-                        });
-                    
-                } else if (d.isMainSystem) {
-                    d3.select(this).style('opacity', 1);
-                } else {
-                    d3.select(this).style('opacity', 0.2);
-                }
-            }
-        });
-        
-        // Only show connections to primary impacts
-        d3.selectAll('.connection').each(function(d) {
-            if (d && d.target) {
-                const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
-                const sourceNode = d.source.id ? d.source : nodes.find(n => n.id === d.source);
-                
-                if ((targetNode && targetNode.impactLevel === 'primary') || 
-                    (sourceNode && sourceNode.isMainSystem)) {
-                    d3.select(this).style('opacity', 0.8).attr('stroke-width', 3);
-                } else {
-                    d3.select(this).style('opacity', 0.1);
-                }
-            }
-        });
-    }
-    
-    // Toggle showing full failure paths
-    function toggleFullPath() {
-        showFullPaths = !showFullPaths;
-        
-        // Update button text and style
-        const button = document.getElementById('showFullPathButton');
-        if (showFullPaths) {
-            button.classList.add('active');
-            showFailurePathsInGraph();
-        } else {
-            button.classList.remove('active');
-            d3.selectAll('.failure-path').remove();
-        }
-    }
-    
-    // Toggle hiding intermediate nodes
-    function toggleIntermediate() {
-        hideIntermediateNodes = !hideIntermediateNodes;
-        
-        // Update button state
-        const button = document.getElementById('toggleIntermediateButton');
-        if (hideIntermediateNodes) {
-            button.classList.add('active');
-            
-            // Hide tertiary and quaternary impact nodes
-            d3.selectAll('.node').each(function(d) {
-                if (d && (d.impactLevel === 'tertiary' || d.impactLevel === 'quaternary')) {
-                    d3.select(this).style('opacity', 0.15);
-                } else if (d && d.impactLevel === 'secondary') {
-                    // Dim secondary a bit too
-                    d3.select(this).style('opacity', 0.5);
-                }
-            });
-            
-            // Hide links to tertiary and quaternary impact nodes
-            d3.selectAll('.connection').each(function(d) {
-                if (d && d.target) {
-                    const targetNode = d.target.id ? d.target : nodes.find(n => n.id === d.target);
-                    if (targetNode && (targetNode.impactLevel === 'tertiary' || targetNode.impactLevel === 'quaternary')) {
-                        d3.select(this).style('opacity', 0.15);
-                    } else if (targetNode && targetNode.impactLevel === 'secondary') {
-                        // Dim secondary a bit too
-                        d3.select(this).style('opacity', 0.3);
-                    }
-                }
-            });
-        } else {
-            button.classList.remove('active');
-            
-            // Show all nodes with appropriate opacity based on level
-            d3.selectAll('.node').each(function(d) {
-                if (d && d.impactLevel === 'quaternary') {
-                    d3.select(this).style('opacity', 0.8);
-                } else {
-                    d3.select(this).style('opacity', 1);
-                }
-            });
-            
-            // Apply standard connection styling
-            updateConnectionStyles();
-        }
-    }
-    
-    // Toggle showing hosting dependencies
-    function toggleHosting() {
-        showHostingDependencies = !showHostingDependencies;
-        
-        // Update button state
-        const button = document.getElementById('toggleHostingButton');
-        if (showHostingDependencies) {
-            button.classList.add('active');
-            
-            // Show hosting links
-            d3.selectAll('.connection-hosting').style('opacity', 0.6);
-            
-            // Show hosting provider nodes
-            d3.selectAll('.node').each(function(d) {
-                if (d && d.isHostingProvider) {
-                    d3.select(this).style('opacity', 1);
-                }
-            });
-        } else {
-            button.classList.remove('active');
-            
-            // Hide hosting links
-            d3.selectAll('.connection-hosting').style('opacity', 0.2);
-            
-            // Fade hosting provider nodes (unless highlighted)
-            d3.selectAll('.node').each(function(d) {
-                if (d && d.isHostingProvider && !d3.select(this).classed('clicked')) {
-                    d3.select(this).style('opacity', 0.3);
-                }
-            });
-        }
-    }
-    
-    // Toggle showing SSO dependencies
-    function toggleSso() {
-        showSsoDependencies = !showSsoDependencies;
-        
-        // Update button state
-        const button = document.getElementById('toggleSsoButton');
-        if (showSsoDependencies) {
-            button.classList.add('active');
-            
-            // Show SSO links
-            d3.selectAll('.connection-sso').style('opacity', 0.6);
-            
-            // Show SSO provider nodes
-            d3.selectAll('.node').each(function(d) {
-                if (d && d.isSsoProvider) {
-                    d3.select(this).style('opacity', 1);
-                }
-            });
-        } else {
-            button.classList.remove('active');
-            
-            // Hide SSO links
-            d3.selectAll('.connection-sso').style('opacity', 0.2);
-            
-            // Fade SSO provider nodes (unless highlighted)
-            d3.selectAll('.node').each(function(d) {
-                if (d && d.isSsoProvider && !d3.select(this).classed('clicked')) {
-                    d3.select(this).style('opacity', 0.3);
-                }
-            });
-        }
-    }
-    
-    // Zoom in
-    function zoomIn() {
-        const svg = d3.select('#disaster-graph svg');
-        
-        svg.transition().duration(300).call(
-            zoomInstance.scaleBy, 1.5
-        );
-    }
-    
-    // Zoom out
-    function zoomOut() {
-        const svg = d3.select('#disaster-graph svg');
-        
-        svg.transition().duration(300).call(
-            zoomInstance.scaleBy, 0.667
-        );
-    }
-    
-    // Fit all nodes within view
-    function fitAllNodes() {
-        if (!simulation) return;
-        
-        const svg = d3.select('#disaster-graph svg');
-        const width = parseInt(svg.attr('width'));
-        const height = parseInt(svg.attr('height'));
-        
-        // Get bounds of all nodes
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        
-        simulation.nodes().forEach(node => {
-            minX = Math.min(minX, node.x || 0);
-            maxX = Math.max(maxX, node.x || 0);
-            minY = Math.min(minY, node.y || 0);
-            maxY = Math.max(maxY, node.y || 0);
-        });
-        
-        // Add padding
-        const padding = 80;
-        minX -= padding;
-        minY -= padding;
-        maxX += padding;
-        maxY += padding;
-        
-        // Calculate scale to fit
-        const dx = maxX - minX;
-        const dy = maxY - minY;
-        const scale = Math.min(width / dx, height / dy, 1.5); // Use no more than 1.5x zoom
-        
-        // Calculate center of the bounding box
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        
-        // Create transform
-        const transform = d3.zoomIdentity
-            .translate(width/2 - centerX * scale, height/2 - centerY * scale)
-            .scale(scale);
-            
-        // Apply transform with animation
-        svg.transition()
-            .duration(750)
-            .call(zoomInstance.transform, transform);
-    }
-    
-    // Center the view on a specific node
-    function centerOnNode(node) {
-        const scale = 1.5; // Zoom in a bit when centering
-        const svg = d3.select('#disaster-graph svg');
-        const width = parseInt(svg.attr('width'));
-        const height = parseInt(svg.attr('height'));
-        
-        const transform = d3.zoomIdentity
-            .translate(width/2 - node.x * scale, height/2 - node.y * scale)
-            .scale(scale);
-        
-        svg.transition()
-            .duration(750)
-            .call(zoomInstance.transform, transform);
-    }
-    
-    // Apply optimal layout
-    function optimizeLayout() {
-        if (!simulation) return;
-        
-        console.log("Applying optimized layout...");
-        
-        // Find the central node
-        const centralNode = simulation.nodes().find(n => n.isMainSystem);
-        if (!centralNode) return;
-        
-        // Get the diagram dimensions
-        const width = parseInt(d3.select('#disaster-graph svg').attr('width'));
-        const height = parseInt(d3.select('#disaster-graph svg').attr('height'));
-        
-        // Place central node in the middle
-        centralNode.fx = width / 2;
-        centralNode.fy = height / 2;
-        
-        // Group nodes by level
-        const primaryNodes = simulation.nodes().filter(n => n.impactLevel === 'primary');
-        const secondaryNodes = simulation.nodes().filter(n => n.impactLevel === 'secondary');
-        const tertiaryNodes = simulation.nodes().filter(n => n.impactLevel === 'tertiary');
-        const quaternaryNodes = simulation.nodes().filter(n => n.impactLevel === 'quaternary');
-        
-        console.log(`Layout: Found ${primaryNodes.length} primary, ${secondaryNodes.length} secondary, ${tertiaryNodes.length} tertiary, and ${quaternaryNodes.length} quaternary nodes`);
-        
-        // Calculate radii for each level - adjusted based on node count in each level
-        const baseRadius = Math.min(width, height) * 0.35; // Ensure it fits within smaller dimension
-        const levelCount = [primaryNodes.length, secondaryNodes.length, tertiaryNodes.length, quaternaryNodes.length];
-        const maxNodesInLevel = Math.max(...levelCount);
-        
-        // Adjust spacing based on level population
-        const primaryRadius = baseRadius * 0.3;
-        const secondaryRadius = baseRadius * 0.55;
-        const tertiaryRadius = baseRadius * 0.75;
-        const quaternaryRadius = baseRadius * 0.95;
-        
-        // Layout primary nodes in a circle around central node
-        arrangeNodesInCircle(primaryNodes, centralNode, primaryRadius, 0);
-        
-        // Layout secondary nodes in a wider circle
-        arrangeNodesInCircle(secondaryNodes, centralNode, secondaryRadius, primaryNodes.length * 0.2);
-        
-        // Layout tertiary nodes in the next circle
-        arrangeNodesInCircle(tertiaryNodes, centralNode, tertiaryRadius, secondaryNodes.length * 0.1);
-        
-        // Layout quaternary nodes in the outermost circle
-        arrangeNodesInCircle(quaternaryNodes, centralNode, quaternaryRadius, tertiaryNodes.length * 0.05);
-        
-        // Helper function for circular arrangement with offset
-        function arrangeNodesInCircle(nodes, centerNode, radius, angleOffset) {
-            // Skip if no nodes to arrange
-            if (!nodes.length) return;
-            
-            // Sort nodes to ensure consistent layout - use system ID for determinism
-            nodes.sort((a, b) => a.id - b.id);
-            
-            // Arrange nodes in a circle
-            const angleBetweenNodes = (2 * Math.PI) / nodes.length;
-            
-            nodes.forEach((node, i) => {
-                // Calculate angle with offset for better distribution
-                const angle = (i * angleBetweenNodes) + (angleOffset * (Math.PI / 180));
-                
-                // Set fixed position
-                node.fx = centerNode.fx + radius * Math.cos(angle);
-                node.fy = centerNode.fy + radius * Math.sin(angle);
-                
-                // Add a small random offset to avoid perfect circles
-                const randomOffset = Math.random() * 5;
-                node.fx += randomOffset * Math.cos(angle + Math.PI/4);
-                node.fy += randomOffset * Math.sin(angle + Math.PI/4);
-                
-                // Ensure node stays within bounds
-                node.fx = Math.max(50, Math.min(width - 50, node.fx));
-                node.fy = Math.max(50, Math.min(height - 50, node.fy));
-            });
-        }
-        
-        // Restart simulation with a bit of force to settle the layout
-        simulation.alpha(0.3).restart();
-        
-        // Apply consistent connection styles
-        updateConnectionStyles();
-        
-        // Fit all nodes into view
-        setTimeout(fitAllNodes, 500);
-        
-        console.log("Layout optimization complete.");
-    }
-    
-    // Show info panel for a node with enhanced content
-    function showInfoPanel(node) {
-        const panel = document.getElementById('infoPanel');
-        const title = document.getElementById('infoPanelTitle');
-        const content = document.getElementById('infoPanelContent');
-        
-        // Set title
-        title.textContent = node.name;
-        
-        // Build content HTML
-        let html = '<div class="space-y-3">';
-        
-        // Add impact level if applicable
-        if (node.impactLevel) {
-            let badgeClass;
-            let impactText;
-            
-            switch(node.impactLevel) {
-                case 'primary':
-                    badgeClass = 'bg-red-100 text-red-800';
-                    impactText = 'Primary Impact';
-                    break;
-                case 'secondary':
-                    badgeClass = 'bg-orange-100 text-orange-800';
-                    impactText = 'Secondary Impact';
-                    break;
-                case 'tertiary':
-                    badgeClass = 'bg-yellow-100 text-yellow-800';
-                    impactText = 'Tertiary Impact';
-                    break;
-                case 'quaternary':
-                    const distanceText = node.distanceFromSource >= 4 ? 
-                        ` (Level ${node.distanceFromSource})` : '';
-                    badgeClass = 'bg-blue-100 text-blue-800';
-                    impactText = `Distant Impact${distanceText}`;
-                    break;
-                default:
-                    badgeClass = 'bg-gray-100 text-gray-800';
-                    impactText = 'Unknown Impact';
-            }
-            
-            html += `
-                <div class="flex flex-wrap gap-2">
-                    <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full ${badgeClass}">
-                        ${impactText}
-                    </span>
-            `;
-            
-            // Add distance badge if applicable
-            if (node.distanceFromSource) {
-                html += `
-                    <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        ${node.distanceFromSource} hop${node.distanceFromSource !== 1 ? 's' : ''} from source
-                    </span>
-                `;
-            }
-            
-            html += `</div>`;
-        }
-        
-        // Add category
-        if (node.category) {
-            html += `<p><strong>Category:</strong> <span style="background-color: ${node.category.color}; color: ${node.category.text_color}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${node.category.name}</span></p>`;
-        }
-        
-        // Add status
-        if (node.status) {
-            html += `<p><strong>Status:</strong> <span style="background-color: ${node.status.color}; color: ${node.status.text_color}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${node.status.name}</span></p>`;
-        }
-        
-        // Add vendor if available
-        if (node.vendor && node.vendor !== 'Unknown') {
-            html += `<p><strong>Vendor:</strong> ${node.vendor}</p>`;
-        }
-        
-        // Add special role indicators
-        if (node.isMainSystem) {
-            html += `<p class="flex items-center"><svg class="h-4 w-4 mr-1 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> <span class="text-amber-600 font-semibold">System Under Analysis</span></p>`;
-        } else if (node.isSsoProvider) {
-            html += `<p class="flex items-center"><svg class="h-4 w-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> <span class="text-blue-600 font-semibold">SSO Provider</span></p>`;
-        } else if (node.isHostingProvider) {
-            html += `<p class="flex items-center"><svg class="h-4 w-4 mr-1 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg> <span class="text-purple-600 font-semibold">Hosting Provider</span></p>`;
-        }
-        
-        // Add connection info if it has a source node
-        if (node.sourceNode && node.sourceNode !== {{ system.id }}) {
-            const sourceName = dependencyGraph.nodes[node.sourceNode]?.name || 'Unknown System';
-            const connectionType = node.connectionType || 'direct';
-            
-            let connectionIcon = '';
-            let connectionColor = '';
-            
-            if (connectionType === 'sso') {
-                connectionIcon = '<svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>';
-                connectionColor = 'text-blue-600';
-            } else if (connectionType === 'hosting') {
-                connectionIcon = '<svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" /></svg>';
-                connectionColor = 'text-purple-600';
-            } else {
-                connectionIcon = '<svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>';
-                connectionColor = 'text-gray-600';
-            }
-            
-            html += `
-                <div class="mt-2 pt-2 border-t border-gray-200">
-                    <p class="flex items-center ${connectionColor}">
-                        ${connectionIcon}
-                        <span class="font-medium">${connectionType.charAt(0).toUpperCase() + connectionType.slice(1)} Dependency:</span>
-                    </p>
-                    <p class="mt-1 ml-5">Depends on <a href="#" class="text-blue-600 view-source-btn" data-id="${node.sourceNode}">${sourceName}</a></p>
-                </div>
-            `;
-        }
-        
-        html += `<div class="mt-3 pt-3 border-t border-gray-200">
-            <a href="/systems/${node.id}/" class="flex items-center text-blue-600 hover:underline">
-                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                View System Details
-            </a>
-        </div>`;
-        
-        html += '</div>';
-        
-        // Set content
-        content.innerHTML = html;
-        
-        // Add event listener to the view source button
-        const sourceButton = content.querySelector('.view-source-btn');
-        if (sourceButton) {
-            sourceButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                const sourceId = this.getAttribute('data-id');
-                highlightSystemInGraph(sourceId);
-            });
-        }
-        
-        // Show panel
-        panel.style.display = 'block';
-    }
-    
-    // Hide info panel
-    function hideInfoPanel() {
-        const panel = document.getElementById('infoPanel');
-        panel.style.display = 'none';
     }
 });
 </script>

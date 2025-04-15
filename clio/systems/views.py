@@ -819,8 +819,10 @@ def system_disaster_analysis(request, pk):
     # Get recovery steps for this system
     recovery_steps = system.recovery_steps.all().order_by('order')
     
-    # Get all systems for the visualization
-    all_systems = System.objects.all().select_related('category', 'status')
+    # Get all available categories, statuses, and vendors for filters
+    all_categories = SystemCategory.objects.all().order_by('order', 'name')
+    all_statuses = SystemStatus.objects.all().order_by('order', 'name')
+    all_vendors = System.objects.exclude(vendor='').values_list('vendor', flat=True).distinct().order_by('vendor')
     
     context = {
         'system': system,
@@ -830,7 +832,9 @@ def system_disaster_analysis(request, pk):
         'hosted_systems': hosted_systems,
         'administrators': administrators,
         'recovery_steps': recovery_steps,
-        'all_systems': all_systems,
+        'all_categories': all_categories,
+        'all_statuses': all_statuses,
+        'all_vendors': all_vendors,
     }
     
     return render(request, 'systems/system_disaster_analysis.html', context)
