@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Document - Clio{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Upload Document for Card: {{ card.title }}
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'boards:card_detail' card.pk %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back to Card
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <form method="post" action="" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="p-6 space-y-6">
+            {% if form.errors %}
+            <div class="rounded-md bg-red-50 p-4 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">
+                            There were {{ form.errors|length }} error{{ form.errors|length|pluralize }} with your submission
+                        </h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <ul class="list-disc pl-5 space-y-1">
+                                {% for field in form %}
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <li>{{ field.label }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-6 gap-6">
+                <div class="col-span-6 sm:col-span-4">
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Document Name
+                    </label>
+                    <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" autocomplete="off" value="{{ form.name.value|default_if_none:'' }}" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>
+                
+                <div class="col-span-6">
+                    <label for="{{ form.document.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        File
+                    </label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="{{ form.document.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Upload a file</span>
+                                    <input id="{{ form.document.id_for_label }}" name="{{ form.document.name }}" type="file" class="sr-only">
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                PDF, Word, Excel, images, or other document types
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-span-6">
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Description (Optional)
+                    </label>
+                    <textarea id="{{ form.description.id_for_label }}" name="{{ form.description.name }}" rows="3" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">{{ form.description.value|default_if_none:'' }}</textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Upload Document
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File input display name
+        const fileInput = document.getElementById('{{ form.document.id_for_label }}');
+        const fileNameInput = document.getElementById('{{ form.name.id_for_label }}');
+        
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                // Only set name if it's empty
+                if (!fileNameInput.value) {
+                    // Strip file extension for name
+                    fileNameInput.value = fileName.replace(/\.[^/.]+$/, "");
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

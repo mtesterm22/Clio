@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ card.title }} - Clio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .type-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 9999px;
+    }
+    
+    .type-issue {
+        background-color: #fee2e2;
+        color: #b91c1c;
+    }
+    
+    .type-idea {
+        background-color: #d1fae5;
+        color: #047857;
+    }
+    
+    .type-feature {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .type-refinement {
+        background-color: #e9d5ff;
+        color: #7e22ce;
+    }
+    
+    .type-task {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 9999px;
+    }
+    
+    .status-backlog {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+    
+    .status-in-progress {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-review {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-done {
+        background-color: #d1fae5;
+        color: #047857;
+    }
+    
+    .status-archived {
+        background-color: #e5e7eb;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <div class="flex items-center space-x-2 mb-1">
+            <span class="type-badge type-{{ card.type }}">
+                {{ card.get_type_display }}
+            </span>
+            <span class="status-badge status-{{ card.status }}">
+                {{ card.get_status_display }}
+            </span>
+            {% if card.checked_out %}
+            <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                Checked Out
+            </span>
+            {% endif %}
+        </div>
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            {{ card.title }}
+        </h2>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{% url 'boards:card_update' card.pk %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            Edit Card
+        </a>
+        <a href="{% url 'boards:card_checkout' card.pk %}" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white {% if card.checked_out %}bg-orange-600 hover:bg-orange-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
+                <path d="M3 8a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+            {% if card.checked_out %}Check In Card{% else %}Check Out Card{% endif %}
+        </a>
+        <a href="{% url 'boards:upload_document' card.pk %}" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            Add Document
+        </a>
+        <a href="javascript:history.back()" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            Back
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="grid grid-cols-3 gap-6 p-6">
+        <div class="col-span-2">
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Description</h3>
+                <div class="mt-1 text-sm text-gray-600 space-y-4">
+                    {{ card.description|linebreaks }}
+                </div>
+            </div>
+            
+            {% if card.systems.exists or card.workflows.exists or card.scripts.exists %}
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Related Items</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for system in card.systems.all %}
+                    <a href="{% url 'systems:detail' system.id %}" class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs flex items-center">
+                        {% if system == card.primary_system %}
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                        {% endif %}
+                        {{ system.name }}
+                    </a>
+                    {% endfor %}
+                    
+                    {% for workflow in card.workflows.all %}
+                    <a href="{% url 'workflows:detail' workflow.id %}" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs flex items-center">
+                        {% if workflow == card.primary_workflow %}
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                        {% endif %}
+                        {{ workflow.name }}
+                    </a>
+                    {% endfor %}
+                    
+                    {% for script in card.scripts.all %}
+                    <a href="{% url 'scripts:detail' script.id %}" class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs flex items-center">
+                        {% if script == card.primary_script %}
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+                        {% endif %}
+                        {{ script.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if documents %}
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Documents</h3>
+                <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                    <ul class="divide-y divide-gray-200">
+                        {% for document in documents %}
+                        <li>
+                            <div class="px-4 py-4 flex items-center sm:px-6">
+                                <div class="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <div>
+                                        <div class="flex text-sm">
+                                            <p class="font-medium text-blue-600 truncate">{{ document.name }}</p>
+                                        </div>
+                                        {% if document.description %}
+                                        <div class="mt-1 text-sm text-gray-500">
+                                            {{ document.description|truncatechars:100 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="mt-1 flex items-center text-sm text-gray-500">
+                                            <p class="text-xs">
+                                                Uploaded {{ document.uploaded_at|date:"M d, Y" }} by {{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ml-5 flex-shrink-0">
+                                    <a href="{{ document.document.url }}" class="text-blue-600 hover:text-blue-900" target="_blank">Download</a>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Comments ({{ comments|length }})</h3>
+                
+                {% if comments %}
+                <div class="space-y-4 mb-4">
+                    {% for comment in comments %}
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <span class="font-medium text-gray-900">{{ comment.user.get_full_name|default:comment.user.username }}</span>
+                            <span class="text-sm text-gray-500">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div class="mt-2 text-gray-700">
+                            {{ comment.text|linebreaks }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 bg-gray-50 rounded-lg">
+                    <p class="text-gray-500">No comments yet.</p>
+                </div>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <input type="hidden" name="comment_form" value="1">
+                        <div class="border rounded-lg overflow-hidden">
+                            {{ comment_form.text }}
+                            <div class="bg-gray-50 p-2 flex justify-end">
+                                <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded-md">
+                                    Add Comment
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <div class="border rounded-lg p-4 mb-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Card Details</h3>
+                
+                <div class="space-y-4 text-sm">
+                    <div>
+                        <div class="text-gray-500 mb-1">Status</div>
+                        <div class="font-medium">{{ card.get_status_display }}</div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Type</div>
+                        <div class="font-medium">{{ card.get_type_display }}</div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Assigned To</div>
+                        <div class="font-medium">
+                            {% if card.assigned_to %}
+                            {{ card.assigned_to.get_full_name|default:card.assigned_to.username }}
+                            {% else %}
+                            <span class="text-gray-500">Unassigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Primary System</div>
+                        <div class="font-medium">
+                            {% if card.primary_system %}
+                            <a href="{% url 'systems:detail' card.primary_system.id %}" class="text-blue-600 hover:underline">
+                                {{ card.primary_system.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500">None</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Primary Workflow</div>
+                        <div class="font-medium">
+                            {% if card.primary_workflow %}
+                            <a href="{% url 'workflows:detail' card.primary_workflow.id %}" class="text-blue-600 hover:underline">
+                                {{ card.primary_workflow.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500">None</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Primary Script</div>
+                        <div class="font-medium">
+                            {% if card.primary_script %}
+                            <a href="{% url 'scripts:detail' card.primary_script.id %}" class="text-blue-600 hover:underline">
+                                {{ card.primary_script.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500">None</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Created</div>
+                        <div class="font-medium">
+                            {{ card.created_at|date:"M d, Y H:i" }}
+                            {% if card.created_by %}
+                            by {{ card.created_by.get_full_name|default:card.created_by.username }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-gray-500 mb-1">Last Updated</div>
+                        <div class="font-medium">
+                            {{ card.updated_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

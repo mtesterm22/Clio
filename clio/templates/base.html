@@ -22,6 +22,7 @@
                         <span class="text-2xl font-bold" style="font-family: 'Barlow', sans-serif; color: #02216E;">Clio</span>
                      </div>
                     <!-- Main Navigation -->
+                    {% if user.is_authenticated %}
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                         <a href="{% url 'core:index' %}" 
                            class="{% if request.resolver_match.app_name == 'core' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
@@ -30,6 +31,10 @@
                         <a href="{% url 'planning:dashboard' %}" 
                            class="{% if request.path == '/planning/' or request.path|slice:':10' == '/planning/' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Planning
+                        </a>
+                        <a href="{% url 'boards:list' %}" 
+                           class="{% if request.resolver_match.app_name == 'boards' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Boards
                         </a>
                         <a href="{% url 'workflows:list' %}" 
                            class="{% if request.resolver_match.app_name == 'workflows' %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
@@ -51,10 +56,12 @@
                             
                         </a>
                     </div>
+                    {% endif %}
                 </div>
                 <!-- Right side menu -->
                 <div class="hidden sm:ml-6 sm:flex sm:items-center">
                     <!-- Profile dropdown -->
+                    {% if user.is_authenticated %}
                     <div class="ml-3 relative">
                         <div>
                             <button type="button" class="bg-white rounded-full flex text-sm focus:outline-none" id="user-menu-button">
@@ -73,9 +80,13 @@
                             <a href="{% url 'admin:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Sign out</a>
                         </div>
                     </div>
+                    {% else %}
+                    <a href="{% url 'admin:login' %}" class="text-sm font-medium text-gray-700 hover:text-gray-800">Log in</a>
+                    {% endif %}
                 </div>
                 
                 <!-- Mobile menu button -->
+                {% if user.is_authenticated %}
                 <div class="flex items-center sm:hidden">
                     <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none" aria-controls="mobile-menu" aria-expanded="false">
                         <span class="sr-only">Open main menu</span>
@@ -84,6 +95,7 @@
                         </svg>
                     </button>
                 </div>
+                {% endif %}
             </div>
         </div>
     </nav>
@@ -91,11 +103,15 @@
     <!-- Mobile menu -->
     <div class="sm:hidden hidden" id="mobile-menu">
         <div class="pt-2 pb-3 space-y-1">
+            {% if user.is_authenticated %}
             <a href="{% url 'core:index' %}" class="{% if request.resolver_match.app_name == 'core' %}bg-blue-50 border-blue-500 text-blue-700{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700{% endif %} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                 Dashboard
             </a>
             <a href="{% url 'planning:dashboard' %}" class="{% if request.path == '/planning/' or request.path|slice:':10' == '/planning/' %}bg-blue-50 border-blue-500 text-blue-700{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700{% endif %} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                 Planning
+            </a>
+            <a href="{% url 'boards:list' %}" class="{% if request.resolver_match.app_name == 'boards' %}bg-blue-50 border-blue-500 text-blue-700{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700{% endif %} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
+                Boards
             </a>
             <a href="{% url 'workflows:list' %}" class="{% if request.resolver_match.app_name == 'workflows' %}bg-blue-50 border-blue-500 text-blue-700{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700{% endif %} block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                 Workflows
@@ -115,6 +131,7 @@
                     System Relationships
                 </div>
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -159,7 +176,21 @@
         </div>
         {% endif %}
         
+        {% if user.is_authenticated %}
         {% block content %}{% endblock %}
+        {% else %}
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-gray-900">Welcome to Clio</h2>
+                <p class="mt-4 text-gray-500">Please log in to access the system.</p>
+                <div class="mt-6">
+                    <a href="{% url 'admin:login' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Log In
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </main>
 
     <!-- Footer -->

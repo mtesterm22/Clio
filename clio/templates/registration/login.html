@@ -3,15 +3,95 @@
 {% block title %}Login - Clio{% endblock %}
 
 {% block content %}
-<div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+<!-- Reduced vertical padding and tighter spacing throughout -->
+<div class="min-h-full flex flex-col justify-center py-1 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <!-- Logo with minimal bottom margin -->
+        <div class="flex justify-center">
+            <!-- SVG Logo with full animation sequence -->
+            <svg class="h-50 w-auto mb-1" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+              <!-- Laurel wreath with nodes -->
+              <g transform="translate(150, 90) scale(0.85)">
+                <!-- Left laurel leaf with nodes -->
+                <g>
+                  <!-- Leaf structure - animated drawing -->
+                  <path d="M-15,0 C-60,-50 -80,-20 -70,0 C-80,20 -60,50 -15,0 Z" 
+                        fill="none" stroke="#02216E" stroke-width="3" stroke-opacity="0">
+                    <!-- Modified animation to start fully invisible -->
+                    <animate attributeName="stroke-opacity" from="0" to="0.7" dur="0.5s" begin="0s" fill="freeze" />
+                    <animate attributeName="stroke-dasharray" from="300 300" to="300 0" dur="3s" begin="0s" fill="freeze" />
+                    <animate attributeName="stroke-dashoffset" from="300" to="0" dur="3s" begin="0s" fill="freeze" />
+                  </path>
+                  
+                  <!-- Nodes on the leaf - fade in after path -->
+                  <circle cx="-70" cy="0" r="10" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1s" fill="freeze" />
+                  </circle>
+                  <circle cx="-55" cy="-30" r="8" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.3s" fill="freeze" />
+                  </circle>
+                  <circle cx="-55" cy="30" r="8" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.6s" fill="freeze" />
+                  </circle>
+                </g>
+                
+                <!-- Right laurel leaf with nodes -->
+                <g>
+                  <!-- Leaf structure - animated drawing, fixed initial visibility -->
+                  <path d="M15,0 C60,-50 80,-20 70,0 C80,20 60,50 15,0 Z" 
+                        fill="none" stroke="#02216E" stroke-width="3" stroke-opacity="0">
+                    <!-- Modified animation to start fully invisible -->
+                    <animate attributeName="stroke-opacity" from="0" to="0.7" dur="0.5s" begin="0.5s" fill="freeze" />
+                    <animate attributeName="stroke-dasharray" from="300 300" to="300 0" dur="3s" begin="0.5s" fill="freeze" />
+                    <animate attributeName="stroke-dashoffset" from="300" to="0" dur="3s" begin="0.5s" fill="freeze" />
+                  </path>
+                  
+                  <!-- Nodes on the leaf - fade in after path -->
+                  <circle cx="70" cy="0" r="10" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.9s" fill="freeze" />
+                  </circle>
+                  <circle cx="55" cy="-30" r="8" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.2s" fill="freeze" />
+                  </circle>
+                  <circle cx="55" cy="30" r="8" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.5s" fill="freeze" />
+                  </circle>
+                </g>
+                
+                <!-- Center network node - appears after all other elements -->
+                <circle cx="0" cy="0" r="15" fill="#ffffff" stroke="#02216E" stroke-width="3" opacity="0">
+                  <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.8s" fill="freeze" />
+                </circle>
+                
+                <!-- Pulse animation around central node - starts after center node appears -->
+                <circle cx="0" cy="0" r="15" fill="none" stroke="#02216E" stroke-width="2" opacity="0">
+                  <animate attributeName="opacity" from="0" to="0.7" dur="0.5s" begin="3.3s" fill="freeze" />
+                  <animate attributeName="r" from="15" to="25" dur="2s" begin="3.3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" from="0.7" to="0" dur="2s" begin="3.3s" repeatCount="indefinite" />
+                </circle>
+              </g>
+              
+              <!-- Text with fade-in animation -->
+              <text x="150" y="145" font-family="'Barlow', 'Arial', sans-serif" font-weight="700" font-size="42" text-anchor="middle" fill="#02216E" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" dur="1s" begin="3.5s" fill="freeze" />
+                Clio
+              </text>
+              <text x="150" y="165" font-family="'Arial', sans-serif" font-size="12" text-anchor="middle" fill="#666666" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" dur="1s" begin="4s" fill="freeze" />
+                Digital Transformation Tracker
+              </text>
+            </svg>
+        </div>
+        
+        <!-- Minimal margin on heading -->
+        <h2 class="mt-1 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
         </h2>
     </div>
 
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    <!-- Reduced margin between heading and form -->
+    <div class="mt-2 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-6 px-4 shadow sm:rounded-lg sm:px-10">
             <form class="space-y-6" method="post" action="{% url 'login' %}">
                 {% csrf_token %}
                 
