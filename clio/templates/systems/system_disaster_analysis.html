@@ -467,7 +467,7 @@
             </div>
             
             <!-- Impact Metrics -->
-            <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="bg-white overflow-hidden shadow rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <dl>
@@ -501,19 +501,6 @@
                                 User Impact Estimate
                             </dt>
                             <dd id="user-impact" class="mt-1 text-3xl font-semibold text-gray-900">
-                                --
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-                
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="px-4 py-5 sm:p-6">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">
-                                Estimated Downtime Cost
-                            </dt>
-                            <dd id="estimated-cost" class="mt-1 text-3xl font-semibold text-gray-900">
                                 --
                             </dd>
                         </dl>
@@ -1016,151 +1003,1120 @@ const hostedSystems = [
     {% endfor %}
 ];
 
-// JAVASCRIPT FUNCTIONALITY
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize variables
-    let dependencyGraph = null;
-    let impactData = null;
-    let completeImpactPaths = [];
+// Global variables for simulation data
+let dependencyGraph = null;
+let impactData = null;
+let completeImpactPaths = [];
+
+// CORE FUNCTIONS FOR DEPENDENCY ANALYSIS
+
+// Build a complete dependency graph from system relationships
+function buildDependencyGraph() {
+    console.log("Building dependency graph...");
     
-    // Get DOM elements
+    // Create a graph structure to hold all systems and their relationships
+    const graph = {
+        nodes: {},         // All system nodes
+        dependencies: {},  // What THIS system depends on
+        dependents: {},    // What depends on THIS system
+        ssoRelations: {},  // Track SSO relationships
+        hostingRelations: {} // Track hosting relationships
+    };
+    
+    // First, add all systems we know about to the graph
+    const allSystems = [];
+    
+    // Add the current system
+    const currentSystem = {
+        id: currentSystemId,
+        name: currentSystemName,
+        category: {
+            slug: currentSystemCategory,
+            name: currentSystemCategoryName,
+            color: currentSystemCategoryColor,
+            text_color: currentSystemCategoryTextColor
+        },
+        status: {
+            slug: currentSystemStatusSlug,
+            name: currentSystemStatusName,
+            color: currentSystemStatusColor,
+            text_color: currentSystemStatusTextColor
+        },
+        vendor: currentSystemVendor || 'Unknown'
+    };
+    
+    allSystems.push(currentSystem);
+    
+    // Add systems from related data
+    function addSystemToCollection(system) {
+        if (!allSystems.some(s => s.id === system.id)) {
+            allSystems.push(system);
+        }
+    }
+    
+    // Process dependencies, dependents, SSO systems, and hosted systems
+    dependencies.forEach(dep => addSystemToCollection(dep));
+    dependents.forEach(dep => addSystemToCollection(dep));
+    ssoDependents.forEach(dep => addSystemToCollection(dep));
+    hostedSystems.forEach(sys => addSystemToCollection(sys));
+    
+    // Add all systems to the graph
+    allSystems.forEach(system => {
+        graph.nodes[system.id] = system;
+        graph.dependencies[system.id] = [];
+        graph.dependents[system.id] = [];
+    });
+    
+    // Add relationships to the graph
+    function addDependencyRelationship(sourceId, targetId, type) {
+        // Skip if either node doesn't exist
+        if (!graph.nodes[sourceId] || !graph.nodes[targetId]) {
+            console.log(`Skipping relationship ${sourceId} -> ${targetId} (node missing)`);
+            return;
+        }
+        
+        // IMPORTANT: Correctly representing dependency relationships
+        // When sourceId depends on targetId, it means:
+        // - sourceId needs targetId to function
+        // - If targetId fails, sourceId is impacted
+        
+        console.log(`Adding relationship: ${sourceId} depends on ${targetId} (type: ${type})`);
+        
+        // Add dependency: source depends on target
+        if (!graph.dependencies[sourceId].includes(targetId)) {
+            graph.dependencies[sourceId].push(targetId);
+        }
+        
+        // Add dependent: target is depended on by source
+        if (!graph.dependents[targetId].includes(sourceId)) {
+            graph.dependents[targetId].push(sourceId);
+        }
+        
+        // Track special relationship types
+        if (type === 'sso') {
+            graph.ssoRelations[sourceId] = targetId;
+        } else if (type === 'hosting') {
+            graph.hostingRelations[sourceId] = targetId;
+        }
+    }
+    
+    // Process direct dependencies from server-side data
+    dependencies.forEach(dep => {
+        addDependencyRelationship(currentSystemId, dep.id, 'direct');
+    });
+    
+    // Process dependents from server-side data
+    dependents.forEach(dep => {
+        addDependencyRelationship(dep.id, currentSystemId, 'direct');
+    });
+    
+    // Process SSO relationships
+    if (currentSystemSsoId) {
+        addDependencyRelationship(currentSystemId, currentSystemSsoId, 'sso');
+    }
+    
+    ssoDependents.forEach(dep => {
+        addDependencyRelationship(dep.id, currentSystemId, 'sso');
+    });
+    
+    // Process hosting relationships
+    if (currentSystemHostingId) {
+        addDependencyRelationship(currentSystemId, currentSystemHostingId, 'hosting');
+    }
+    
+    hostedSystems.forEach(sys => {
+        addDependencyRelationship(sys.id, currentSystemId, 'hosting');
+    });
+    
+    return graph;
+}
+
+// Calculate impact tiers based on the dependency graph
+function calculateImpactTiers(systemId, dependencyGraph) {
+    console.log("Calculating impact tiers for system ID:", systemId);
+    
+    // Systems at each impact tier
+    const primaryImpact = [];
+    const secondaryImpact = [];
+    const tertiaryImpact = [];
+    const quaternaryImpact = [];
+    
+    // Track visited nodes to prevent duplicates and cycles
+    const visitedNodes = new Set([systemId]);
+    
+    // Track impact level of each node
+    const nodeImpactLevels = {};
+    nodeImpactLevels[systemId] = 0; // Source system at level 0
+    
+    // Track overall impact score
+    let criticalityScore = 0;
+    
+    // Queue for breadth-first traversal
+    // We're going from the failing system outward to its dependents
+    const queue = [{id: systemId, level: 0}];
+    
+    while (queue.length > 0) {
+        const { id, level } = queue.shift();
+        
+        // Skip the source system (level 0)
+        if (level > 0) {
+            // Get system data
+            const system = dependencyGraph.nodes[id];
+            if (!system) {
+                console.warn(`Missing node data for system ${id}`);
+                continue;
+            }
+            
+            // Calculate impact score with diminishing factor by level
+            const tierFactor = Math.max(0.1, 1 - (level * 0.2));
+            const impact = calculateSystemImpact(system, tierFactor);
+            
+            // Get connection type from parent
+            // This is simplified and would need to be enhanced for full accuracy
+            let connectionType = 'direct';
+            if (dependencyGraph.ssoRelations[id]) {
+                connectionType = 'sso';
+            } else if (dependencyGraph.hostingRelations[id]) {
+                connectionType = 'hosting';
+            }
+            
+            // Build impact data object
+            const impactData = {
+                ...system,
+                impact,
+                impactLevel: getImpactLevelName(level),
+                distanceFromSource: level,
+                connectionType: connectionType
+            };
+            
+            // Add to appropriate impact tier
+            if (level === 1) {
+                primaryImpact.push(impactData);
+                criticalityScore += impact;
+            } else if (level === 2) {
+                secondaryImpact.push(impactData);
+                criticalityScore += impact * 0.7;
+            } else if (level === 3) {
+                tertiaryImpact.push(impactData);
+                criticalityScore += impact * 0.5;
+            } else {
+                quaternaryImpact.push(impactData);
+                criticalityScore += impact * 0.3;
+            }
+        }
+        
+        // Get systems that DEPEND ON this system (these are the systems that will be affected)
+        const dependentIds = dependencyGraph.dependents[id] || [];
+        console.log(`System ${id} has ${dependentIds.length} dependents: ${dependentIds.join(', ')}`);
+        
+        for (const dependentId of dependentIds) {
+            // Skip if already visited
+            if (visitedNodes.has(dependentId)) {
+                console.log(`Skipping already visited node ${dependentId}`);
+                continue;
+            }
+            
+            // Mark as visited
+            visitedNodes.add(dependentId);
+            
+            // Record this node's impact level (parent level + 1)
+            nodeImpactLevels[dependentId] = level + 1;
+            
+            // Add to queue for next level processing
+            queue.push({
+                id: dependentId,
+                level: level + 1
+            });
+            
+            console.log(`Added node ${dependentId} to queue at level ${level + 1}`);
+        }
+    }
+    
+    // Sort each tier by impact score (descending)
+    primaryImpact.sort((a, b) => b.impact - a.impact);
+    secondaryImpact.sort((a, b) => b.impact - a.impact);
+    tertiaryImpact.sort((a, b) => b.impact - a.impact);
+    quaternaryImpact.sort((a, b) => b.impact - a.impact);
+    
+    // Log the results
+    console.log(`Found ${primaryImpact.length} primary impact systems`);
+    console.log(`Found ${secondaryImpact.length} secondary impact systems`);
+    console.log(`Found ${tertiaryImpact.length} tertiary impact systems`);
+    console.log(`Found ${quaternaryImpact.length} quaternary impact systems`);
+    
+    // Calculate total systems count
+    const systemsCount = primaryImpact.length + secondaryImpact.length + 
+                       tertiaryImpact.length + quaternaryImpact.length;
+    
+    return {
+        primaryImpact,
+        secondaryImpact,
+        tertiaryImpact,
+        quaternaryImpact,
+        criticalityScore,
+        recoveryTime: estimateRecoveryTime(primaryImpact, secondaryImpact, tertiaryImpact),
+        systemsCount,
+        userImpact: estimateUserImpact(primaryImpact, criticalityScore)
+    };
+}
+
+// Generate complete downstream impact paths for all affected systems
+function generateCompleteImpactPaths(sourceSystemId, graph) {
+    console.log("Generating complete downstream impact paths from source system:", sourceSystemId);
+    
+    const allPaths = [];
+    let pathId = 1;
+    
+    // Build a dependency map where:
+    // key = systemId
+    // value = array of systems that DEPEND ON this system
+    const dependentMap = {};
+    
+    // Initialize with empty arrays for all systems
+    Object.keys(graph.nodes).forEach(id => {
+        dependentMap[id] = [];
+    });
+    
+    // Populate the dependents map - what systems are affected when a system fails
+    // If system A depends on B, then A is affected when B fails
+    console.log("Building dependent map...");
+    Object.entries(graph.dependencies).forEach(([systemId, dependencies]) => {
+        dependencies.forEach(depId => {
+            // When B fails, A is impacted
+            if (!dependentMap[depId].includes(parseInt(systemId))) {
+                dependentMap[depId].push(parseInt(systemId));
+                console.log(`Added dependent: ${systemId} depends on ${depId}`);
+            }
+        });
+    });
+    
+    // Also add SSO and hosting relationships to the dependent map
+    console.log("Adding SSO relationships to dependent map...");
+    Object.entries(graph.ssoRelations).forEach(([systemId, ssoId]) => {
+        systemId = parseInt(systemId);
+        // If system A has SSO provider B, then A depends on B
+        // So when B fails, A is in its dependent list
+        if (!dependentMap[ssoId].includes(systemId)) {
+            dependentMap[ssoId].push(systemId);
+            console.log(`Added SSO dependent: ${systemId} depends on SSO provider ${ssoId}`);
+        }
+    });
+    
+    console.log("Adding hosting relationships to dependent map...");
+    Object.entries(graph.hostingRelations).forEach(([systemId, hostId]) => {
+        systemId = parseInt(systemId);
+        // If system A is hosted on B, then A depends on B
+        // So when B fails, A is in its dependent list
+        if (!dependentMap[hostId].includes(systemId)) {
+            dependentMap[hostId].push(systemId);
+            console.log(`Added hosting dependent: ${systemId} depends on host ${hostId}`);
+        }
+    });
+    
+    // Enhanced approach to generate all possible downstream paths
+    // Using DFS to find all paths from the source system to its dependents
+    function findAllPaths(startId, visited = new Set(), currentPath = []) {
+        // Add current node to path
+        currentPath.push(startId);
+        
+        // Get all immediate dependents of this system
+        const dependents = dependentMap[startId] || [];
+        
+        // If no dependents, this is a leaf node - return the path
+        if (dependents.length === 0) {
+            // Only return paths with more than just the source node
+            return currentPath.length > 1 ? [currentPath] : [];
+        }
+        
+        // Keep track of all paths from this node
+        let allPaths = [];
+        
+        // Visit each dependent and get all paths from there
+        for (const depId of dependents) {
+            // Skip if already on our current path to avoid cycles
+            if (currentPath.includes(depId)) continue;
+            
+            // Create a new set for this branch to avoid modifying the visited set for other branches
+            const newVisited = new Set(visited);
+            newVisited.add(depId);
+            
+            // Find all paths from this dependent
+            const pathsFromDep = findAllPaths(depId, newVisited, [...currentPath]);
+            
+            // Add all found paths to our collection
+            allPaths = allPaths.concat(pathsFromDep);
+        }
+        
+        // If no dependent paths found (all were cycles), return just this path
+        // if it's longer than 1 node
+        if (allPaths.length === 0 && currentPath.length > 1) {
+            return [currentPath];
+        }
+        
+        return allPaths;
+    }
+    
+    // Find all paths from the source system
+    const paths = findAllPaths(sourceSystemId, new Set([sourceSystemId]));
+    console.log(`Found ${paths.length} complete impact paths`);
+    
+    // Convert paths to the format needed for visualization
+    paths.forEach(path => {
+        // Skip the path if it only contains the source system
+        if (path.length <= 1) return;
+        
+        // Get the target system (last in the path)
+        const targetId = path[path.length - 1];
+        const targetSystem = graph.nodes[targetId];
+        
+        if (!targetSystem) {
+            console.warn(`Target system ${targetId} not found in graph nodes`);
+            return;
+        }
+        
+        // Determine impact level based on path length (distance from source)
+        const distanceFromSource = path.length - 1;
+        let impactLevel;
+        
+        if (distanceFromSource === 1) impactLevel = 'primary';
+        else if (distanceFromSource === 2) impactLevel = 'secondary';
+        else if (distanceFromSource === 3) impactLevel = 'tertiary';
+        else impactLevel = 'quaternary';
+        
+        // Calculate impact score
+        const tierFactor = Math.max(0.1, 1 - ((distanceFromSource - 1) * 0.2));
+        const impact = calculateSystemImpact(targetSystem, tierFactor);
+        
+        // Create connections for visualization
+        const connections = [];
+        for (let i = 0; i < path.length - 1; i++) {
+            const sourceId = path[i];
+            const targetId = path[i+1];
+            
+            // Determine connection type
+            let connectionType = 'direct';
+            
+            // Check if this is an SSO relationship
+            if (graph.ssoRelations[targetId] === sourceId) {
+                connectionType = 'sso';
+            } 
+            // Check if this is a hosting relationship
+            else if (graph.hostingRelations[targetId] === sourceId) {
+                connectionType = 'hosting';
+            }
+            
+            connections.push({
+                source: sourceId,
+                target: targetId,
+                type: connectionType
+            });
+        }
+        
+        // Map path IDs to system objects
+        const pathSystems = path.map(id => graph.nodes[id]);
+        
+        console.log(`Path ${pathId}: ${path.join(' → ')} [${impactLevel} impact]`);
+        
+        // Create the impact path object
+        allPaths.push({
+            id: pathId++,
+            targetSystem: {
+                ...targetSystem,
+                impactLevel,
+                impact,
+                distanceFromSource
+            },
+            path: pathSystems,
+            connections: connections,
+            length: path.length,
+            impactScore: impact
+        });
+    });
+    
+    // Sort paths by impact score (descending)
+    allPaths.sort((a, b) => b.impactScore - a.impactScore);
+    
+    console.log(`Processed ${allPaths.length} impact paths for visualization`);
+    return allPaths;
+}
+
+// Helper function to get impact level name from level number
+function getImpactLevelName(level) {
+    switch(level) {
+        case 1: return 'primary';
+        case 2: return 'secondary';
+        case 3: return 'tertiary';
+        default: return 'quaternary'; // Level 4 and beyond
+    }
+}
+
+// Calculate impact score for a system based on its properties
+function calculateSystemImpact(system, tierFactor) {
+    // Base impact score
+    let impact = 5;
+    
+    // Factor in system category
+    switch (system.category.slug) {
+        case 'core':
+            impact *= 2.0; // Core systems have highest impact
+            break;
+        case 'integration':
+            impact *= 1.5; // Integration systems have high impact
+            break;
+        case 'custom':
+            impact *= 1.2; // Custom systems have medium impact
+            break;
+        case 'server':
+            impact *= 1.8; // Server systems have high-impact
+            break;
+        case 'external':
+            impact *= 1.0; // External systems have standard impact
+            break;
+    }
+    
+    // Adjust by tier factor
+    impact *= tierFactor;
+    
+    // Round to integer
+    return Math.round(impact);
+}
+
+// Estimate recovery time based on impact data
+function estimateRecoveryTime(primarySystems, secondaryImpactSystems, tertiaryImpactSystems) {
+    // Base recovery time in hours
+    let recoveryTime = 2;
+    
+    // Add time based on number of affected systems
+    recoveryTime += primarySystems.length * 2; // 2 hours per primary system
+    recoveryTime += secondaryImpactSystems.length * 0.8; // 48 minutes per secondary impact system
+    recoveryTime += tertiaryImpactSystems.length * 0.3; // 18 minutes per tertiary impact system
+    
+    // Add complexity factor based on system types
+    const hasCore = primarySystems.some(s => s.category.slug === 'core') || 
+                  secondaryImpactSystems.some(s => s.category.slug === 'core');
+                  
+    const hasExternal = primarySystems.some(s => s.category.slug === 'external') || 
+                      secondaryImpactSystems.some(s => s.category.slug === 'external');
+    
+    const hasServer = primarySystems.some(s => s.category.slug === 'server');
+    
+    if (hasCore) recoveryTime *= 1.5; // Core systems take 50% longer to recover
+    if (hasExternal) recoveryTime *= 1.3; // External systems add 30% to recovery time
+    if (hasServer) recoveryTime *= 1.8; // Server failures have longest recovery
+    
+    // Check for SSO or hosting dependencies in primary impact
+    const hasSsoProvider = primarySystems.some(s => s.connectionType === 'sso');
+    const hasHostingProvider = primarySystems.some(s => s.connectionType === 'hosting');
+    
+    if (hasSsoProvider) recoveryTime *= 1.4; // SSO failures are complex to restore
+    if (hasHostingProvider) recoveryTime *= 1.7; // Hosting failures take longest to recover
+    
+    // Round to nearest 0.5 hour
+    return Math.round(recoveryTime * 2) / 2;
+}
+
+// Estimate user impact based on impact data
+function estimateUserImpact(primarySystems, criticalityScore) {
+    // Calculate user impact based on primary systems and overall criticality
+    const totalImpact = primarySystems.reduce((sum, system) => sum + system.impact, 0);
+    
+    // Include criticality score in assessment
+    const combinedScore = totalImpact + (criticalityScore * 0.2);
+    
+    if (combinedScore > 50 || primarySystems.some(s => s.connectionType === 'sso')) return "Critical";
+    if (combinedScore > 35) return "High";
+    if (combinedScore > 20) return "Medium";
+    return "Low";
+}
+
+// Calculate recovery time for an individual system
+function calculateSystemRecoveryTime(system) {
+    // Base recovery time for a system in hours
+    let recoveryTime = 1;
+    
+    // Adjust by system category
+    switch (system.category.slug) {
+        case 'core':
+            recoveryTime = 4;
+            break;
+        case 'integration':
+            recoveryTime = 3;
+            break;
+        case 'server':
+            recoveryTime = 5;
+            break;
+        case 'custom':
+            recoveryTime = 2.5;
+            break;
+        case 'external':
+            recoveryTime = 2;
+            break;
+    }
+    
+    // Adjust by connection type
+    if (system.connectionType === 'sso') {
+        recoveryTime *= 1.3; // SSO connections take longer to recover
+    } else if (system.connectionType === 'hosting') {
+        recoveryTime *= 1.5; // Hosting dependencies are most complex
+    }
+    
+    // Adjust by impact level (distance from source)
+    // Primary impacts recover in parallel with source, others have dependencies
+    if (system.impactLevel === 'primary') {
+        // No adjustment needed
+    } else if (system.impactLevel === 'secondary') {
+        recoveryTime *= 0.8; // Less time after primary systems are back
+    } else if (system.impactLevel === 'tertiary') {
+        recoveryTime *= 0.6; // Even less time after secondaries are back
+    } else {
+        recoveryTime *= 0.4; // Minimal time for distant systems
+    }
+    
+    // Factor in system impact score
+    recoveryTime = recoveryTime * (0.8 + (system.impact / 20));
+    
+    // Round to 1 decimal place
+    return Math.round(recoveryTime * 10) / 10;
+}
+
+// Populate the impacted systems by tier
+function populateImpactedSystems(containerId, systems) {
+    const container = document.getElementById(containerId);
+    
+    if (!container) return;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    if (!systems || systems.length === 0) {
+        container.innerHTML = '<div class="p-4 text-sm text-gray-500 text-center">No systems in this impact category</div>';
+        return;
+    }
+    
+    // Add each system to the container
+    systems.forEach(system => {
+        const systemItem = document.createElement('div');
+        systemItem.className = 'p-4 hover:bg-gray-50 transition-colors';
+        
+        let connectionType = '';
+        if (system.connectionType === 'sso') {
+            connectionType = '<span class="text-xs text-blue-600">SSO</span>';
+        } else if (system.connectionType === 'hosting') {
+            connectionType = '<span class="text-xs text-purple-600">Hosting</span>';
+        }
+        
+        let sourceInfo = '';
+        if (system.sourceNode && system.sourceNode !== currentSystemId) {
+            // Find the source system name
+            const sourceName = dependencyGraph.nodes[system.sourceNode]?.name || 'Unknown System';
+            sourceInfo = `<div class="mt-1 text-xs text-gray-500">Dependent on: <a href="#" class="text-blue-600 view-source-btn" data-id="${system.sourceNode}">${sourceName}</a></div>`;
+        }
+        
+        systemItem.innerHTML = `
+            <div class="flex justify-between">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900">${system.name}</h3>
+                    <div class="flex items-center mt-1 space-x-2">
+                        <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full"
+                            style="background-color: ${system.category.color}; color: ${system.category.text_color}">
+                            ${system.category.name}
+                        </span>
+                        ${connectionType ? `<span class="ml-2">${connectionType}</span>` : ''}
+                    </div>
+                    ${sourceInfo}
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        Impact: ${system.impact}
+                    </span>
+                </div>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+                ${system.vendor && system.vendor !== 'Unknown' ? `Vendor: ${system.vendor}` : ''}
+                ${system.status ? `<br>Status: ${system.status.name}` : ''}
+            </p>
+            <div class="mt-2 flex justify-between">
+                <div class="text-xs text-gray-600">
+                    <span class="font-medium">Est. Recovery:</span> ${calculateSystemRecoveryTime(system)} hours
+                </div>
+                <a href="/systems/${system.id}/" class="text-xs text-blue-600 hover:text-blue-800">
+                    View System Details
+                </a>
+            </div>
+        `;
+        
+        container.appendChild(systemItem);
+    });
+}
+
+// Create a single path item for the impact paths view
+function createPathItem(path, level) {
+    const pathItem = document.createElement('div');
+    pathItem.className = `impact-path path-level-${level} path-item`;
+    pathItem.setAttribute('data-path-id', path.id);
+    pathItem.setAttribute('data-impact-level', level);
+    pathItem.setAttribute('data-path-length', path.length);
+    pathItem.setAttribute('data-impact-score', path.impactScore);
+    pathItem.setAttribute('data-target-system', path.targetSystem.id);
+    
+    // Track connection types
+    const connectionTypes = path.connections.map(c => c.type);
+    pathItem.setAttribute('data-connection-types', connectionTypes.join(','));
+    
+    // Create the header
+    const header = document.createElement('div');
+    header.className = `impact-path-header path-header-${level} flex justify-between items-center`;
+    
+    const targetSystem = path.targetSystem;
+    
+    header.innerHTML = `
+        <div>
+            <span class="font-medium">${targetSystem.name}</span>
+            <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="background-color: ${targetSystem.category.color}; color: ${targetSystem.category.text_color}">
+                ${targetSystem.category.name}
+            </span>
+        </div>
+        <div class="flex items-center">
+            <span class="text-xs mr-3">Path Length: ${path.length-1}</span>
+            <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                Impact Score: ${path.impactScore}
+            </span>
+        </div>
+    `;
+    
+    pathItem.appendChild(header);
+    
+    // Create the body with dependency chain
+    const body = document.createElement('div');
+    body.className = 'impact-path-body';
+    
+    // Create dependency chain visualization
+    const chain = document.createElement('div');
+    chain.className = 'dependency-chain';
+    
+    // Add each system in the path with appropriate styling
+    path.path.forEach((system, idx) => {
+        // System node
+        const systemNode = document.createElement('div');
+        systemNode.className = `chain-node`;
+        
+        // Add special styling based on system type and position
+        if (idx === 0) {
+            // Source system (the one being analyzed)
+            systemNode.style.backgroundColor = '#ffd700';
+            systemNode.style.color = '#7c6900';
+            systemNode.style.border = '1px solid #ff8c00';
+        } else {
+            // Affected systems based on level
+            if (idx === path.path.length - 1) {
+                // Target system (end of the path)
+                const levelColors = {
+                    primary: '#fee2e2',
+                    secondary: '#ffedd5',
+                    tertiary: '#fef9c3',
+                    quaternary: '#dbeafe'
+                };
+                
+                const levelTextColors = {
+                    primary: '#b91c1c',
+                    secondary: '#c2410c',
+                    tertiary: '#854d0e',
+                    quaternary: '#0369a1'
+                };
+                
+                const levelBorders = {
+                    primary: '#ef4444',
+                    secondary: '#f97316',
+                    tertiary: '#eab308',
+                    quaternary: '#60a5fa'
+                };
+                
+                systemNode.style.backgroundColor = levelColors[targetSystem.impactLevel] || levelColors.quaternary;
+                systemNode.style.color = levelTextColors[targetSystem.impactLevel] || levelTextColors.quaternary;
+                systemNode.style.border = `1px solid ${levelBorders[targetSystem.impactLevel] || levelBorders.quaternary}`;
+            } else {
+                // Intermediate node
+                systemNode.style.backgroundColor = '#f3f4f6';
+                systemNode.style.color = '#4b5563';
+                systemNode.style.border = '1px solid #d1d5db';
+            }
+        }
+        
+        // Add system name
+        systemNode.textContent = system.name;
+        
+        // Add connection badge if appropriate
+        if (idx < path.path.length - 1) {
+            const connection = path.connections.find(c => 
+                c.source === system.id && c.target === path.path[idx + 1].id
+            );
+            
+            if (connection && connection.type !== 'direct') {
+                const badge = document.createElement('span');
+                badge.className = `connection-type-badge connection-${connection.type}-badge`;
+                badge.textContent = connection.type === 'sso' ? 'SSO' : 'Hosting';
+                systemNode.appendChild(badge);
+            }
+        }
+        
+        chain.appendChild(systemNode);
+        
+        // Add arrow if not the last system
+        if (idx < path.path.length - 1) {
+            const arrow = document.createElement('div');
+            arrow.className = 'chain-arrow';
+            arrow.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            `;
+            chain.appendChild(arrow);
+        }
+    });
+    
+    body.appendChild(chain);
+    
+    // Add view path button
+    const viewButton = document.createElement('div');
+    viewButton.className = 'mt-3 text-right';
+    viewButton.innerHTML = `
+        <a href="/systems/${targetSystem.id}/" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View System Details
+        </a>
+    `;
+    
+    body.appendChild(viewButton);
+    pathItem.appendChild(body);
+    
+    return pathItem;
+}
+
+// Populate the impact paths section
+function populateImpactPaths(paths) {
+    const container = document.getElementById('impact-paths-container');
+    if (!container) return;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Update total paths count
+    const totalPathsCount = document.getElementById('totalPathsCount');
+    if (totalPathsCount) {
+        totalPathsCount.textContent = `${paths.length} paths identified`;
+    }
+    
+    if (!paths || paths.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No impact paths found</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    No dependency chains were identified in the analysis.
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group paths by impact level
+    const groupedPaths = {
+        primary: paths.filter(p => p.targetSystem.impactLevel === 'primary'),
+        secondary: paths.filter(p => p.targetSystem.impactLevel === 'secondary'),
+        tertiary: paths.filter(p => p.targetSystem.impactLevel === 'tertiary'),
+        quaternary: paths.filter(p => p.targetSystem.impactLevel === 'quaternary')
+    };
+    
+    // Create path items for each group
+    ['primary', 'secondary', 'tertiary', 'quaternary'].forEach(level => {
+        const levelPaths = groupedPaths[level];
+        if (levelPaths.length === 0) return;
+        
+        const levelTitle = {
+            primary: 'Primary Impact Paths (1 hop)',
+            secondary: 'Secondary Impact Paths (2 hops)',
+            tertiary: 'Tertiary Impact Paths (3 hops)',
+            quaternary: 'Distant Impact Paths (4+ hops)'
+        }[level];
+        
+        // Create section header
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = `impact-paths-section impact-level-${level}`;
+        sectionDiv.innerHTML = `
+            <h4 class="text-base font-medium text-gray-900 mb-2">${levelTitle} (${levelPaths.length})</h4>
+            <div class="path-items space-y-3" id="path-items-${level}"></div>
+        `;
+        
+        container.appendChild(sectionDiv);
+        
+        // Add paths to this section
+        const pathItemsContainer = sectionDiv.querySelector(`#path-items-${level}`);
+        levelPaths.forEach(path => {
+            const pathItem = createPathItem(path, level);
+            pathItemsContainer.appendChild(pathItem);
+        });
+    });
+    
+    // Initial filtering
+    filterImpactPaths();
+}
+
+// Update the impact summary without cost analysis
+function updateImpactSummary(impactData) {
+    // Check if elements exist before trying to update them
+    const totalAffectedEl = document.getElementById('total-affected-count');
+    if (totalAffectedEl) {
+        totalAffectedEl.textContent = `${impactData.systemsCount} systems affected`;
+    }
+    
+    // Update the impact progress bar - scale to match the calculated criticality
+    const progressEl = document.getElementById('impact-progress');
+    if (progressEl) {
+        const maxCriticality = 100; // Maximum possible criticality score for scaling
+        const progressPercentage = Math.min(100, (impactData.criticalityScore / maxCriticality) * 100);
+        progressEl.style.width = progressPercentage + "%";
+    }
+    
+    // Update recovery metrics
+    const systemsAffectedEl = document.getElementById('systems-affected');
+    if (systemsAffectedEl) {
+        systemsAffectedEl.textContent = impactData.systemsCount;
+    }
+    
+    const recoveryTimeEl = document.getElementById('recovery-time');
+    if (recoveryTimeEl) {
+        recoveryTimeEl.textContent = impactData.recoveryTime <= 24 ? 
+            `${impactData.recoveryTime} hours` : 
+            `${Math.round(impactData.recoveryTime / 24)} days`;
+    }
+    
+    const userImpactEl = document.getElementById('user-impact');
+    if (userImpactEl) {
+        userImpactEl.textContent = impactData.userImpact;
+    }
+}
+
+// Filter functions for UI interactions
+
+// Filter function for impact paths
+function filterImpactPaths() {
+    const impactLevel = document.getElementById('pathTypeFilter')?.value || 'all';
+    const sortBy = document.getElementById('pathSortOrder')?.value || 'impact';
+    const showDirect = document.getElementById('showDirectConnectionsPath')?.checked !== false;
+    const showSSO = document.getElementById('showSSOConnectionsPath')?.checked !== false;
+    const showHosting = document.getElementById('showHostingConnectionsPath')?.checked !== false;
+    
+    // Get all path items
+    const allPaths = document.querySelectorAll('.path-item');
+    
+    allPaths.forEach(path => {
+        // Get path attributes
+        const pathLevel = path.getAttribute('data-impact-level');
+        const connectionTypes = path.getAttribute('data-connection-types')?.split(',') || [];
+        
+        // Check if this path should be shown based on filters
+        let showPath = true;
+        
+        // Filter by impact level
+        if (impactLevel !== 'all' && pathLevel !== impactLevel) {
+            showPath = false;
+        }
+        
+        // Filter by connection types
+        const hasDirectOnly = connectionTypes.every(type => type === 'direct');
+        const hasSSO = connectionTypes.includes('sso');
+        const hasHosting = connectionTypes.includes('hosting');
+        
+        if (
+            (!showDirect && hasDirectOnly) ||
+            (!showSSO && hasSSO) ||
+            (!showHosting && hasHosting)
+        ) {
+            showPath = false;
+        }
+        
+        // Show/hide this path
+        path.style.display = showPath ? 'block' : 'none';
+    });
+    
+    // Sort visible paths
+    sortImpactPaths(sortBy);
+}
+
+// Sort function for impact paths
+function sortImpactPaths(sortBy) {
+    // Get all path sections
+    const pathSections = document.querySelectorAll('.impact-paths-section');
+    
+    pathSections.forEach(section => {
+        const pathItemsContainer = section.querySelector('.path-items');
+        if (!pathItemsContainer) return;
+        
+        const pathItems = Array.from(pathItemsContainer.children);
+        
+        // Sort paths based on criteria
+        pathItems.sort((a, b) => {
+            if (sortBy === 'impact') {
+                // Sort by impact score (highest first)
+                return parseInt(b.getAttribute('data-impact-score') || 0) - 
+                       parseInt(a.getAttribute('data-impact-score') || 0);
+            } else if (sortBy === 'path-length') {
+                // Sort by path length (shortest first)
+                return parseInt(a.getAttribute('data-path-length') || 0) - 
+                       parseInt(b.getAttribute('data-path-length') || 0);
+            } else if (sortBy === 'alphabetical') {
+                // Sort by system name (A-Z)
+                const headerA = a.querySelector('.impact-path-header');
+                const headerB = b.querySelector('.impact-path-header');
+                const nameA = headerA ? headerA.innerText.trim().toLowerCase() : '';
+                const nameB = headerB ? headerB.innerText.trim().toLowerCase() : '';
+                return nameA.localeCompare(nameB);
+            }
+            return 0;
+        });
+        
+        // Reappend sorted items
+        pathItems.forEach(item => {
+            pathItemsContainer.appendChild(item);
+        });
+    });
+}
+
+// Filter function for impact breakdown view
+function filterImpactBreakdown() {
+    const categoryFilter = document.getElementById('categoryFilter')?.value || 'all';
+    const vendorFilter = document.getElementById('vendorFilter')?.value || 'all';
+    const sortBy = document.getElementById('systemSort')?.value || 'impact';
+    const showDirect = document.getElementById('showDirectConnections')?.checked !== false;
+    const showSSO = document.getElementById('showSSOConnections')?.checked !== false;
+    const showHosting = document.getElementById('showHostingConnections')?.checked !== false;
+    
+    // Get all system items across all impact tiers
+    const allSystemItems = document.querySelectorAll('#primary-impact-systems > div, #secondary-impact-systems > div, #tertiary-impact-systems > div, #quaternary-impact-systems > div');
+    
+    allSystemItems.forEach(item => {
+        // Skip the "No systems found" message
+        if (item.classList.contains('text-center')) return;
+        
+        let showItem = true;
+        
+        // Filter by category if specified
+        if (categoryFilter !== 'all') {
+            const categoryBadge = item.querySelector('.rounded-full');
+            if (categoryBadge && !categoryBadge.textContent.trim().toLowerCase().includes(categoryFilter.toLowerCase())) {
+                showItem = false;
+            }
+        }
+        
+        // Filter by vendor if specified
+        if (vendorFilter !== 'all') {
+            const vendorText = item.textContent;
+            if (!vendorText.includes(`Vendor: ${vendorFilter}`)) {
+                showItem = false;
+            }
+        }
+        
+        // Filter by connection type
+        const hasDirectText = !item.textContent.includes('SSO') && !item.textContent.includes('Hosting');
+        const hasSSO = item.textContent.includes('SSO');
+        const hasHosting = item.textContent.includes('Hosting');
+        
+        if (
+            (!showDirect && hasDirectText) ||
+            (!showSSO && hasSSO) ||
+            (!showHosting && hasHosting)
+        ) {
+            showItem = false;
+        }
+        
+        // Show/hide this item
+        item.style.display = showItem ? 'block' : 'none';
+    });
+    
+    // Handle empty containers by showing "No systems found" message
+    ['primary-impact-systems', 'secondary-impact-systems', 'tertiary-impact-systems', 'quaternary-impact-systems'].forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const visibleItems = Array.from(container.children).filter(item => 
+            !item.classList.contains('text-center') && item.style.display !== 'none'
+        );
+        
+        // Find or create the "No systems found" message
+        let noSystemsMsg = container.querySelector('.text-center');
+        
+        if (visibleItems.length === 0) {
+            if (!noSystemsMsg) {
+                noSystemsMsg = document.createElement('div');
+                noSystemsMsg.className = 'p-4 text-sm text-gray-500 text-center';
+                noSystemsMsg.textContent = 'No systems found matching filters';
+                container.appendChild(noSystemsMsg);
+            } else {
+                noSystemsMsg.style.display = 'block';
+            }
+        } else if (noSystemsMsg) {
+            noSystemsMsg.style.display = 'none';
+        }
+    });
+    
+    // Sort visible items in each container
+    sortImpactBreakdown(sortBy);
+}
+
+// Sort function for impact breakdown view
+function sortImpactBreakdown(sortBy) {
+    ['primary-impact-systems', 'secondary-impact-systems', 'tertiary-impact-systems', 'quaternary-impact-systems'].forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Get all non-message items
+        const items = Array.from(container.children).filter(item => 
+            !item.classList.contains('text-center')
+        );
+        
+        // Sort based on criteria
+        items.sort((a, b) => {
+            if (sortBy === 'impact') {
+                // Get impact scores
+                const impactA = a.querySelector('.text-red-800')?.textContent.match(/\d+/) || [0];
+                const impactB = b.querySelector('.text-red-800')?.textContent.match(/\d+/) || [0];
+                return parseInt(impactB[0]) - parseInt(impactA[0]);
+            } else if (sortBy === 'name') {
+                // Sort by system name
+                const nameA = a.querySelector('.font-medium')?.textContent.trim().toLowerCase() || '';
+                const nameB = b.querySelector('.font-medium')?.textContent.trim().toLowerCase() || '';
+                return nameA.localeCompare(nameB);
+            } else if (sortBy === 'recovery') {
+                // Sort by recovery time
+                const recoveryA = a.querySelector('.text-gray-600')?.textContent.match(/[\d\.]+/) || [0];
+                const recoveryB = b.querySelector('.text-gray-600')?.textContent.match(/[\d\.]+/) || [0];
+                return parseFloat(recoveryB[0]) - parseFloat(recoveryA[0]);
+            }
+            return 0;
+        });
+        
+        // Re-append items in sorted order
+        items.forEach(item => {
+            container.appendChild(item);
+        });
+    });
+}
+
+// Main simulation function
+function startSimulation() {
+    console.log("Starting simulation...");
+    
+    // Show loading state
     const runDisasterSimulationBtn = document.getElementById('runDisasterSimulation');
     const runSimulationFromPlaceholderBtn = document.getElementById('runSimulationFromPlaceholder');
     const disasterSimulationResults = document.getElementById('disaster-simulation-results');
     const disasterSimulationPlaceholder = document.getElementById('disaster-simulation-placeholder');
     
-    // Collapsible sections
-    const impactPathsHeader = document.getElementById('impactPathsHeader');
-    const impactPathsContent = document.getElementById('impactPathsContent');
-    const impactBreakdownHeader = document.getElementById('impactBreakdownHeader');
-    const impactBreakdownContent = document.getElementById('impactBreakdownContent');
-    
-    // Path filtering elements
-    const pathTypeFilter = document.getElementById('pathTypeFilter');
-    const pathSortOrder = document.getElementById('pathSortOrder');
-    const showDirectConnections = document.getElementById('showDirectConnections');
-    const showSSOConnections = document.getElementById('showSSOConnections');
-    const showHostingConnections = document.getElementById('showHostingConnections');
-    
-    console.log("DOM loaded - disaster analysis script initialized");
-    
-    // Setup collapsible sections
-    if (impactPathsHeader) {
-        impactPathsHeader.addEventListener('click', function() {
-            toggleCollapsible(this, impactPathsContent);
-        });
-    }
-    
-    if (impactBreakdownHeader) {
-        impactBreakdownHeader.addEventListener('click', function() {
-            toggleCollapsible(this, impactBreakdownContent);
-        });
-    }
-    
-    function toggleCollapsible(header, content) {
-        header.classList.toggle('collapsed');
-        content.classList.toggle('collapsed');
-        
-        // Update the arrow icon
-        const arrow = header.querySelector('svg');
-        if (header.classList.contains('collapsed')) {
-            arrow.style.transform = 'rotate(-90deg)';
-        } else {
-            arrow.style.transform = 'rotate(0)';
-        }
-    }
-    
-    // Add event listeners for path filtering
-    if (pathTypeFilter) {
-        pathTypeFilter.addEventListener('change', filterImpactPaths);
-    }
-    
-    if (pathSortOrder) {
-        pathSortOrder.addEventListener('change', filterImpactPaths);
-    }
-    
-    if (showDirectConnections) {
-        showDirectConnections.addEventListener('change', filterImpactPaths);
-    }
-    
-    if (showSSOConnections) {
-        showSSOConnections.addEventListener('change', filterImpactPaths);
-    }
-    
-    if (showHostingConnections) {
-        showHostingConnections.addEventListener('change', filterImpactPaths);
-    }
-    
-    // Add event listeners
-    if (runDisasterSimulationBtn) {
-        console.log("Found simulation button, adding event listener");
-        runDisasterSimulationBtn.addEventListener('click', function() {
-            console.log("Run Simulation button clicked!");
-            startSimulation();
-        });
-    }
-    
-    if (runSimulationFromPlaceholderBtn) {
-        console.log("Found placeholder simulation button, adding event listener");
-        runSimulationFromPlaceholderBtn.addEventListener('click', function() {
-            console.log("Placeholder button clicked!");
-            startSimulation();
-        });
-    }
-    
-    // Attach event listeners to dynamic elements
-    function attachDynamicEventListeners() {
-        // View path in graph buttons
-        document.querySelectorAll('.view-path-btn').forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const pathId = this.getAttribute('data-path-id');
-                const targetId = this.getAttribute('data-target-id');
-                highlightPath(pathId, targetId);
-            });
-        });
-
-        // Edit step buttons
-        document.querySelectorAll('.edit-step').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const stepId = this.getAttribute('data-step-id');
-                editRecoveryStep(stepId);
-            });
-        });
-        
-        // Delete step buttons
-        document.querySelectorAll('.delete-step').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const stepId = this.getAttribute('data-step-id');
-                confirmDeleteStep(stepId);
-            });
-        });
-        
-        // Move step up buttons
-        document.querySelectorAll('.move-step-up').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const stepId = this.getAttribute('data-step-id');
-                moveRecoveryStep(stepId, 'up');
-            });
-        });
-        
-        // Move step down buttons
-        document.querySelectorAll('.move-step-down').forEach(function(button) {
-            button.addEventListener('click', function() {
-                const stepId = this.getAttribute('data-step-id');
-                moveRecoveryStep(stepId, 'down');
-            });
-        });
-    }
-    
-    // Call this initially to set up existing buttons
-    attachDynamicEventListeners();
-    
-    // Function to start the simulation
-function startSimulation() {
-    console.log("Starting simulation...");
-    
-    // Show loading state
     if (runDisasterSimulationBtn) {
         runDisasterSimulationBtn.disabled = true;
         runDisasterSimulationBtn.innerHTML = `
@@ -1218,1158 +2174,302 @@ function startSimulation() {
         }
     }, 1000);
 }
-    
-    // Perform the impact analysis
-    function performDisasterImpactAnalysis() {
-        console.log("Starting disaster impact analysis...");
-        
-        // Get current system information
-        const systemId = currentSystemId;
-        const systemName = currentSystemName;
-        const systemCategory = currentSystemCategory;
-        const systemCategoryName = currentSystemCategoryName;
-        
-        // Build a complete dependency graph from the relationship data
-        dependencyGraph = buildDependencyGraph();
-        
-        // Log the dependency graph for debugging
-        console.log("Dependency graph built:", dependencyGraph);
-        
-        // Calculate impact tiers based on dependency graph traversal
-        impactData = calculateImpactTiers(systemId, dependencyGraph);
-        
-        // Generate complete downstream impact paths
-        completeImpactPaths = generateCompleteImpactPaths(systemId, dependencyGraph);
-        
-        // Update the impact summary
-        updateImpactSummary(impactData);
-        
-        // Populate the impacted systems by tier
-        populateImpactedSystems('primary-impact-systems', impactData.primaryImpact);
-        populateImpactedSystems('secondary-impact-systems', impactData.secondaryImpact);
-        populateImpactedSystems('tertiary-impact-systems', impactData.tertiaryImpact);
-        populateImpactedSystems('quaternary-impact-systems', impactData.quaternaryImpact);
-        
-        // Populate the complete downstream impact paths
-        populateImpactPaths(completeImpactPaths);
-        
-        // Update recovery metrics
-        updateRecoveryMetrics(systemCategory, impactData);
-        
-        console.log("Disaster impact analysis completed.");
-    }
-    
-    // Build a complete dependency graph from system relationships
-    function buildDependencyGraph() {
-        console.log("Building dependency graph...");
-        
-        // Create a graph structure to hold all systems and their relationships
-        const graph = {
-            nodes: {},         // All system nodes
-            dependencies: {},  // Outgoing edges from each node (what this system depends on)
-            dependents: {},    // Incoming edges to each node (what depends on this system)
-            ssoRelations: {},  // Track SSO relationships
-            hostingRelations: {} // Track hosting relationships
-        };
-        
-        // First, add all systems we know about to the graph
-        const allSystems = [];
-        
-        // Add the current system
-        const currentSystem = {
-            id: currentSystemId,
-            name: currentSystemName,
-            category: {
-                slug: currentSystemCategory,
-                name: currentSystemCategoryName,
-                color: currentSystemCategoryColor,
-                text_color: currentSystemCategoryTextColor
-            },
-            status: {
-                slug: currentSystemStatusSlug,
-                name: currentSystemStatusName,
-                color: currentSystemStatusColor,
-                text_color: currentSystemStatusTextColor
-            },
-            vendor: currentSystemVendor || 'Unknown'
-        };
-        
-        allSystems.push(currentSystem);
-        
-        // Add systems from related data
-        // This collects all known systems to create a complete graph
-        function addSystemToCollection(system) {
-            if (!allSystems.some(s => s.id === system.id)) {
-                allSystems.push(system);
-            }
-        }
-        
-        // Process dependencies from server-side data
-        dependencies.forEach(dep => {
-            addSystemToCollection(dep);
-        });
-        
-        // Process dependents from server-side data
-        dependents.forEach(dep => {
-            addSystemToCollection(dep);
-        });
-        
-        // Process SSO dependents from server-side data
-        ssoDependents.forEach(dep => {
-            addSystemToCollection(dep);
-        });
-        
-        // Process hosted systems from server-side data
-        hostedSystems.forEach(sys => {
-            addSystemToCollection(sys);
-        });
-        
-        // Add all systems to the graph
-        allSystems.forEach(system => {
-            graph.nodes[system.id] = system;
-            graph.dependencies[system.id] = [];
-            graph.dependents[system.id] = [];
-        });
-        
-        // Add direct dependency relationships
-        function addDependencyRelationship(sourceId, targetId, type) {
-            // Skip if either node doesn't exist
-            if (!graph.nodes[sourceId] || !graph.nodes[targetId]) {
-                console.log(`Skipping relationship ${sourceId} -> ${targetId} (node missing)`);
-                return;
-            }
-            
-            // IMPORTANT: Correctly representing dependency relationships
-            // When sourceId depends on targetId, it means:
-            // - sourceId needs targetId to function
-            // - If targetId fails, sourceId is impacted
-            
-            console.log(`Adding relationship: ${sourceId} depends on ${targetId} (type: ${type})`);
-            
-            // Add dependency: source depends on target
-            if (!graph.dependencies[sourceId].includes(targetId)) {
-                graph.dependencies[sourceId].push(targetId);
-            }
-            
-            // Add dependent: target is depended on by source
-            if (!graph.dependents[targetId].includes(sourceId)) {
-                graph.dependents[targetId].push(sourceId);
-            }
-            
-            // Track special relationship types
-            if (type === 'sso') {
-                graph.ssoRelations[sourceId] = targetId;
-            } else if (type === 'hosting') {
-                graph.hostingRelations[sourceId] = targetId;
-            }
-        }
-        
-        // Process direct dependencies from server-side data
-        dependencies.forEach(dep => {
-            addDependencyRelationship(currentSystemId, dep.id, 'direct');
-        });
-        
-        // Process dependents from server-side data
-        dependents.forEach(dep => {
-            addDependencyRelationship(dep.id, currentSystemId, 'direct');
-        });
-        
-        // Process SSO relationships
-        if (currentSystemSsoId) {
-            addDependencyRelationship(currentSystemId, currentSystemSsoId, 'sso');
-        }
-        
-        // Process hosting relationships
-        if (currentSystemHostingId) {
-            addDependencyRelationship(currentSystemId, currentSystemHostingId, 'hosting');
-        }
-        
-        // Process SSO dependents
-        ssoDependents.forEach(dep => {
-            addDependencyRelationship(dep.id, currentSystemId, 'sso');
-        });
-        
-        // Process hosting dependents
-        hostedSystems.forEach(sys => {
-            addDependencyRelationship(sys.id, currentSystemId, 'hosting');
-        });
-        
-        return graph;
-    }
-    
-    // Calculate impact tiers based on the dependency graph
-    function calculateImpactTiers(systemId, dependencyGraph) {
-        console.log("Calculating impact tiers for system ID:", systemId);
-        
-        // Use more explicit naming to avoid confusion about what the arrays contain
-        const directImpactSystems = []; // Primary (level 1)
-        const secondLevelImpactSystems = []; // Secondary (level 2)
-        const thirdLevelImpactSystems = []; // Tertiary (level 3)
-        const distantImpactSystems = []; // Quaternary+ (level 4+)
-        
-        // Track visited nodes to prevent duplicates and cycles
-        const visitedNodes = new Set([systemId]); // Mark the source system as visited
-        
-        // Track overall impact score
-        let criticalityScore = 0;
-        
-        // Using BFS to traverse the graph level by level
-        // Queue structure: [{id: systemId, level: 0, path: [systemId], sourceNode: null}]
-        const queue = [{id: systemId, level: 0, path: [systemId], sourceNode: null}];
-        
-        // Process all nodes in the queue
-        while (queue.length > 0) {
-            const { id, level, path, sourceNode } = queue.shift();
-            
-            // DEBUG: Log each node being processed
-            console.log(`Processing node ${id} at level ${level}, via ${sourceNode || "root"}`);
-            
-            if (level > 0) {
-                // This is not the source system
-                // Create impact data for this system
-                const system = dependencyGraph.nodes[id];
-                if (!system) {
-                    console.log(`WARNING: Missing node data for system ${id}`);
-                    continue;
-                }
-                
-                // Calculate impact score with diminishing factor by level
-                const tierFactor = Math.max(0.1, 1 - (level * 0.2));
-                const impact = calculateSystemImpact(system, tierFactor);
-                
-                // Determine connection type
-                const connectionType = getConnectionType(sourceNode, id, dependencyGraph);
-                
-                // Create the impact data
-                const impactData = {
-                    ...system,
-                    impact,
-                    impactLevel: getImpactLevelName(level),
-                    distanceFromSource: level,
-                    connectionType: connectionType,
-                    sourceNode: sourceNode,
-                    path: path
-                };
-                
-                // Add to appropriate impact array based on level
-                if (level === 1) {
-                    directImpactSystems.push(impactData);
-                    criticalityScore += impact;
-                } else if (level === 2) {
-                    secondLevelImpactSystems.push(impactData);
-                    criticalityScore += impact * 0.7;
-                } else if (level === 3) {
-                    thirdLevelImpactSystems.push(impactData);
-                    criticalityScore += impact * 0.5;
-                } else {
-                    distantImpactSystems.push(impactData);
-                    criticalityScore += impact * 0.3;
-                }
-            }
-            
-            // CRITICAL PART: Get systems that are DEPENDENT on this one
-            // These are the systems that will be affected if this system fails
-            const dependentIds = dependencyGraph.dependents[id] || [];
-            console.log(`Node ${id} has ${dependentIds.length} dependents: ${dependentIds.join(', ')}`);
-            
-            // Process each dependent
-            for (const dependentId of dependentIds) {
-                // Skip if already visited to avoid cycles
-                if (visitedNodes.has(dependentId)) {
-                    console.log(`Skipping already visited node ${dependentId}`);
-                    continue;
-                }
-                
-                // Mark as visited to avoid reprocessing
-                visitedNodes.add(dependentId);
-                
-                // Add to queue for processing at next level
-                queue.push({
-                    id: dependentId,
-                    level: level + 1,
-                    path: [...path, dependentId],
-                    sourceNode: id
-                });
-                
-                console.log(`Added node ${dependentId} to queue at level ${level + 1} via ${id}`);
-            }
-        }
-        
-        // Sort each tier by impact score (descending)
-        directImpactSystems.sort((a, b) => b.impact - a.impact);
-        secondLevelImpactSystems.sort((a, b) => b.impact - a.impact);
-        thirdLevelImpactSystems.sort((a, b) => b.impact - a.impact);
-        distantImpactSystems.sort((a, b) => b.impact - a.impact);
-        
-        // Log the results for debugging
-        console.log(`Found ${directImpactSystems.length} direct impact systems.`);
-        console.log(`Found ${secondLevelImpactSystems.length} secondary impact systems.`);
-        console.log(`Found ${thirdLevelImpactSystems.length} tertiary impact systems.`);
-        console.log(`Found ${distantImpactSystems.length} distant impact systems.`);
-        
-        return {
-            primaryImpact: directImpactSystems,
-            secondaryImpact: secondLevelImpactSystems,
-            tertiaryImpact: thirdLevelImpactSystems,
-            quaternaryImpact: distantImpactSystems,
-            criticalityScore,
-            recoveryTime: estimateRecoveryTime(directImpactSystems, secondLevelImpactSystems, thirdLevelImpactSystems),
-            systemsCount: directImpactSystems.length + secondLevelImpactSystems.length + 
-                         thirdLevelImpactSystems.length + distantImpactSystems.length,
-            userImpact: estimateUserImpact(directImpactSystems, criticalityScore),
-            businessImpact: estimateBusinessImpact(directImpactSystems, secondLevelImpactSystems, systemId, dependencyGraph),
-            estimatedCost: estimateDowntimeCost(directImpactSystems, secondLevelImpactSystems, thirdLevelImpactSystems)
-        };
-    }
-    
-    // Generate complete downstream impact paths for all affected systems
-    function generateCompleteImpactPaths(sourceSystemId, graph) {
-        console.log("Generating complete downstream impact paths from source system:", sourceSystemId);
-        
-        const allPaths = [];
-        let pathId = 1;
-        
-        // Build a dependency map where:
-        // key = systemId
-        // value = array of systems that DEPEND ON this system
-        const dependentMap = {};
-        
-        // Initialize with empty arrays for all systems
-        Object.keys(graph.nodes).forEach(id => {
-            dependentMap[id] = [];
-        });
-        
-        // Populate the dependents map - what systems are affected when a system fails
-        // If system A depends on B, then A is affected when B fails
-        console.log("Building dependent map...");
-        Object.entries(graph.dependencies).forEach(([systemId, dependencies]) => {
-            dependencies.forEach(depId => {
-                // When B fails, A is impacted
-                if (!dependentMap[depId].includes(parseInt(systemId))) {
-                    dependentMap[depId].push(parseInt(systemId));
-                    console.log(`Added dependent: ${systemId} depends on ${depId}`);
-                }
-            });
-        });
-        
-        // Also add SSO and hosting relationships to the dependent map
-        console.log("Adding SSO relationships to dependent map...");
-        Object.entries(graph.ssoRelations).forEach(([systemId, ssoId]) => {
-            systemId = parseInt(systemId);
-            // If system A has SSO provider B, then A depends on B
-            // So when B fails, A is in its dependent list
-            if (!dependentMap[ssoId].includes(systemId)) {
-                dependentMap[ssoId].push(systemId);
-                console.log(`Added SSO dependent: ${systemId} depends on SSO provider ${ssoId}`);
-            }
-        });
-        
-        console.log("Adding hosting relationships to dependent map...");
-        Object.entries(graph.hostingRelations).forEach(([systemId, hostId]) => {
-            systemId = parseInt(systemId);
-            // If system A is hosted on B, then A depends on B
-            // So when B fails, A is in its dependent list
-            if (!dependentMap[hostId].includes(systemId)) {
-                dependentMap[hostId].push(systemId);
-                console.log(`Added hosting dependent: ${systemId} depends on host ${hostId}`);
-            }
-        });
-        
-        // Enhanced approach to generate all possible downstream paths
-        // Using DFS to find all paths from the source system to its dependents
-        function findAllPaths(startId, visited = new Set(), currentPath = []) {
-            // Add current node to path
-            currentPath.push(startId);
-            
-            // Get all immediate dependents of this system
-            const dependents = dependentMap[startId] || [];
-            
-            // If no dependents, this is a leaf node - return the path
-            if (dependents.length === 0) {
-                // Only return paths with more than just the source node
-                return currentPath.length > 1 ? [currentPath] : [];
-            }
-            
-            // Keep track of all paths from this node
-            let allPaths = [];
-            
-            // Visit each dependent and get all paths from there
-            for (const depId of dependents) {
-                // Skip if already on our current path to avoid cycles
-                if (currentPath.includes(depId)) continue;
-                
-                // Create a new set for this branch to avoid modifying the visited set for other branches
-                const newVisited = new Set(visited);
-                newVisited.add(depId);
-                
-                // Find all paths from this dependent
-                const pathsFromDep = findAllPaths(depId, newVisited, [...currentPath]);
-                
-                // Add all found paths to our collection
-                allPaths = allPaths.concat(pathsFromDep);
-            }
-            
-            // If no dependent paths found (all were cycles), return just this path
-            // if it's longer than 1 node
-            if (allPaths.length === 0 && currentPath.length > 1) {
-                return [currentPath];
-            }
-            
-            return allPaths;
-        }
-        
-        // Find all paths from the source system
-        const paths = findAllPaths(sourceSystemId, new Set([sourceSystemId]));
-        console.log(`Found ${paths.length} complete impact paths`);
-        
-        // Convert paths to the format needed for visualization
-        paths.forEach(path => {
-            // Skip the path if it only contains the source system
-            if (path.length <= 1) return;
-            
-            // Get the target system (last in the path)
-            const targetId = path[path.length - 1];
-            const targetSystem = graph.nodes[targetId];
-            
-            if (!targetSystem) {
-                console.warn(`Target system ${targetId} not found in graph nodes`);
-                return;
-            }
-            
-            // Determine impact level based on path length (distance from source)
-            const distanceFromSource = path.length - 1;
-            let impactLevel;
-            
-            if (distanceFromSource === 1) impactLevel = 'primary';
-            else if (distanceFromSource === 2) impactLevel = 'secondary';
-            else if (distanceFromSource === 3) impactLevel = 'tertiary';
-            else impactLevel = 'quaternary';
-            
-            // Calculate impact score
-            const tierFactor = Math.max(0.1, 1 - ((distanceFromSource - 1) * 0.2));
-            const impact = calculateSystemImpact(targetSystem, tierFactor);
-            
-            // Create connections for visualization
-            const connections = [];
-            for (let i = 0; i < path.length - 1; i++) {
-                const sourceId = path[i];
-                const targetId = path[i+1];
-                
-                // Determine connection type
-                let connectionType = 'direct';
-                
-                // Check if this is an SSO relationship
-                if (graph.ssoRelations[targetId] === sourceId) {
-                    connectionType = 'sso';
-                } 
-                // Check if this is a hosting relationship
-                else if (graph.hostingRelations[targetId] === sourceId) {
-                    connectionType = 'hosting';
-                }
-                
-                connections.push({
-                    source: sourceId,
-                    target: targetId,
-                    type: connectionType
-                });
-            }
-            
-            // Map path IDs to system objects
-            const pathSystems = path.map(id => graph.nodes[id]);
-            
-            console.log(`Path ${pathId}: ${path.join(' → ')} [${impactLevel} impact]`);
-            
-            // Create the impact path object
-            allPaths.push({
-                id: pathId++,
-                targetSystem: {
-                    ...targetSystem,
-                    impactLevel,
-                    impact,
-                    distanceFromSource
-                },
-                path: pathSystems,
-                connections: connections,
-                length: path.length,
-                impactScore: impact
-            });
-        });
-        
-        // Sort paths by impact score (descending)
-        allPaths.sort((a, b) => b.impactScore - a.impactScore);
-        
-        console.log(`Processed ${allPaths.length} impact paths for visualization`);
-        return allPaths;
-    }
-    
-    // Helper function to get impact level name from level number
-    function getImpactLevelName(level) {
-        switch(level) {
-            case 1: return 'primary';
-            case 2: return 'secondary';
-            case 3: return 'tertiary';
-            default: return 'quaternary'; // Level 4 and beyond
-        }
-    }
-    
-    // Helper function to determine the connection type between two systems
-    function getConnectionType(sourceId, targetId, graph) {
-        // Check if this is an SSO relationship
-        if (graph.ssoRelations[targetId] === sourceId) {
-            return 'sso';
-        }
-        // Check if this is a hosting relationship
-        if (graph.hostingRelations[targetId] === sourceId) {
-            return 'hosting';
-        }
-        // Default to direct dependency
-        return 'direct';
-    }
-    
-    // Calculate impact score for a system based on its properties
-    function calculateSystemImpact(system, tierFactor) {
-        // Base impact score
-        let impact = 5;
-        
-        // Factor in system category
-        switch (system.category.slug) {
-            case 'core':
-                impact *= 2.0; // Core systems have highest impact
-                break;
-            case 'integration':
-                impact *= 1.5; // Integration systems have high impact
-                break;
-            case 'custom':
-                impact *= 1.2; // Custom systems have medium impact
-                break;
-            case 'server':
-                impact *= 1.8; // Server systems have high-impact
-                break;
-            case 'external':
-                impact *= 1.0; // External systems have standard impact
-                break;
-        }
-        
-        // Adjust by tier factor
-        impact *= tierFactor;
-        
-        // Round to integer
-        return Math.round(impact);
-    }
-    
-    // Estimate recovery time based on impact data
-    function estimateRecoveryTime(primarySystems, secondaryImpactSystems, tertiaryImpactSystems) {
-        // Base recovery time in hours
-        let recoveryTime = 2;
-        
-        // Add time based on number of affected systems
-        recoveryTime += primarySystems.length * 2; // 2 hours per primary system
-        recoveryTime += secondaryImpactSystems.length * 0.8; // 48 minutes per secondary impact system
-        recoveryTime += tertiaryImpactSystems.length * 0.3; // 18 minutes per tertiary impact system
-        
-        // Add complexity factor based on system types
-        const hasCore = primarySystems.some(s => s.category.slug === 'core') || 
-                      secondaryImpactSystems.some(s => s.category.slug === 'core');
-                      
-        const hasExternal = primarySystems.some(s => s.category.slug === 'external') || 
-                          secondaryImpactSystems.some(s => s.category.slug === 'external');
-        
-        const hasServer = primarySystems.some(s => s.category.slug === 'server');
-        
-        if (hasCore) recoveryTime *= 1.5; // Core systems take 50% longer to recover
-        if (hasExternal) recoveryTime *= 1.3; // External systems add 30% to recovery time
-        if (hasServer) recoveryTime *= 1.8; // Server failures have longest recovery
-        
-        // Check for SSO or hosting dependencies in primary impact
-        const hasSsoProvider = primarySystems.some(s => s.isSsoProvider);
-        const hasHostingProvider = primarySystems.some(s => s.isHostingProvider);
-        
-        if (hasSsoProvider) recoveryTime *= 1.4; // SSO failures are complex to restore
-        if (hasHostingProvider) recoveryTime *= 1.7; // Hosting failures take longest to recover
-        
-        // Round to nearest 0.5 hour
-        return Math.round(recoveryTime * 2) / 2;
-    }
-    
-    // Estimate user impact based on impact data
-    function estimateUserImpact(primarySystems, criticalityScore) {
-        // Calculate user impact based on primary systems and overall criticality
-        const totalImpact = primarySystems.reduce((sum, system) => sum + system.impact, 0);
-        
-        // Include criticality score in assessment
-        const combinedScore = totalImpact + (criticalityScore * 0.2);
-        
-        if (combinedScore > 50 || primarySystems.some(s => s.isSsoProvider)) return "Critical";
-        if (combinedScore > 35) return "High";
-        if (combinedScore > 20) return "Medium";
-        return "Low";
-    }
-    
-    // Estimate business impact based on impact data
-    function estimateBusinessImpact(primarySystems, secondaryImpactSystems, systemId, graph) {
-        // Business impact categories
-        const categories = {
-            "Multiple Departments": 3,
-            "Cross-Department": 2,
-            "Single Department": 1,
-            "Limited": 0
-        };
-        
-        // Default to Limited impact
-        let impact = "Limited";
-        
-        // Check if core systems are affected
-        if (primarySystems.some(s => s.category.slug === 'core') || 
-            secondaryImpactSystems.length > 5) {
-            impact = "Multiple Departments";
-        } else if (primarySystems.length > 2 || 
-                 secondaryImpactSystems.some(s => s.category.slug === 'core')) {
-            impact = "Cross-Department";
-        } else if (primarySystems.length > 0) {
-            impact = "Single Department";
-        }
-        
-        // Special case for SSO or hosting
-        if (graph.ssoRelations[systemId] || 
-            graph.hostingRelations[systemId] ||
-            primarySystems.some(s => s.isSsoProvider || s.isHostingProvider)) {
-            // SSO or hosting failures usually affect multiple departments
-            impact = "Multiple Departments";
-        }
-        
-        return impact;
-    }
 
-    // Estimate downtime cost based on impact data
-    function estimateDowntimeCost(primarySystems, secondaryImpactSystems, tertiaryImpactSystems) {
-        // Base cost per hour of downtime (this would be configured per organization)
-        const baseCostPerHour = 1000; // $1000 per hour
-        
-        // Calculate impact-based multiplier
-        let impactMultiplier = 1.0;
-        
-        // Factor in system categories and counts
-        if (primarySystems.some(s => s.category.slug === 'core')) {
-            impactMultiplier *= 3.0; // Core systems triple the cost
-        }
-        
-        if (primarySystems.some(s => s.isSsoProvider || s.category.slug === 'server')) {
-            impactMultiplier *= 2.5; // SSO or server failures are very costly
-        }
-        
-        // Scale based on number of affected systems
-        const systemsCount = primarySystems.length + 
-                          (secondaryImpactSystems.length * 0.5) + 
-                          (tertiaryImpactSystems.length * 0.2);
-                          
-        if (systemsCount > 20) impactMultiplier *= 2.0;
-        else if (systemsCount > 10) impactMultiplier *= 1.5;
-        else if (systemsCount > 5) impactMultiplier *= 1.2;
-        
-        // Estimate recovery time
-        const recoveryHours = estimateRecoveryTime(primarySystems, secondaryImpactSystems, tertiaryImpactSystems);
-        
-        // Calculate total cost
-        const totalCost = Math.round(baseCostPerHour * impactMultiplier * recoveryHours);
-        
-        return totalCost;
-    }
+// Perform disaster impact analysis
+function performDisasterImpactAnalysis() {
+    console.log("Starting disaster impact analysis...");
     
-    // Update the impact summary on the page
-function updateImpactSummary(impactData) {
-    // Check if elements exist before trying to update them
-    const totalAffectedEl = document.getElementById('total-affected-count');
-    if (totalAffectedEl) {
-        totalAffectedEl.textContent = `${impactData.systemsCount} systems affected`;
-    }
+    // Build a complete dependency graph from the relationship data
+    dependencyGraph = buildDependencyGraph();
     
-    // Update the impact progress bar - scale to match the calculated criticality
-    const progressEl = document.getElementById('impact-progress');
-    if (progressEl) {
-        const maxCriticality = 100; // Maximum possible criticality score for scaling
-        const progressPercentage = Math.min(100, (impactData.criticalityScore / maxCriticality) * 100);
-        progressEl.style.width = progressPercentage + "%";
-    }
+    // Log the dependency graph for debugging
+    console.log("Dependency graph built:", dependencyGraph);
     
-    // Update recovery metrics
-    const systemsAffectedEl = document.getElementById('systems-affected');
-    if (systemsAffectedEl) {
-        systemsAffectedEl.textContent = impactData.systemsCount;
-    }
+    // Calculate impact tiers based on dependency graph traversal
+    impactData = calculateImpactTiers(currentSystemId, dependencyGraph);
     
-    const recoveryTimeEl = document.getElementById('recovery-time');
-    if (recoveryTimeEl) {
-        recoveryTimeEl.textContent = impactData.recoveryTime <= 24 ? 
-            `${impactData.recoveryTime} hours` : 
-            `${Math.round(impactData.recoveryTime / 24)} days`;
-    }
+    // Generate complete downstream impact paths
+    completeImpactPaths = generateCompleteImpactPaths(currentSystemId, dependencyGraph);
     
-    const userImpactEl = document.getElementById('user-impact');
-    if (userImpactEl) {
-        userImpactEl.textContent = impactData.userImpact;
-    }
-    
-    const businessImpactEl = document.getElementById('business-impact');
-    if (businessImpactEl) {
-        businessImpactEl.textContent = impactData.businessImpact;
-    }
-    
-    // Update estimated cost if element exists
-    const costElement = document.getElementById('estimated-cost');
-    if (costElement && impactData.estimatedCost) {
-        costElement.textContent = `$${impactData.estimatedCost.toLocaleString()}`;
-    }
-}
-    
-    // Update recovery metrics based on impact data
-    function updateRecoveryMetrics(systemCategory, impactData) {
-        // Update the recovery time display
-        document.getElementById('recovery-time').textContent = 
-            impactData.recoveryTime <= 24 ? 
-            `${impactData.recoveryTime} hours` : 
-            `${Math.round(impactData.recoveryTime / 24)} days`;
-            
-        // Update user impact display
-        document.getElementById('user-impact').textContent = impactData.userImpact;
-        
-        // Update business impact display
-        document.getElementById('business-impact').textContent = impactData.businessImpact;
-        
-        // Update systems affected count
-        document.getElementById('systems-affected').textContent = impactData.systemsCount;
-    }
+    // Update the impact summary
+    updateImpactSummary(impactData);
     
     // Populate the impacted systems by tier
-    function populateImpactedSystems(containerId, systems) {
-        const container = document.getElementById(containerId);
-        
-        if (!container) return;
-        
-        // Clear existing content
-        container.innerHTML = '';
-        
-        if (!systems || systems.length === 0) {
-            container.innerHTML = '<div class="p-4 text-sm text-gray-500 text-center">No systems in this impact category</div>';
-            return;
-        }
-        
-        // Add each system to the container
-        systems.forEach(system => {
-            const systemItem = document.createElement('div');
-            systemItem.className = 'p-4 hover:bg-gray-50 transition-colors';
-            
-            let connectionType = '';
-            if (system.connectionType === 'sso') {
-                connectionType = '<span class="text-xs text-blue-600">SSO</span>';
-            } else if (system.connectionType === 'hosting') {
-                connectionType = '<span class="text-xs text-purple-600">Hosting</span>';
-            }
-            
-            let sourceInfo = '';
-            if (system.sourceNode && system.sourceNode !== currentSystemId) {
-                // Find the source system name
-                const sourceName = dependencyGraph.nodes[system.sourceNode]?.name || 'Unknown System';
-                sourceInfo = `<div class="mt-1 text-xs text-gray-500">Dependent on: <a href="#" class="text-blue-600 view-source-btn" data-id="${system.sourceNode}">${sourceName}</a></div>`;
-            }
-            
-            systemItem.innerHTML = `
-                <div class="flex justify-between">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-900">${system.name}</h3>
-                        <div class="flex items-center mt-1 space-x-2">
-                            <span class="px-2 py-1 text-xs leading-5 font-semibold rounded-full"
-                                style="background-color: ${system.category.color}; color: ${system.category.text_color}">
-                                ${system.category.name}
-                            </span>
-                            ${connectionType ? `<span class="ml-2">${connectionType}</span>` : ''}
-                        </div>
-                        ${sourceInfo}
-                    </div>
-                    <div class="flex items-center">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Impact: ${system.impact}
-                        </span>
-                    </div>
-                </div>
-                <p class="mt-2 text-xs text-gray-500">
-                    ${system.vendor && system.vendor !== 'Unknown' ? `Vendor: ${system.vendor}` : ''}
-                    ${system.status ? `<br>Status: ${system.status.name}` : ''}
-                </p>
-                <div class="mt-2 flex justify-between">
-                    <div class="text-xs text-gray-600">
-                        <span class="font-medium">Est. Recovery:</span> ${calculateSystemRecoveryTime(system)} hours
-                    </div>
-                    <a href="/systems/${system.id}/" class="text-xs text-blue-600 hover:text-blue-800">
-                        View System Details
-                    </a>
-                </div>
-            `;
-            
-            // Add click handler for "View Source" link if present
-            const sourceButton = systemItem.querySelector('.view-source-btn');
-            if (sourceButton) {
-                sourceButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const sourceId = this.getAttribute('data-id');
-                    const sourceName = this.textContent;
-                    // Redirect to the source system details page
-                    window.location.href = `/systems/${sourceId}/`;
-                });
-            }
-            
-            container.appendChild(systemItem);
-        });
-    }
+    populateImpactedSystems('primary-impact-systems', impactData.primaryImpact);
+    populateImpactedSystems('secondary-impact-systems', impactData.secondaryImpact);
+    populateImpactedSystems('tertiary-impact-systems', impactData.tertiaryImpact);
+    populateImpactedSystems('quaternary-impact-systems', impactData.quaternaryImpact);
     
-    // Calculate recovery time for an individual system
-    function calculateSystemRecoveryTime(system) {
-        // Base recovery time for a system in hours
-        let recoveryTime = 1;
-        
-        // Adjust by system category
-        switch (system.category.slug) {
-            case 'core':
-                recoveryTime = 4;
-                break;
-            case 'integration':
-                recoveryTime = 3;
-                break;
-            case 'server':
-                recoveryTime = 5;
-                break;
-            case 'custom':
-                recoveryTime = 2.5;
-                break;
-            case 'external':
-                recoveryTime = 2;
-                break;
-        }
-        
-        // Adjust by connection type
-        if (system.connectionType === 'sso') {
-            recoveryTime *= 1.3; // SSO connections take longer to recover
-        } else if (system.connectionType === 'hosting') {
-            recoveryTime *= 1.5; // Hosting dependencies are most complex
-        }
-        
-        // Adjust by impact level (distance from source)
-        // Primary impacts recover in parallel with source, others have dependencies
-        if (system.impactLevel === 'primary') {
-            // No adjustment needed
-        } else if (system.impactLevel === 'secondary') {
-            recoveryTime *= 0.8; // Less time after primary systems are back
-        } else if (system.impactLevel === 'tertiary') {
-            recoveryTime *= 0.6; // Even less time after secondaries are back
+    // Populate the complete downstream impact paths
+    populateImpactPaths(completeImpactPaths);
+    
+    console.log("Disaster impact analysis completed.");
+}
+
+// Recovery step management functions
+function editRecoveryStep(stepId) {
+    // Fetch step details via AJAX
+    fetch(`/systems/recovery-step/${stepId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Fill form with step data
+            document.getElementById('stepId').value = data.id;
+            document.getElementById('stepTitle').value = data.title;
+            document.getElementById('stepDescription').value = data.description;
+            document.getElementById('responsibleTeam').value = data.responsible_team;
+            document.getElementById('estimatedTime').value = data.estimated_time;
+            
+            // Update modal title
+            document.getElementById('stepModalTitle').textContent = 'Edit Recovery Step';
+            
+            // Show modal
+            document.getElementById('recoveryStepModal').classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error fetching step details:', error);
+        });
+}
+
+function confirmDeleteStep(stepId) {
+    // Set step ID in delete form
+    document.getElementById('deleteStepId').value = stepId;
+    
+    // Update form action URL
+    const deleteForm = document.getElementById('deleteStepForm');
+    const systemId = currentSystemId;
+    deleteForm.action = `/systems/${systemId}/recovery-step/${stepId}/delete/`;
+    
+    // Show modal
+    document.getElementById('deleteStepModal').classList.remove('hidden');
+}
+
+function moveRecoveryStep(stepId, direction) {
+    const systemId = currentSystemId;
+    
+    // Create request data
+    const data = {
+        step_id: stepId,
+        direction: direction
+    };
+    
+    // Send AJAX request
+    fetch(`/systems/${systemId}/move-recovery-step/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            // Reload the page to show the updated order
+            window.location.reload();
         } else {
-            recoveryTime *= 0.4; // Minimal time for distant systems
+            console.error('Error moving step:', response.statusText);
         }
-        
-        // Factor in system impact score
-        recoveryTime = recoveryTime * (0.8 + (system.impact / 20));
-        
-        // Round to 1 decimal place
-        return Math.round(recoveryTime * 10) / 10;
+    })
+    .catch(error => {
+        console.error('Error moving step:', error);
+    });
+}
+
+// Helper function to get CSRF token
+function getCsrfToken() {
+    const elements = document.getElementsByName('csrfmiddlewaretoken');
+    if (elements.length > 0) {
+        return elements[0].value;
     }
     
-    // Function to highlight a specific path
-    function highlightPath(pathId, targetSystemId) {
-        alert(`Path highlighting feature is not implemented in this version. You can view the details of target system ${targetSystemId} on its detail page.`);
-    }
-    
-    // Populate the impact paths section
-    function populateImpactPaths(paths) {
-        const container = document.getElementById('impact-paths-container');
-        if (!container) return;
-        
-        // Clear existing content
-        container.innerHTML = '';
-        
-        // Update total paths count
-        document.getElementById('totalPathsCount').textContent = `${paths.length} paths identified`;
-        
-        if (!paths || paths.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state py-8">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No impact paths found</h3>
-                    <p class="mt-1 text-sm text-gray-500">
-                        No dependency chains were identified in the analysis.
-                    </p>
-                </div>
-            `;
-            return;
+    // Try to get from cookie
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith('csrftoken=')) {
+            return cookie.substring('csrftoken='.length);
         }
+    }
+    
+    return '';
+}
+
+// Document ready initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup filters for impact paths
+    const pathTypeFilter = document.getElementById('pathTypeFilter');
+    if (pathTypeFilter) {
+        pathTypeFilter.addEventListener('change', filterImpactPaths);
+    }
+    
+    const pathSortOrder = document.getElementById('pathSortOrder');
+    if (pathSortOrder) {
+        pathSortOrder.addEventListener('change', filterImpactPaths);
+    }
+    
+    const showDirectConnectionsPath = document.getElementById('showDirectConnectionsPath');
+    if (showDirectConnectionsPath) {
+        showDirectConnectionsPath.addEventListener('change', filterImpactPaths);
+    }
+    
+    const showSSOConnectionsPath = document.getElementById('showSSOConnectionsPath');
+    if (showSSOConnectionsPath) {
+        showSSOConnectionsPath.addEventListener('change', filterImpactPaths);
+    }
+    
+    const showHostingConnectionsPath = document.getElementById('showHostingConnectionsPath');
+    if (showHostingConnectionsPath) {
+        showHostingConnectionsPath.addEventListener('change', filterImpactPaths);
+    }
+    
+    // Setup filters for impact breakdown
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    const vendorFilter = document.getElementById('vendorFilter');
+    if (vendorFilter) {
+        vendorFilter.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    const systemSort = document.getElementById('systemSort');
+    if (systemSort) {
+        systemSort.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    const showDirectConnections = document.getElementById('showDirectConnections');
+    if (showDirectConnections) {
+        showDirectConnections.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    const showSSOConnections = document.getElementById('showSSOConnections');
+    if (showSSOConnections) {
+        showSSOConnections.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    const showHostingConnections = document.getElementById('showHostingConnections');
+    if (showHostingConnections) {
+        showHostingConnections.addEventListener('change', filterImpactBreakdown);
+    }
+    
+    // Setup collapsible sections
+    const impactPathsHeader = document.getElementById('impactPathsHeader');
+    const impactPathsContent = document.getElementById('impactPathsContent');
+    const impactBreakdownHeader = document.getElementById('impactBreakdownHeader');
+    const impactBreakdownContent = document.getElementById('impactBreakdownContent');
+    
+    function toggleCollapsible(header, content) {
+        header.classList.toggle('collapsed');
+        content.classList.toggle('collapsed');
         
-        // Group paths by impact level
-        const groupedPaths = {
-            primary: paths.filter(p => p.targetSystem.impactLevel === 'primary'),
-            secondary: paths.filter(p => p.targetSystem.impactLevel === 'secondary'),
-            tertiary: paths.filter(p => p.targetSystem.impactLevel === 'tertiary'),
-            quaternary: paths.filter(p => p.targetSystem.impactLevel === 'quaternary')
-        };
-        
-        // Create path items for each group
-        ['primary', 'secondary', 'tertiary', 'quaternary'].forEach(level => {
-            const levelPaths = groupedPaths[level];
-            if (levelPaths.length === 0) return;
+        // Update the arrow icon
+        const arrow = header.querySelector('svg');
+        if (header.classList.contains('collapsed')) {
+            arrow.style.transform = 'rotate(-90deg)';
+        } else {
+            arrow.style.transform = 'rotate(0)';
+        }
+    }
+    
+    if (impactPathsHeader) {
+        impactPathsHeader.addEventListener('click', function() {
+            toggleCollapsible(this, impactPathsContent);
+        });
+    }
+    
+    if (impactBreakdownHeader) {
+        impactBreakdownHeader.addEventListener('click', function() {
+            toggleCollapsible(this, impactBreakdownContent);
+        });
+    }
+    
+    // Add run simulation button event listeners
+    const runDisasterSimulationBtn = document.getElementById('runDisasterSimulation');
+    const runSimulationFromPlaceholderBtn = document.getElementById('runSimulationFromPlaceholder');
+    
+    if (runDisasterSimulationBtn) {
+        runDisasterSimulationBtn.addEventListener('click', startSimulation);
+    }
+    
+    if (runSimulationFromPlaceholderBtn) {
+        runSimulationFromPlaceholderBtn.addEventListener('click', startSimulation);
+    }
+    
+    // Setup recovery step modal handlers
+    const addRecoveryStepBtn = document.getElementById('addRecoveryStepBtn');
+    const recoveryStepModal = document.getElementById('recoveryStepModal');
+    const cancelStepModal = document.getElementById('cancelStepModal');
+    
+    if (addRecoveryStepBtn && recoveryStepModal) {
+        addRecoveryStepBtn.addEventListener('click', function() {
+            // Clear form values
+            document.getElementById('stepId').value = '';
+            document.getElementById('stepTitle').value = '';
+            document.getElementById('stepDescription').value = '';
+            document.getElementById('responsibleTeam').value = '';
+            document.getElementById('estimatedTime').value = '';
             
-            const levelTitle = {
-                primary: 'Primary Impact Paths (1 hop)',
-                secondary: 'Secondary Impact Paths (2 hops)',
-                tertiary: 'Tertiary Impact Paths (3 hops)',
-                quaternary: 'Distant Impact Paths (4+ hops)'
-            }[level];
+            // Update modal title
+            document.getElementById('stepModalTitle').textContent = 'Add Recovery Step';
             
-            // Create section header
-            const sectionDiv = document.createElement('div');
-            sectionDiv.className = `impact-paths-section impact-level-${level}`;
-            sectionDiv.innerHTML = `
-                <h4 class="text-base font-medium text-gray-900 mb-2">${levelTitle} (${levelPaths.length})</h4>
-                <div class="path-items space-y-3" id="path-items-${level}"></div>
-            `;
-            
-            container.appendChild(sectionDiv);
-            
-            // Add paths to this section
-            const pathItemsContainer = sectionDiv.querySelector(`#path-items-${level}`);
-            levelPaths.forEach(path => {
-                const pathItem = createPathItem(path, level);
-                pathItemsContainer.appendChild(pathItem);
+            // Show modal
+            recoveryStepModal.classList.remove('hidden');
+        });
+    }
+    
+    if (cancelStepModal) {
+        cancelStepModal.addEventListener('click', function() {
+            recoveryStepModal.classList.add('hidden');
+        });
+    }
+    
+    // Setup delete recovery step modal handlers
+    const deleteStepModal = document.getElementById('deleteStepModal');
+    const cancelDeleteStep = document.getElementById('cancelDeleteStep');
+    
+    if (cancelDeleteStep && deleteStepModal) {
+        cancelDeleteStep.addEventListener('click', function() {
+            deleteStepModal.classList.add('hidden');
+        });
+    }
+    
+    // Attach event handlers for dynamically created buttons
+    function attachDynamicEventListeners() {
+        // Edit step buttons
+        document.querySelectorAll('.edit-step').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                editRecoveryStep(stepId);
             });
         });
         
-        // Initial filtering
-        filterImpactPaths();
-        
-        // Re-attach event listeners after dynamically adding path items
-        attachDynamicEventListeners();
-    }
-    
-    // Create a path item element
-    function createPathItem(path, level) {
-        const pathItem = document.createElement('div');
-        pathItem.className = `impact-path path-level-${level} path-item`;
-        pathItem.setAttribute('data-path-id', path.id);
-        pathItem.setAttribute('data-impact-level', level);
-        pathItem.setAttribute('data-path-length', path.length);
-        pathItem.setAttribute('data-impact-score', path.impactScore);
-        pathItem.setAttribute('data-target-system', path.targetSystem.id);
-        
-        // Track connection types
-        const connectionTypes = path.connections.map(c => c.type);
-        pathItem.setAttribute('data-connection-types', connectionTypes.join(','));
-        
-        // Create the header
-        const header = document.createElement('div');
-        header.className = `impact-path-header path-header-${level} flex justify-between items-center`;
-        
-        const targetSystem = path.targetSystem;
-        
-        header.innerHTML = `
-            <div>
-                <span class="font-medium">${targetSystem.name}</span>
-                <span class="ml-2 text-xs px-2 py-0.5 rounded-full" style="background-color: ${targetSystem.category.color}; color: ${targetSystem.category.text_color}">
-                    ${targetSystem.category.name}
-                </span>
-            </div>
-            <div class="flex items-center">
-                <span class="text-xs mr-3">Path Length: ${path.length-1}</span>
-                <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
-                    Impact Score: ${path.impactScore}
-                </span>
-            </div>
-        `;
-        
-        pathItem.appendChild(header);
-        
-        // Create the body with dependency chain
-        const body = document.createElement('div');
-        body.className = 'impact-path-body';
-        
-        // Create dependency chain visualization
-        const chain = document.createElement('div');
-        chain.className = 'dependency-chain';
-        
-        // Add each system in the path with appropriate styling
-        path.path.forEach((system, idx) => {
-            // System node
-            const systemNode = document.createElement('div');
-            systemNode.className = `chain-node`;
-            
-            // Add special styling based on system type and position
-            if (idx === 0) {
-                // Source system (the one being analyzed)
-                systemNode.style.backgroundColor = '#ffd700';
-                systemNode.style.color = '#7c6900';
-                systemNode.style.border = '1px solid #ff8c00';
-            } else {
-                // Affected systems based on level
-                if (idx === path.path.length - 1) {
-                    // Target system (end of the path)
-                    const levelColors = {
-                        primary: '#fee2e2',
-                        secondary: '#ffedd5',
-                        tertiary: '#fef9c3',
-                        quaternary: '#dbeafe'
-                    };
-                    
-                    const levelTextColors = {
-                        primary: '#b91c1c',
-                        secondary: '#c2410c',
-                        tertiary: '#854d0e',
-                        quaternary: '#0369a1'
-                    };
-                    
-                    const levelBorders = {
-                        primary: '#ef4444',
-                        secondary: '#f97316',
-                        tertiary: '#eab308',
-                        quaternary: '#60a5fa'
-                    };
-                    
-                    systemNode.style.backgroundColor = levelColors[targetSystem.impactLevel] || levelColors.quaternary;
-                    systemNode.style.color = levelTextColors[targetSystem.impactLevel] || levelTextColors.quaternary;
-                    systemNode.style.border = `1px solid ${levelBorders[targetSystem.impactLevel] || levelBorders.quaternary}`;
-                } else {
-                    // Intermediate node
-                    systemNode.style.backgroundColor = '#f3f4f6';
-                    systemNode.style.color = '#4b5563';
-                    systemNode.style.border = '1px solid #d1d5db';
-                }
-            }
-            
-            // Add system name
-            systemNode.textContent = system.name;
-            
-            // Add connection badge if appropriate
-            if (idx < path.path.length - 1) {
-                const connection = path.connections.find(c => 
-                    c.source === system.id && c.target === path.path[idx + 1].id
-                );
-                
-                if (connection && connection.type !== 'direct') {
-                    const badge = document.createElement('span');
-                    badge.className = `connection-type-badge connection-${connection.type}-badge`;
-                    badge.textContent = connection.type === 'sso' ? 'SSO' : 'Hosting';
-                    systemNode.appendChild(badge);
-                }
-            }
-            
-            chain.appendChild(systemNode);
-            
-            // Add arrow if not the last system
-            if (idx < path.path.length - 1) {
-                const arrow = document.createElement('div');
-                arrow.className = 'chain-arrow';
-                arrow.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                `;
-                chain.appendChild(arrow);
-            }
-        });
-        
-        body.appendChild(chain);
-        
-        // Add view path button
-        const viewButton = document.createElement('div');
-        viewButton.className = 'mt-3 text-right';
-        viewButton.innerHTML = `
-            <a href="/systems/${targetSystem.id}/" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View System Details
-            </a>
-        `;
-        
-        body.appendChild(viewButton);
-        pathItem.appendChild(body);
-        
-        return pathItem;
-    }
-    
-    // Filter and sort impact paths based on user selections
-    function filterImpactPaths() {
-        const impactLevel = pathTypeFilter ? pathTypeFilter.value : 'all';
-        const sortBy = pathSortOrder ? pathSortOrder.value : 'impact';
-        const showDirect = showDirectConnections ? showDirectConnections.checked : true;
-        const showSSO = showSSOConnections ? showSSOConnections.checked : true;
-        const showHosting = showHostingConnections ? showHostingConnections.checked : true;
-        
-        // Get all path items
-        const allPaths = document.querySelectorAll('.path-item');
-        
-        allPaths.forEach(path => {
-            // Get path attributes
-            const pathLevel = path.getAttribute('data-impact-level');
-            const connectionTypes = path.getAttribute('data-connection-types').split(',');
-            
-            // Check if this path should be shown based on filters
-            let showPath = true;
-            
-            // Filter by impact level
-            if (impactLevel !== 'all' && pathLevel !== impactLevel) {
-                showPath = false;
-            }
-            
-            // Filter by connection types
-            const hasDirectOnly = connectionTypes.every(type => type === 'direct');
-            const hasSSO = connectionTypes.includes('sso');
-            const hasHosting = connectionTypes.includes('hosting');
-            
-            if (
-                (!showDirect && hasDirectOnly) ||
-                (!showSSO && hasSSO) ||
-                (!showHosting && hasHosting)
-            ) {
-                showPath = false;
-            }
-            
-            // Show/hide this path
-            path.style.display = showPath ? 'block' : 'none';
-        });
-        
-        // Sort visible paths
-        sortImpactPaths(sortBy);
-    }
-    
-    // Sort impact paths based on sort criteria
-    function sortImpactPaths(sortBy) {
-        // Get all path sections
-        const pathSections = document.querySelectorAll('.impact-paths-section');
-        
-        pathSections.forEach(section => {
-            const pathItemsContainer = section.querySelector('.path-items');
-            const pathItems = Array.from(pathItemsContainer.children);
-            
-            // Sort paths based on criteria
-            pathItems.sort((a, b) => {
-                if (sortBy === 'impact') {
-                    // Sort by impact score (highest first)
-                    return parseInt(b.getAttribute('data-impact-score')) - parseInt(a.getAttribute('data-impact-score'));
-                } else if (sortBy === 'path-length') {
-                    // Sort by path length (shortest first)
-                    return parseInt(a.getAttribute('data-path-length')) - parseInt(b.getAttribute('data-path-length'));
-                } else if (sortBy === 'alphabetical') {
-                    // Sort by system name (A-Z)
-                    const nameA = a.querySelector('.impact-path-header').innerText.trim().toLowerCase();
-                    const nameB = b.querySelector('.impact-path-header').innerText.trim().toLowerCase();
-                    return nameA.localeCompare(nameB);
-                }
-                return 0;
+        // Delete step buttons
+        document.querySelectorAll('.delete-step').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                confirmDeleteStep(stepId);
             });
-            
-            // Reappend sorted items
-            pathItems.forEach(item => {
-                pathItemsContainer.appendChild(item);
+        });
+        
+        // Move step up buttons
+        document.querySelectorAll('.move-step-up').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                moveRecoveryStep(stepId, 'up');
+            });
+        });
+        
+        // Move step down buttons
+        document.querySelectorAll('.move-step-down').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const stepId = this.getAttribute('data-step-id');
+                moveRecoveryStep(stepId, 'down');
             });
         });
     }
+    
+    // Call this initially to set up existing buttons
+    attachDynamicEventListeners();
 });
 </script>
 {% endblock %}
