@@ -1075,11 +1075,9 @@ function buildDependencyGraph() {
             return;
         }
         
-        // IMPORTANT: Correctly representing dependency relationships
         // When sourceId depends on targetId, it means:
         // - sourceId needs targetId to function
         // - If targetId fails, sourceId is impacted
-        
         console.log(`Adding relationship: ${sourceId} depends on ${targetId} (type: ${type})`);
         
         // Add dependency: source depends on target
@@ -1101,13 +1099,15 @@ function buildDependencyGraph() {
     }
     
     // Process direct dependencies from server-side data
-    dependencies.forEach(dep => {
-        addDependencyRelationship(currentSystemId, dep.id, 'direct');
+    dependents.forEach(dep => {
+        // When dep depends on currentSystemId
+        addDependencyRelationship(dep.id, currentSystemId, 'direct');
     });
     
-    // Process dependents from server-side data
-    dependents.forEach(dep => {
-        addDependencyRelationship(dep.id, currentSystemId, 'direct');
+    // Process direct dependencies from server-side data
+    dependencies.forEach(dep => {
+        // When currentSystemId depends on dep
+        addDependencyRelationship(currentSystemId, dep.id, 'direct');
     });
     
     // Process SSO relationships
@@ -1141,94 +1141,91 @@ function calculateImpactTiers(systemId, dependencyGraph) {
     const tertiaryImpact = [];
     const quaternaryImpact = [];
     
-    // Track visited nodes to prevent duplicates and cycles
-    const visitedNodes = new Set([systemId]);
-    
-    // Track impact level of each node
-    const nodeImpactLevels = {};
-    nodeImpactLevels[systemId] = 0; // Source system at level 0
+    // Track visited nodes and their levels
+    const visitedNodes = new Map();
+    visitedNodes.set(systemId, 0); // Source system at level 0
     
     // Track overall impact score
     let criticalityScore = 0;
     
-    // Queue for breadth-first traversal
-    // We're going from the failing system outward to its dependents
+    // Simple BFS to traverse the graph and identify impact tiers
     const queue = [{id: systemId, level: 0}];
     
     while (queue.length > 0) {
-        const { id, level } = queue.shift();
+        const current = queue.shift();
+        const id = current.id;
+        const level = current.level;
         
-        // Skip the source system (level 0)
-        if (level > 0) {
-            // Get system data
-            const system = dependencyGraph.nodes[id];
-            if (!system) {
-                console.warn(`Missing node data for system ${id}`);
+        // Get systems that depend on this system
+        console.log(`Processing system ${id} at level ${level}`);
+        console.log(`Dependents: ${dependencyGraph.dependents[id]}`);
+        
+        if (!dependencyGraph.dependents[id]) continue;
+        
+        // Process each dependent system
+        for (const dependentId of dependencyGraph.dependents[id]) {
+            // Skip if already processed at a lower or equal level
+            if (visitedNodes.has(dependentId) && visitedNodes.get(dependentId) <= level + 1) {
                 continue;
             }
             
-            // Calculate impact score with diminishing factor by level
+            // Mark as visited at this level
+            visitedNodes.set(dependentId, level + 1);
+            
+            // Get the system data
+            const system = dependencyGraph.nodes[dependentId];
+            if (!system) {
+                console.warn(`Missing node data for system ${dependentId}`);
+                continue;
+            }
+            
+            // Calculate impact score
             const tierFactor = Math.max(0.1, 1 - (level * 0.2));
             const impact = calculateSystemImpact(system, tierFactor);
             
-            // Get connection type from parent
-            // This is simplified and would need to be enhanced for full accuracy
+            // Determine connection type
             let connectionType = 'direct';
-            if (dependencyGraph.ssoRelations[id]) {
+            if (dependencyGraph.ssoRelations[dependentId] === id) {
                 connectionType = 'sso';
-            } else if (dependencyGraph.hostingRelations[id]) {
+            } else if (dependencyGraph.hostingRelations[dependentId] === id) {
                 connectionType = 'hosting';
             }
             
-            // Build impact data object
+            // Create impact data object
             const impactData = {
                 ...system,
                 impact,
-                impactLevel: getImpactLevelName(level),
-                distanceFromSource: level,
-                connectionType: connectionType
+                impactLevel: getImpactLevelName(level + 1),
+                distanceFromSource: level + 1,
+                connectionType,
+                sourceNode: id // Track what system this depends on
             };
             
-            // Add to appropriate impact tier
-            if (level === 1) {
+            // Add to the appropriate tier
+            if (level === 0) {
+                // Level 0 dependents are primary impact
                 primaryImpact.push(impactData);
                 criticalityScore += impact;
-            } else if (level === 2) {
+                console.log(`Added system ${dependentId} to primary impact`);
+            } else if (level === 1) {
+                // Level 1 dependents are secondary impact
                 secondaryImpact.push(impactData);
                 criticalityScore += impact * 0.7;
-            } else if (level === 3) {
+                console.log(`Added system ${dependentId} to secondary impact`);
+            } else if (level === 2) {
+                // Level 2 dependents are tertiary impact
                 tertiaryImpact.push(impactData);
                 criticalityScore += impact * 0.5;
+                console.log(`Added system ${dependentId} to tertiary impact`);
             } else {
+                // Level 3+ dependents are quaternary impact
                 quaternaryImpact.push(impactData);
                 criticalityScore += impact * 0.3;
+                console.log(`Added system ${dependentId} to quaternary impact`);
             }
-        }
-        
-        // Get systems that DEPEND ON this system (these are the systems that will be affected)
-        const dependentIds = dependencyGraph.dependents[id] || [];
-        console.log(`System ${id} has ${dependentIds.length} dependents: ${dependentIds.join(', ')}`);
-        
-        for (const dependentId of dependentIds) {
-            // Skip if already visited
-            if (visitedNodes.has(dependentId)) {
-                console.log(`Skipping already visited node ${dependentId}`);
-                continue;
-            }
-            
-            // Mark as visited
-            visitedNodes.add(dependentId);
-            
-            // Record this node's impact level (parent level + 1)
-            nodeImpactLevels[dependentId] = level + 1;
             
             // Add to queue for next level processing
-            queue.push({
-                id: dependentId,
-                level: level + 1
-            });
-            
-            console.log(`Added node ${dependentId} to queue at level ${level + 1}`);
+            queue.push({id: dependentId, level: level + 1});
         }
     }
     
@@ -1260,6 +1257,78 @@ function calculateImpactTiers(systemId, dependencyGraph) {
     };
 }
 
+// Simple debugging function to trace dependency chains
+function debugDependencyChains() {
+  console.log("======== DEBUGGING DEPENDENCY CHAINS ========");
+  console.log("Starting from system:", currentSystemId, currentSystemName);
+  
+  // Build a simple map of dependents (systems that would be affected by the failure of each system)
+  const dependentsMap = {};
+  
+  // Initialize map
+  Object.keys(dependencyGraph.nodes).forEach(id => {
+    dependentsMap[id] = [];
+  });
+  
+  // Fill the map from the dependency relationships
+  Object.entries(dependencyGraph.dependencies).forEach(([systemId, dependencies]) => {
+    dependencies.forEach(depId => {
+      // If systemId depends on depId, then systemId is affected when depId fails
+      if (!dependentsMap[depId].includes(parseInt(systemId))) {
+        dependentsMap[depId].push(parseInt(systemId));
+      }
+    });
+  });
+  
+  // Log the complete dependents map
+  console.log("Complete dependents map:", dependentsMap);
+  
+  // Run a simple BFS to find all systems affected
+  const visited = new Set([currentSystemId]);
+  const queue = [{id: currentSystemId, level: 0}];
+  const primaryImpact = [];
+  const secondaryImpact = [];
+  const tertiaryImpact = [];
+  const quaternaryImpact = [];
+  
+  console.log("Finding affected systems level by level...");
+  
+  while (queue.length > 0) {
+    const {id, level} = queue.shift();
+    console.log(`Processing system ${id} (${dependencyGraph.nodes[id]?.name}) at level ${level}`);
+    
+    // Get systems that depend on this system
+    const dependents = dependentsMap[id] || [];
+    console.log(`  Has ${dependents.length} dependents:`, dependents);
+    
+    for (const depId of dependents) {
+      if (visited.has(depId)) continue;
+      
+      visited.add(depId);
+      const system = dependencyGraph.nodes[depId];
+      if (!system) continue;
+      
+      console.log(`  Added dependent ${depId} (${system.name}) at level ${level+1}`);
+      
+      // Add to appropriate level
+      if (level === 0) primaryImpact.push(system);
+      else if (level === 1) secondaryImpact.push(system);
+      else if (level === 2) tertiaryImpact.push(system);
+      else quaternaryImpact.push(system);
+      
+      // Add to queue for next level
+      queue.push({id: depId, level: level+1});
+    }
+  }
+  
+  console.log("=== Impact Levels ===");
+  console.log("Primary:", primaryImpact.map(s => `${s.id}: ${s.name}`));
+  console.log("Secondary:", secondaryImpact.map(s => `${s.id}: ${s.name}`));
+  console.log("Tertiary:", tertiaryImpact.map(s => `${s.id}: ${s.name}`));
+  console.log("Quaternary:", quaternaryImpact.map(s => `${s.id}: ${s.name}`));
+  console.log("======== END DEBUGGING ========");
+}
+
 // Generate complete downstream impact paths for all affected systems
 function generateCompleteImpactPaths(sourceSystemId, graph) {
     console.log("Generating complete downstream impact paths from source system:", sourceSystemId);
@@ -1282,7 +1351,7 @@ function generateCompleteImpactPaths(sourceSystemId, graph) {
     console.log("Building dependent map...");
     Object.entries(graph.dependencies).forEach(([systemId, dependencies]) => {
         dependencies.forEach(depId => {
-            // When B fails, A is impacted
+            // When depId fails, systemId is impacted
             if (!dependentMap[depId].includes(parseInt(systemId))) {
                 dependentMap[depId].push(parseInt(systemId));
                 console.log(`Added dependent: ${systemId} depends on ${depId}`);
@@ -1316,11 +1385,14 @@ function generateCompleteImpactPaths(sourceSystemId, graph) {
     // Enhanced approach to generate all possible downstream paths
     // Using DFS to find all paths from the source system to its dependents
     function findAllPaths(startId, visited = new Set(), currentPath = []) {
+        visited.add(startId);
+        
         // Add current node to path
         currentPath.push(startId);
         
         // Get all immediate dependents of this system
         const dependents = dependentMap[startId] || [];
+        console.log(`Finding paths from ${startId}, dependents: ${dependents.join(', ')}`);
         
         // If no dependents, this is a leaf node - return the path
         if (dependents.length === 0) {
@@ -1334,30 +1406,35 @@ function generateCompleteImpactPaths(sourceSystemId, graph) {
         // Visit each dependent and get all paths from there
         for (const depId of dependents) {
             // Skip if already on our current path to avoid cycles
-            if (currentPath.includes(depId)) continue;
+            if (currentPath.includes(depId)) {
+                console.log(`Skipping ${depId} to avoid cycle`);
+                continue;
+            }
             
-            // Create a new set for this branch to avoid modifying the visited set for other branches
-            const newVisited = new Set(visited);
-            newVisited.add(depId);
+            // Skip if already visited in this branch to avoid redundant paths
+            if (visited.has(depId)) {
+                console.log(`Skipping already visited node ${depId}`);
+                continue;
+            }
             
             // Find all paths from this dependent
-            const pathsFromDep = findAllPaths(depId, newVisited, [...currentPath]);
+            const pathsFromDep = findAllPaths(depId, new Set(visited), [...currentPath]);
+            console.log(`Found ${pathsFromDep.length} paths from dependent ${depId}`);
             
             // Add all found paths to our collection
             allPaths = allPaths.concat(pathsFromDep);
         }
         
-        // If no dependent paths found (all were cycles), return just this path
-        // if it's longer than 1 node
-        if (allPaths.length === 0 && currentPath.length > 1) {
-            return [currentPath];
+        // Also add the direct path if it's longer than 1 node (meaning it has a dependent)
+        if (currentPath.length > 1) {
+            allPaths.push([...currentPath]);
         }
         
         return allPaths;
     }
     
     // Find all paths from the source system
-    const paths = findAllPaths(sourceSystemId, new Set([sourceSystemId]));
+    const paths = findAllPaths(sourceSystemId, new Set(), []);
     console.log(`Found ${paths.length} complete impact paths`);
     
     // Convert paths to the format needed for visualization
@@ -1448,6 +1525,138 @@ function getImpactLevelName(level) {
         case 3: return 'tertiary';
         default: return 'quaternary'; // Level 4 and beyond
     }
+}
+
+// Direct function to fix dependency traversal
+function fixDependencyAnalysis() {
+  console.log("Running direct dependency fix...");
+  
+  // Create direct maps
+  const directDependentsMap = {};
+  
+  // Initialize with all systems
+  Object.keys(dependencyGraph.nodes).forEach(id => {
+    directDependentsMap[id] = [];
+  });
+  
+  // Fill direct dependents map
+  Object.entries(dependencyGraph.dependencies).forEach(([systemId, dependencies]) => {
+    // If systemId depends on depId, systemId is a dependent of depId
+    dependencies.forEach(depId => {
+      directDependentsMap[depId].push(parseInt(systemId));
+    });
+  });
+  
+  console.log("Direct dependents map:", directDependentsMap);
+  
+  // Find all impacted systems by level using BFS
+  const visited = new Set([currentSystemId]);
+  let currentLevel = [currentSystemId];
+  let level = 0;
+  
+  const impactLevels = {
+    0: [], // Source (not displayed)
+    1: [], // Primary
+    2: [], // Secondary
+    3: [], // Tertiary
+    4: []  // Quaternary (including higher levels)
+  };
+  
+  // Process each level
+  while (currentLevel.length > 0 && level < 5) {
+    console.log(`Processing level ${level} with ${currentLevel.length} systems`);
+    const nextLevel = [];
+    
+    // Process each system at this level
+    for (const id of currentLevel) {
+      // Skip adding the source system to results
+      if (level > 0) {
+        const system = dependencyGraph.nodes[id];
+        if (system) {
+          // Calculate impact and create impact data object
+          const tierFactor = Math.max(0.1, 1 - (level * 0.2));
+          const impact = calculateSystemImpact(system, tierFactor);
+          
+          const impactData = {
+            ...system,
+            impact,
+            impactLevel: getImpactLevelName(level),
+            distanceFromSource: level
+          };
+          
+          // Add to appropriate level
+          if (level <= 4) {
+            impactLevels[level].push(impactData);
+          } else {
+            impactLevels[4].push(impactData); // Group level 5+ with quaternary
+          }
+        }
+      }
+      
+      // Find all direct dependents of this system
+      const dependents = directDependentsMap[id] || [];
+      console.log(`System ${id} has ${dependents.length} dependents:`, dependents);
+      
+      // Add unvisited dependents to next level
+      for (const depId of dependents) {
+        if (visited.has(depId)) continue;
+        
+        visited.add(depId);
+        nextLevel.push(depId);
+        console.log(`Added system ${depId} to level ${level+1}`);
+      }
+    }
+    
+    // Move to next level
+    currentLevel = nextLevel;
+    level++;
+  }
+  
+  console.log("Impact levels from direct fix:", {
+    primaryImpact: impactLevels[1].map(s => `${s.id}: ${s.name}`),
+    secondaryImpact: impactLevels[2].map(s => `${s.id}: ${s.name}`), 
+    tertiaryImpact: impactLevels[3].map(s => `${s.id}: ${s.name}`),
+    quaternaryImpact: impactLevels[4].map(s => `${s.id}: ${s.name}`)
+  });
+  
+  // Update the impactData globally with our fixed levels
+  impactData = {
+    primaryImpact: impactLevels[1],
+    secondaryImpact: impactLevels[2],
+    tertiaryImpact: impactLevels[3],
+    quaternaryImpact: impactLevels[4],
+    criticalityScore: calculateCriticalityScore(impactLevels),
+    systemsCount: impactLevels[1].length + impactLevels[2].length + 
+                 impactLevels[3].length + impactLevels[4].length
+  };
+  
+  // Calculate criticality score and update recovery time & user impact
+  impactData.recoveryTime = estimateRecoveryTime(
+    impactData.primaryImpact, 
+    impactData.secondaryImpact, 
+    impactData.tertiaryImpact
+  );
+  
+  impactData.userImpact = estimateUserImpact(
+    impactData.primaryImpact, 
+    impactData.criticalityScore
+  );
+  
+  console.log("Fixed impact data created with all levels populated.");
+  return impactData;
+}
+
+// Helper function to calculate criticality score for the fixed data
+function calculateCriticalityScore(impactLevels) {
+  let score = 0;
+  
+  // Add up impact scores with diminishing returns by level
+  impactLevels[1].forEach(system => score += system.impact);
+  impactLevels[2].forEach(system => score += system.impact * 0.7);
+  impactLevels[3].forEach(system => score += system.impact * 0.5);
+  impactLevels[4].forEach(system => score += system.impact * 0.3);
+  
+  return score;
 }
 
 // Calculate impact score for a system based on its properties
@@ -1593,10 +1802,15 @@ function populateImpactedSystems(containerId, systems) {
         return;
     }
     
+    // Create a scrollable container if there are many systems
+    const scrollContainer = document.createElement('div');
+    scrollContainer.className = 'max-h-96 overflow-y-auto pr-1'; // Set max height and enable scrolling
+    container.appendChild(scrollContainer);
+    
     // Add each system to the container
     systems.forEach(system => {
         const systemItem = document.createElement('div');
-        systemItem.className = 'p-4 hover:bg-gray-50 transition-colors';
+        systemItem.className = 'p-4 hover:bg-gray-50 transition-colors border-b border-gray-100';
         
         let connectionType = '';
         if (system.connectionType === 'sso') {
@@ -1645,7 +1859,7 @@ function populateImpactedSystems(containerId, systems) {
             </div>
         `;
         
-        container.appendChild(systemItem);
+        scrollContainer.appendChild(systemItem);
     });
 }
 
@@ -1997,7 +2211,7 @@ function filterImpactBreakdown() {
     const showHosting = document.getElementById('showHostingConnections')?.checked !== false;
     
     // Get all system items across all impact tiers
-    const allSystemItems = document.querySelectorAll('#primary-impact-systems > div, #secondary-impact-systems > div, #tertiary-impact-systems > div, #quaternary-impact-systems > div');
+    const allSystemItems = document.querySelectorAll('#primary-impact-systems > div > div, #secondary-impact-systems > div > div, #tertiary-impact-systems > div > div, #quaternary-impact-systems > div > div');
     
     allSystemItems.forEach(item => {
         // Skip the "No systems found" message
@@ -2043,19 +2257,22 @@ function filterImpactBreakdown() {
         const container = document.getElementById(containerId);
         if (!container) return;
         
-        const visibleItems = Array.from(container.children).filter(item => 
+        const scrollContainer = container.querySelector('div');
+        if (!scrollContainer) return;
+        
+        const visibleItems = Array.from(scrollContainer.children).filter(item => 
             !item.classList.contains('text-center') && item.style.display !== 'none'
         );
         
         // Find or create the "No systems found" message
-        let noSystemsMsg = container.querySelector('.text-center');
+        let noSystemsMsg = scrollContainer.querySelector('.text-center');
         
         if (visibleItems.length === 0) {
             if (!noSystemsMsg) {
                 noSystemsMsg = document.createElement('div');
                 noSystemsMsg.className = 'p-4 text-sm text-gray-500 text-center';
                 noSystemsMsg.textContent = 'No systems found matching filters';
-                container.appendChild(noSystemsMsg);
+                scrollContainer.appendChild(noSystemsMsg);
             } else {
                 noSystemsMsg.style.display = 'block';
             }
@@ -2074,8 +2291,11 @@ function sortImpactBreakdown(sortBy) {
         const container = document.getElementById(containerId);
         if (!container) return;
         
+        const scrollContainer = container.querySelector('div');
+        if (!scrollContainer) return;
+        
         // Get all non-message items
-        const items = Array.from(container.children).filter(item => 
+        const items = Array.from(scrollContainer.children).filter(item => 
             !item.classList.contains('text-center')
         );
         
@@ -2102,7 +2322,7 @@ function sortImpactBreakdown(sortBy) {
         
         // Re-append items in sorted order
         items.forEach(item => {
-            container.appendChild(item);
+            scrollContainer.appendChild(item);
         });
     });
 }
@@ -2185,8 +2405,8 @@ function performDisasterImpactAnalysis() {
     // Log the dependency graph for debugging
     console.log("Dependency graph built:", dependencyGraph);
     
-    // Calculate impact tiers based on dependency graph traversal
-    impactData = calculateImpactTiers(currentSystemId, dependencyGraph);
+    // Use our direct fix instead of the original algorithm
+    impactData = fixDependencyAnalysis();
     
     // Generate complete downstream impact paths
     completeImpactPaths = generateCompleteImpactPaths(currentSystemId, dependencyGraph);
