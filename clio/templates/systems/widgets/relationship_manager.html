@@ -35,68 +35,58 @@
             </div>
             
             <!-- Add relationship modal -->
-            <div id="add-relationship-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h3>
-                    <form id="add-relationship-form">
-                        <div class="mb-4">
-                            <label for="relationship-type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
-                            <select id="relationship-type" name="relationship_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                <option value="depends_on">Depends On</option>
-                                <option value="provides_data_to">Provides Data To</option>
-                                <option value="integrates_with">Integrates With</option>
+    <div id="add-relationship-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h3>
+            <form id="add-relationship-form">
+                <div class="mb-4">
+                    <label for="relationship-type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
+                    <select id="relationship-type" name="relationship_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="depends_on">Depends On</option>
+                        <option value="provides_data_to">Provides Data To</option>
+                        <option value="integrates_with">Integrates With</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <label for="source-system" class="block text-sm font-medium text-gray-700">Source System</label>
+                            <select id="source-system" name="source_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="{{ system.id }}" selected>{{ system.name }}</option>
+                                <!-- Other system options will be populated dynamically via JavaScript -->
                             </select>
                         </div>
-                        <div class="mb-4">
-                            <div class="flex items-center">
-                                <div class="flex-1">
-                                    <label for="source-system" class="block text-sm font-medium text-gray-700">Source System</label>
-                                    <select id="source-system" name="source_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                        <option value="{{ system.id }}" selected>{{ system.name }}</option>
-                                        {% for other_system in all_systems %}
-                                            {% if other_system.id != system.id %}
-                                                <option value="{{ other_system.id }}">{{ other_system.name }}</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="mx-4 pt-6">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                </div>
-                                <div class="flex-1">
-                                    <label for="target-system" class="block text-sm font-medium text-gray-700">Target System</label>
-                                    <select id="target-system" name="target_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                        <option value="{{ system.id }}">{{ system.name }}</option>
-                                        {% for other_system in all_systems %}
-                                            {% if other_system.id != system.id %}
-                                                <option value="{{ other_system.id }}">{{ other_system.name }}</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <p class="mt-2 text-sm text-gray-500">
-                                In "Depends On" relationships, the Target System depends on the Source System.
-                            </p>
+                        <div class="mx-4 pt-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
                         </div>
-                        <div class="mb-4">
-                            <label for="relationship-description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                            <textarea id="relationship-description" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        <div class="flex-1">
+                            <label for="target-system" class="block text-sm font-medium text-gray-700">Target System</label>
+                            <select id="target-system" name="target_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <!-- Options will be populated dynamically via JavaScript -->
+                            </select>
                         </div>
-                        <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
-                            <button type="button" id="cancel-add-relationship" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Cancel
-                            </button>
-                            <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Add Relationship
-                            </button>
-                            
-                        </div>
-                    </form>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        In "Depends On" relationships, the Target System depends on the Source System.
+                    </p>
                 </div>
-            </div>
+                <div class="mb-4">
+                    <label for="relationship-description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                    <textarea id="relationship-description" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                </div>
+                <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancel-add-relationship" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Add Relationship
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
             
             <!-- Loading indicator -->
             <div id="relationship-loader" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
@@ -507,19 +497,19 @@ function updateRelationshipVisualization(systemId, relationships) {
             deleteRelationship(d);
         });
 
-    // Add circle for delete button
+    // Add circle for delete button - make it slightly larger
     deleteButtons.append("circle")
-        .attr("r", 8)
+        .attr("r", 10) // Increased from 8 to 10
         .attr("fill", "#e74c3c")
         .attr("stroke", "white")
-        .attr("stroke-width", 1);
+        .attr("stroke-width", 1.5); // Slightly thicker border
 
-    // Add X to delete button
+    // Add X to delete button - make it more visible
     deleteButtons.append("text")
         .attr("text-anchor", "middle")
-        .attr("dy", "0.3em")
+        .attr("dy", "0.35em") // Adjusted positioning
         .attr("fill", "white")
-        .attr("font-size", "10px")
+        .attr("font-size", "12px") // Increased from 10px
         .attr("font-weight", "bold")
         .text("×");
 
@@ -534,19 +524,20 @@ function updateRelationshipVisualization(systemId, relationships) {
         // Get the midpoint of the path
         try {
             const pathLength = pathNode.getTotalLength();
-            if (isNaN(pathLength)) return;
+            if (isNaN(pathLength) || pathLength === 0) return;
             
             const midPoint = pathNode.getPointAtLength(pathLength / 2);
             
             // Position delete button at midpoint
             deleteButtons.filter((_, j) => i === j)
-                .attr("transform", `translate(${midPoint.x}, ${midPoint.y})`);
+                .attr("transform", `translate(${midPoint.x}, ${midPoint.y})`)
+                .attr("data-rel-id", d.id); // Add data attribute for easier targeting
         } catch (e) {
             console.error("Error positioning delete button:", e);
         }
     });
 
-    // Show delete button on link hover
+    // Improve hover behavior for delete buttons
     links.on("mouseover", function(event, d) {
         const linkIndex = relationships.indexOf(d);
         d3.select(this)
@@ -554,7 +545,8 @@ function updateRelationshipVisualization(systemId, relationships) {
             .attr("stroke-opacity", 1);
         
         deleteButtons.filter((_, i) => i === linkIndex)
-            .attr("opacity", 1);
+            .attr("opacity", 1)
+            .classed("hovered", true); // Add a class to track hover state
     })
     .on("mouseout", function(event, d) {
         const linkIndex = relationships.indexOf(d);
@@ -562,24 +554,67 @@ function updateRelationshipVisualization(systemId, relationships) {
             .attr("stroke-width", 2)
             .attr("stroke-opacity", 0.7);
         
-        // Don't hide immediately to allow clicking the button
+        // Use a slight delay before hiding the button
         setTimeout(() => {
-            if (!deleteButtons.filter((_, i) => i === linkIndex).datum().isHovered) {
-                deleteButtons.filter((_, i) => i === linkIndex)
-                    .attr("opacity", 0);
+            const button = deleteButtons.filter((_, i) => i === linkIndex);
+            if (!button.classed("button-hovered")) {
+                button.attr("opacity", 0)
+                    .classed("hovered", false);
             }
-        }, 100);
+        }, 300); // Longer delay (300ms instead of 100ms)
     });
 
     // Keep delete button visible when hovering over it
     deleteButtons.on("mouseover", function(event, d) {
-        d.isHovered = true;
-        d3.select(this).attr("opacity", 1);
+        d3.select(this)
+            .attr("opacity", 1)
+            .classed("button-hovered", true);
     })
     .on("mouseout", function(event, d) {
-        d.isHovered = false;
-        d3.select(this).attr("opacity", 0);
+        d3.select(this)
+            .classed("button-hovered", false);
+        
+        // Only hide if the parent link isn't hovered
+        if (!d3.select(this).classed("hovered")) {
+            d3.select(this).attr("opacity", 0);
+        }
     });
+
+    // Add CSS to ensure buttons are on top
+    svg.append("style").text(`
+        .delete-button {
+            z-index: 10;
+        }
+        .link {
+            z-index: 5;
+        }
+    `);
+
+    // Improved deleteRelationship function
+    function deleteRelationship(relationship) {
+        console.log("Deleting relationship:", relationship); // Debug logging
+        
+        // Find the relationship in the array
+        const index = relationships.findIndex(r => 
+            r.source_system.id === relationship.source_system.id && 
+            r.target_system.id === relationship.target_system.id &&
+            r.relationship_type === relationship.relationship_type);
+        
+        // Ask for confirmation
+        if (index !== -1 && confirm(`Delete relationship: ${getRelationshipDescription(relationship)}?`)) {
+            // Remove the relationship from the array
+            relationships.splice(index, 1);
+            
+            // Update visualization
+            updateRelationshipVisualization(systemId, relationships);
+            
+            // Show toast notification
+            showToast("Relationship deleted", "blue");
+        } else if (index === -1) {
+            console.error("Relationship not found in array:", relationship);
+            showToast("Error: Relationship not found", "red");
+        }
+    }
         
     // Add tooltips to links
     links.append("title")

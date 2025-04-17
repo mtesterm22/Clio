@@ -247,8 +247,8 @@ def system_detail(request, pk):
     else:
         note_form = SystemNoteForm()
     
-    # Get all systems for relationship management
-    all_systems = System.objects.all()
+    # Get all systems for relationship management - sorted by name
+    all_systems = System.objects.all().order_by('name')
     
     # Get all users for admin management
     all_users = User.objects.all().order_by('first_name', 'last_name')
@@ -262,29 +262,57 @@ def system_detail(request, pk):
     # Format relationships for JSON
     relationships_json = []
     for rel in system_relationships:
+        # Track the IDs of systems in existing relationships
+        source_id = rel.source_system.id
+        target_id = rel.target_system.id
+        
         relationships_json.append({
             'id': rel.id,
             'source_system': {
-                'id': rel.source_system.id,
+                'id': source_id,
                 'name': rel.source_system.name,
-                'category': rel.source_system.category.slug
+                'category': {
+                    'slug': rel.source_system.category.slug,
+                    'name': rel.source_system.category.name,
+                    'color': rel.source_system.category.color,
+                    'text_color': rel.source_system.category.text_color
+                } if rel.source_system.category else None
             },
             'target_system': {
-                'id': rel.target_system.id,
+                'id': target_id,
                 'name': rel.target_system.name,
-                'category': rel.target_system.category.slug
+                'category': {
+                    'slug': rel.target_system.category.slug,
+                    'name': rel.target_system.category.name,
+                    'color': rel.target_system.category.color,
+                    'text_color': rel.target_system.category.text_color
+                } if rel.target_system.category else None
             },
             'relationship_type': rel.relationship_type,
             'description': rel.description
         })
     
-    # Format all systems for JSON
+    # Format all systems for JSON - sorted by name
     all_systems_json = []
     for sys in all_systems:
         all_systems_json.append({
             'id': sys.id,
             'name': sys.name,
-            'category': sys.category.slug
+            'category': {
+                'slug': sys.category.slug,
+                'name': sys.category.name,
+                'color': sys.category.color,
+                'text_color': sys.category.text_color
+            } if sys.category else None
+        })
+    
+    # Create a list of existing relationships to filter out duplicates in the UI
+    existing_relationships = []
+    for rel in system_relationships:
+        existing_relationships.append({
+            'source': rel.source_system.id,
+            'target': rel.target_system.id,
+            'type': rel.relationship_type
         })
     
     context = {
@@ -302,7 +330,8 @@ def system_detail(request, pk):
         'all_systems': all_systems,
         'all_users': all_users,
         'relationships_json': json.dumps(relationships_json),
-        'all_systems_json': json.dumps(all_systems_json)
+        'all_systems_json': json.dumps(all_systems_json),
+        'existing_relationships_json': json.dumps(existing_relationships)
     }
     
     return render(request, 'systems/system_detail.html', context)
@@ -480,17 +509,32 @@ def save_system_relationships(request, pk):
         # Format updated relationships for response
         updated_relationships_json = []
         for rel in updated_relationships:
+            # Properly serialize the category objects
+            source_category = {
+                'slug': rel.source_system.category.slug,
+                'name': rel.source_system.category.name,
+                'color': rel.source_system.category.color,
+                'text_color': rel.source_system.category.text_color
+            } if rel.source_system.category else None
+            
+            target_category = {
+                'slug': rel.target_system.category.slug,
+                'name': rel.target_system.category.name,
+                'color': rel.target_system.category.color,
+                'text_color': rel.target_system.category.text_color
+            } if rel.target_system.category else None
+            
             updated_relationships_json.append({
                 'id': rel.id,
                 'source_system': {
                     'id': rel.source_system.id,
                     'name': rel.source_system.name,
-                    'category': rel.source_system.category
+                    'category': source_category
                 },
                 'target_system': {
                     'id': rel.target_system.id,
                     'name': rel.target_system.name,
-                    'category': rel.target_system.category
+                    'category': target_category
                 },
                 'relationship_type': rel.relationship_type,
                 'description': rel.description

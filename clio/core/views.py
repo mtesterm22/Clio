@@ -2,6 +2,7 @@
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
 from django.db.models import Count, F
 from systems.models import System, SystemRelationship, SystemCategory, SystemStatus
@@ -9,12 +10,23 @@ from scripts.models import Script, ScriptSystemRelationship
 from workflows.models import Workflow
 from planning.models import Initiative, Plan, Milestone, Task, ResourceAllocation
 
+from django.urls import reverse
+from django.contrib.auth.forms import AuthenticationForm
+
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'
+    redirect_authenticated_user = True
+
 def root_redirect(request):
     """Redirect based on authentication status"""
     if request.user.is_authenticated:
         return redirect('core:index')
     else:
-        return redirect('login')  # This uses Django's auth system login URL
+        # Use render directly instead of redirect to avoid the loop
+        return render(request, 'registration/login.html', {
+            'form': AuthenticationForm(),
+            'next': reverse('core:index')
+        })
 
 @login_required
 def index(request):
