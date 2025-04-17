@@ -125,7 +125,8 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Set CSRF settings to work with the proxy
-CSRF_TRUSTED_ORIGINS = ['https://cliodev.catawba.edu']
+CSRF_TRUSTED_ORIGINS = [config('CSRF_TRUSTED_ORIGINS')]
+
 
 # Login redirects
 LOGIN_URL = '/accounts/login/'

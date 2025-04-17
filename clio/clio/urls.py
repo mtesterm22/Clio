@@ -9,12 +9,7 @@ from django.contrib.auth import views as auth_views  # Add this import
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Add explicit login view before the accounts/ include
-    path('accounts/login/', 
-         auth_views.LoginView.as_view(
-             template_name='registration/login.html'
-         ), 
-         name='login'),
+    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     
     # Keep your other URLs
     path('', include('core.urls')),
