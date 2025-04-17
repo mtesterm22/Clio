@@ -1,6 +1,6 @@
 # core/views.py
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Count, F
@@ -8,6 +8,13 @@ from systems.models import System, SystemRelationship, SystemCategory, SystemSta
 from scripts.models import Script, ScriptSystemRelationship
 from workflows.models import Workflow
 from planning.models import Initiative, Plan, Milestone, Task, ResourceAllocation
+
+def root_redirect(request):
+    """Redirect based on authentication status"""
+    if request.user.is_authenticated:
+        return redirect('core:index')
+    else:
+        return redirect('login')  # This uses Django's auth system login URL
 
 @login_required
 def index(request):
@@ -73,4 +80,3 @@ def index(request):
 def about(request):
     """About page with information about the app"""
     return render(request, 'core/about.html')
-
