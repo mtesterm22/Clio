@@ -386,6 +386,43 @@ def system_delete(request, pk):
     
     return render(request, 'systems/system_confirm_delete.html', {'system': system})
 
+def analyze_system_dependencies(system_id):
+    """
+    Analyze a system and determine all of its dependencies and dependents
+    
+    Args:
+        system_id: The ID of the system to analyze
+        
+    Returns:
+        dict: Analysis results including dependencies, dependents, and impact paths
+    """
+    try:
+        # Get the source system
+        source_system = System.objects.get(id=system_id)
+        
+        # Build a complete dependency graph
+        dependency_graph = build_dependency_graph()
+        
+        # Find all affected systems with impact levels
+        affected_systems = find_affected_systems(dependency_graph, source_system.id)
+        
+        # Sort affected systems by impact level (depth)
+        affected_systems.sort(key=lambda s: (s['impact_level'], s['name']))
+        
+        return {
+            'source_system': {
+                'id': source_system.id,
+                'name': source_system.name,
+                'category': source_system.category.name if source_system.category else None,
+                'vendor': source_system.vendor
+            },
+            'affected_systems': affected_systems
+        }
+    except System.DoesNotExist:
+        return {'error': f'System with ID {system_id} not found'}
+    except Exception as e:
+        return {'error': str(e)}
+
 @login_required
 def add_system_administrator(request, system_pk):
     """Add or update an administrator for a system"""
@@ -842,46 +879,7 @@ def systems_by_host(request, host_id):
     
     return render(request, 'systems/systems_by_filter.html', context)
 
-@login_required
-def system_disaster_analysis(request, pk):
-    """View for the system disaster impact analysis"""
-    system = get_object_or_404(System, pk=pk)
-    
-    # Get the dependencies and dependents
-    dependencies = [rel.source_system for rel in system.incoming_relationships.filter(relationship_type='depends_on').select_related('source_system__category', 'source_system__status')]
-    dependents = [rel.target_system for rel in system.outgoing_relationships.filter(relationship_type='depends_on').select_related('target_system__category', 'target_system__status')]
-    
-    # Get systems that use this as SSO
-    sso_dependents = system.sso_dependent_systems.all().select_related('category', 'status')
-    
-    # Get systems hosted on this system
-    hosted_systems = system.hosted_systems.all().select_related('category', 'status')
-    
-    # Get administrators for this system
-    administrators = system.administrators.all().select_related('user').order_by('-is_primary', 'user__first_name')
-    
-    # Get recovery steps for this system
-    recovery_steps = system.recovery_steps.all().order_by('order')
-    
-    # Get all available categories, statuses, and vendors for filters
-    all_categories = SystemCategory.objects.all().order_by('order', 'name')
-    all_statuses = SystemStatus.objects.all().order_by('order', 'name')
-    all_vendors = System.objects.exclude(vendor='').values_list('vendor', flat=True).distinct().order_by('vendor')
-    
-    context = {
-        'system': system,
-        'dependencies': dependencies,
-        'dependents': dependents,
-        'sso_dependents': sso_dependents,
-        'hosted_systems': hosted_systems,
-        'administrators': administrators,
-        'recovery_steps': recovery_steps,
-        'all_categories': all_categories,
-        'all_statuses': all_statuses,
-        'all_vendors': all_vendors,
-    }
-    
-    return render(request, 'systems/system_disaster_analysis.html', context)
+
 
 
 @login_required
@@ -1002,3 +1000,145 @@ def move_recovery_step(request, system_pk):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+def build_dependency_graph():
+    """
+    Build a graph representation of all system dependencies
+    
+    Returns:
+        dict: A graph where keys are system IDs and values are dicts with 
+              system information and dependency relationships
+    """
+    # Start with an empty graph
+    graph = {}
+    
+    # Get all systems and their relationships
+    systems = System.objects.all().select_related('category', 'status')
+    relationships = SystemRelationship.objects.filter(relationship_type='depends_on')
+    
+    # Add all systems to the graph
+    for system in systems:
+        graph[system.id] = {
+            'id': system.id,
+            'name': system.name,
+            'category': {
+                'id': system.category.id,
+                'name': system.category.name,
+                'slug': system.category.slug
+            } if system.category else None,
+            'status': {
+                'id': system.status.id,
+                'name': system.status.name,
+                'slug': system.status.slug
+            } if system.status else None,
+            'vendor': system.vendor,
+            'depends_on': [],  # Systems this system depends on
+            'dependents': []   # Systems that depend on this system
+        }
+    
+    # Add dependency relationships to the graph
+    for rel in relationships:
+        source_id = rel.source_system_id
+        target_id = rel.target_system_id
+        
+        # Add source as a dependency of target (target depends on source)
+        if target_id in graph:
+            graph[target_id]['depends_on'].append(source_id)
+        
+        # Add target as a dependent of source
+        if source_id in graph:
+            graph[source_id]['dependents'].append(target_id)
+    
+    return graph
+
+def find_affected_systems(graph, source_id):
+    """
+    Find all systems affected by an outage of the source system
+    
+    Args:
+        graph: The dependency graph
+        source_id: The ID of the system experiencing an outage
+        
+    Returns:
+        list: List of affected systems with their impact levels
+    """
+    # Track affected systems
+    affected = {}
+    
+    # Helper function to find all systems that depend on a given system
+    def find_dependents(system_id, current_path=None, impact_level=1):
+        if current_path is None:
+            current_path = [system_id]
+        
+        # Get all direct dependents
+        dependents = graph.get(system_id, {}).get('dependents', [])
+        
+        for dependent_id in dependents:
+            # Skip if this would create a loop
+            if dependent_id in current_path:
+                continue
+                
+            # Check if the dependent is already affected with a shorter path
+            if dependent_id in affected and affected[dependent_id]['impact_level'] <= impact_level:
+                continue
+                
+            # Add the dependent as an affected system
+            affected[dependent_id] = {
+                'id': dependent_id,
+                'name': graph[dependent_id]['name'],
+                'category': graph[dependent_id]['category'],
+                'vendor': graph[dependent_id]['vendor'],
+                'impact_level': impact_level,
+                'impact_path': current_path + [dependent_id]
+            }
+            
+            # Recursively find systems that depend on this dependent
+            find_dependents(dependent_id, current_path + [dependent_id], impact_level + 1)
+    
+    # Start the recursive search
+    find_dependents(source_id)
+    
+    # Convert to a list
+    return list(affected.values())
+
+def system_disaster_analysis(request, pk):
+    """View for the system disaster impact analysis"""
+    system = get_object_or_404(System, pk=pk)
+    
+    # Get the dependencies and dependents
+    dependencies = [rel.source_system for rel in system.incoming_relationships.filter(relationship_type='depends_on').select_related('source_system__category', 'source_system__status')]
+    dependents = [rel.target_system for rel in system.outgoing_relationships.filter(relationship_type='depends_on').select_related('target_system__category', 'target_system__status')]
+    
+    # Get systems that use this as SSO
+    sso_dependents = system.sso_dependent_systems.all().select_related('category', 'status')
+    
+    # Get systems hosted on this system
+    hosted_systems = system.hosted_systems.all().select_related('category', 'status')
+    
+    # Get administrators for this system
+    administrators = system.administrators.all().select_related('user').order_by('-is_primary', 'user__first_name')
+    
+    # Get recovery steps for this system
+    recovery_steps = system.recovery_steps.all().order_by('order')
+    
+    context = {
+        'system': system,
+        'dependencies': dependencies,
+        'dependents': dependents,
+        'sso_dependents': sso_dependents,
+        'hosted_systems': hosted_systems,
+        'administrators': administrators,
+        'recovery_steps': recovery_steps,
+    }
+    
+    return render(request, 'systems/system_disaster_analysis.html', context)
+
+# For API access to get affected systems
+@login_required
+def get_affected_systems(request, pk):
+    """API endpoint to get systems affected by an outage of the specified system"""
+    # Analyze dependencies
+    analysis = analyze_system_dependencies(pk)
+    
+    # Return as JSON
+    return JsonResponse(analysis)

@@ -35,58 +35,58 @@
             </div>
             
             <!-- Add relationship modal -->
-    <div id="add-relationship-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h3>
-            <form id="add-relationship-form">
-                <div class="mb-4">
-                    <label for="relationship-type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
-                    <select id="relationship-type" name="relationship_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                        <option value="depends_on">Depends On</option>
-                        <option value="provides_data_to">Provides Data To</option>
-                        <option value="integrates_with">Integrates With</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <div class="flex items-center">
-                        <div class="flex-1">
-                            <label for="source-system" class="block text-sm font-medium text-gray-700">Source System</label>
-                            <select id="source-system" name="source_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                <option value="{{ system.id }}" selected>{{ system.name }}</option>
-                                <!-- Other system options will be populated dynamically via JavaScript -->
+            <div id="add-relationship-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add System Relationship</h3>
+                    <form id="add-relationship-form">
+                        <div class="mb-4">
+                            <label for="relationship-type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
+                            <select id="relationship-type" name="relationship_type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="depends_on">Depends On</option>
+                                <option value="provides_data_to">Provides Data To</option>
+                                <option value="integrates_with">Integrates With</option>
                             </select>
                         </div>
-                        <div class="mx-4 pt-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
+                        <div class="mb-4">
+                            <div class="flex items-center">
+                                <div class="flex-1">
+                                    <label for="source-system" class="block text-sm font-medium text-gray-700">Source System</label>
+                                    <select id="source-system" name="source_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <option value="{{ system.id }}" selected>{{ system.name }}</option>
+                                        <!-- Other system options will be populated dynamically via JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="mx-4 pt-6">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <label for="target-system" class="block text-sm font-medium text-gray-700">Target System</label>
+                                    <select id="target-system" name="target_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <!-- Options will be populated dynamically via JavaScript -->
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-500">
+                                In "Depends On" relationships, the Target System depends on the Source System.
+                            </p>
                         </div>
-                        <div class="flex-1">
-                            <label for="target-system" class="block text-sm font-medium text-gray-700">Target System</label>
-                            <select id="target-system" name="target_system" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                <!-- Options will be populated dynamically via JavaScript -->
-                            </select>
+                        <div class="mb-4">
+                            <label for="relationship-description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                            <textarea id="relationship-description" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
                         </div>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-500">
-                        In "Depends On" relationships, the Target System depends on the Source System.
-                    </p>
+                        <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
+                            <button type="button" id="cancel-add-relationship" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cancel
+                            </button>
+                            <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Add Relationship
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="mb-4">
-                    <label for="relationship-description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-                    <textarea id="relationship-description" name="description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
-                </div>
-                <div class="mt-5 sm:mt-6 flex justify-end space-x-3">
-                    <button type="button" id="cancel-add-relationship" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Cancel
-                    </button>
-                    <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Add Relationship
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </div>
             
             <!-- Loading indicator -->
             <div id="relationship-loader" class="hidden fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
@@ -101,7 +101,6 @@
         </div>
     </div>
 </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
     const systemId = {{ system.id }};
@@ -114,12 +113,83 @@
     
     // Setup event listeners
     document.getElementById('add-relationship-btn').addEventListener('click', function() {
-        document.getElementById('add-relationship-modal').classList.remove('hidden');
+    // Get the selects
+    const sourceSelect = document.getElementById('source-system');
+    const targetSelect = document.getElementById('target-system');
+    
+    // Clear existing options in source select (except for the first option which is the current system)
+    while (sourceSelect.options.length > 1) {
+        sourceSelect.remove(1);
+    }
+    
+    // Clear existing options in target select
+    while (targetSelect.options.length > 0) {
+        targetSelect.remove(0);
+    }
+    
+    // Sort all systems alphabetically by name
+    const sortedSystems = [...allSystems].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Populate source system dropdown with all systems
+    sortedSystems.forEach(system => {
+        // Skip adding duplicates of the current system to source dropdown
+        if (system.id !== parseInt(sourceSelect.options[0].value)) {
+            const option = document.createElement('option');
+            option.value = system.id;
+            option.textContent = system.name;
+            sourceSelect.appendChild(option);
+        }
     });
+    
+    // Populate target system dropdown with all systems including the current system
+    sortedSystems.forEach(system => {
+        // Include the current system in target dropdown
+        const option = document.createElement('option');
+        option.value = system.id;
+        option.textContent = system.name;
+        targetSelect.appendChild(option);
+    });
+    
+    // Show the modal
+    document.getElementById('add-relationship-modal').classList.remove('hidden');
+});
     
     document.getElementById('cancel-add-relationship').addEventListener('click', function() {
         document.getElementById('add-relationship-modal').classList.add('hidden');
     });
+    
+    // Function to populate target system dropdown
+    // Function to populate target system dropdown
+function populateTargetSystemDropdown() {
+    const sourceSelect = document.getElementById('source-system');
+    const targetSelect = document.getElementById('target-system');
+    
+    // Clear existing options in target select
+    while (targetSelect.options.length > 0) {
+        targetSelect.remove(0);
+    }
+    
+    // Get current source system ID
+    const currentSourceId = parseInt(sourceSelect.value);
+    
+    // Sort all systems alphabetically by name
+    const sortedSystems = [...allSystems].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Populate target system dropdown with all systems including the current system being reviewed
+    // but excluding the currently selected source system to prevent self-references
+    sortedSystems.forEach(system => {
+        // Skip adding the source system to target dropdown to prevent self-references
+        if (system.id !== currentSourceId) {
+            const option = document.createElement('option');
+            option.value = system.id;
+            option.textContent = system.name;
+            targetSelect.appendChild(option);
+        }
+    });
+}
+    
+    // Add event handler for source system change
+    document.getElementById('source-system').addEventListener('change', populateTargetSystemDropdown);
     
     document.getElementById('add-relationship-form').addEventListener('submit', function(e) {
         e.preventDefault();

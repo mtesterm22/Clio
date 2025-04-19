@@ -45,6 +45,7 @@ urlpatterns = [
     path('by-host/<int:host_id>/', views.systems_by_host, name='systems_by_host'),
 
     path('<int:pk>/disaster-analysis/', views.system_disaster_analysis, name='disaster_analysis'),
+    path('api/<int:pk>/affected-systems/', views.get_affected_systems, name='get_affected_systems'),
 
     # Recovery step planning
     path('<int:system_pk>/recovery-step/', views.save_recovery_step, name='save_recovery_step'),
