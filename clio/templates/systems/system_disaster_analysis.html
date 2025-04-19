@@ -215,7 +215,7 @@
     }
     
     /* Node and Edge Styles for Graph */
-    .node {
+    .node circle {
         stroke-width: 2px;
         cursor: pointer;
     }
@@ -224,38 +224,32 @@
         font-size: 12px;
         fill: #1e293b;
         pointer-events: none;
+        text-anchor: middle;
     }
     
-    .node-bg {
-        fill: white;
-        stroke: #e2e8f0;
-        stroke-width: 1px;
-        rx: 4;
-        ry: 4;
+    .node.source circle {
+        fill: #ef4444;
+        stroke: #b91c1c;
     }
     
-    .node:hover .node-bg {
-        stroke: #94a3b8;
-        stroke-width: 2px;
+    .node.level-1 circle {
+        fill: #f97316;
+        stroke: #c2410c;
     }
     
-    .node-system {
-        fill: var(--color);
+    .node.level-2 circle {
+        fill: #eab308;
+        stroke: #a16207;
     }
     
-    .node.selected .node-bg {
-        stroke: #3b82f6;
-        stroke-width: 3px;
+    .node.level-3-plus circle {
+        fill: #facc15;
+        stroke: #ca8a04;
     }
     
-    .node.affected .node-bg {
-        stroke: #ef4444;
-        stroke-width: 2px;
-    }
-    
-    .node.source .node-bg {
-        stroke: #ef4444;
-        stroke-width: 3px;
+    .node.unaffected circle {
+        fill: #cbd5e1;
+        stroke: #64748b;
     }
     
     .edge {
@@ -267,55 +261,6 @@
     .edge.affected {
         stroke: #ef4444;
         stroke-width: 2px;
-    }
-    
-    .edge-arrow {
-        fill: #cbd5e1;
-    }
-    
-    .edge.affected .edge-arrow {
-        fill: #ef4444;
-    }
-    
-    /* Form Styles */
-    .recovery-form-container {
-        margin-top: 1rem;
-    }
-    
-    .recovery-form {
-        border: 1px solid #e2e8f0;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        background-color: #f8fafc;
-    }
-    
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .form-label {
-        display: block;
-        margin-bottom: 0.375rem;
-        font-weight: 500;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 0.25rem;
-        background-color: white;
-    }
-    
-    textarea.form-control {
-        min-height: 100px;
-    }
-    
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-        margin-top: 1rem;
     }
     
     /* Button Styles */
@@ -367,16 +312,6 @@
     
     .btn-danger:hover {
         background-color: #dc2626;
-    }
-    
-    .btn-success {
-        background-color: #10b981;
-        color: white;
-        border: 1px solid #059669;
-    }
-    
-    .btn-success:hover {
-        background-color: #059669;
     }
     
     /* Badge Styles */
@@ -460,44 +395,6 @@
         gap: 0.5rem;
     }
     
-    /* Animation for affected systems */
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.6; }
-        100% { opacity: 1; }
-    }
-    
-    .node.source .node-system {
-        animation: pulse 2s infinite;
-    }
-    
-    /* Tooltip Style */
-    .tooltip {
-        position: absolute;
-        background-color: rgba(15, 23, 42, 0.9);
-        color: white;
-        padding: 0.5rem 0.75rem;
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        pointer-events: none;
-        z-index: 100;
-        max-width: 300px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transform: translate(-50%, -100%);
-        margin-top: -10px;
-    }
-    
-    .tooltip::after {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px 5px 0;
-        border-style: solid;
-        border-color: rgba(15, 23, 42, 0.9) transparent transparent transparent;
-    }
-    
     /* Legend Style */
     .legend-container {
         position: absolute;
@@ -532,38 +429,49 @@
         width: 16px;
         height: 16px;
         margin-right: 0.5rem;
-        border-radius: 0.25rem;
+        border-radius: 50%;
         border: 1px solid #e2e8f0;
     }
     
-    /* Loading Indicator */
-    .loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
+    /* Form Styles */
+    .recovery-form-container {
+        margin-top: 1rem;
+    }
+    
+    .recovery-form {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        background-color: #f8fafc;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.375rem;
+        font-weight: 500;
+    }
+    
+    .form-control {
         width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.8);
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.25rem;
+        background-color: white;
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+    }
+    
+    .form-actions {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 30;
-    }
-    
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3b82f6;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 0.75rem;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 1rem;
     }
 </style>
 {% endblock %}
@@ -695,6 +603,12 @@
                     </svg>
                     Reset View
                 </button>
+                <button id="optimize-layout" class="btn btn-sm btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="mr-1" viewBox="0 0 16 16">
+                        <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z"/>
+                    </svg>
+                    Optimize Layout
+                </button>
                 <button id="zoom-in" class="btn btn-sm btn-icon btn-secondary">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M8 7.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V12a.5.5 0 0 1-1 0v-1.5H6a.5.5 0 0 1 0-1h1.5V8a.5.5 0 0 1 .5-.5z"/>
@@ -719,11 +633,11 @@
                 <span>Source System (Outage)</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #f87171;"></div>
+                <div class="legend-color" style="background-color: #f97316;"></div>
                 <span>Directly Affected Systems</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #fdba74;"></div>
+                <div class="legend-color" style="background-color: #eab308;"></div>
                 <span>Indirectly Affected Systems</span>
             </div>
             <div class="legend-item">
@@ -731,25 +645,19 @@
                 <span>Unaffected Systems</span>
             </div>
         </div>
-        
-        <!-- Loading indicator -->
-        <div class="loading-overlay" id="viz-loading">
-            <div class="spinner"></div>
-            <div class="text-lg font-medium text-gray-700">Analyzing dependencies...</div>
-        </div>
     </div>
 
     <!-- Impact Summary -->
     <div class="impact-summary">
         <div class="impact-summary-header">
             <h3 class="text-lg font-medium">Impact Summary</h3>
-            <a href="#" id="export-report" class="btn btn-sm btn-secondary">
+            <button id="export-report" class="btn btn-sm btn-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="mr-1" viewBox="0 0 16 16">
                     <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                     <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                 </svg>
                 Export Report
-            </a>
+            </button>
         </div>
         <div class="impact-summary-content">
             <div class="impact-stats">
@@ -918,273 +826,143 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
+
 {% block extra_js %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Constants and global variables - passed from Django
+    // Core variables
     var sourceSystemId = {{ system.id }};
     var sourceSystemName = "{{ system.name }}";
     var systemDetailUrl = "{% url 'systems:detail' 0 %}";
-    var affectedSystemsData = [];
-    var graphData = {
-        nodes: [],
-        links: []
-    };
     
-    // Initialize visualization
-    initializeVisualization();
-    
-    // =============================
-    // Visualization Functions
-    // =============================
-    function initializeVisualization() {
-        // Fetch relationship data using the existing API endpoint
-        fetch("{% url 'systems:relationship_data' %}")
-            .then(response => response.json())
-            .then(data => {
-                // Process the data and build the impact graph
-                processRelationshipData(data);
-            })
-            .catch(error => {
-                console.error("Error loading relationship data:", error);
-                document.getElementById('viz-loading').style.display = 'none';
-                document.getElementById('impact-graph').innerHTML = 
-                    '<div class="flex items-center justify-center h-full">' +
-                    '<div class="text-center p-6 bg-red-50 rounded-lg">' +
-                    '<h3 class="text-lg font-medium text-red-800">Error Loading Data</h3>' +
-                    '<p class="mt-2 text-red-600">Could not load relationship data. Please try again later.</p>' +
-                    '</div>' +
-                    '</div>';
-            });
-    }
-    
-    function processRelationshipData(data) {
-        // Extract systems and links
-        var allSystems = data.systems;
-        var allLinks = data.links;
-        
-        // Find the source system
-        var sourceSystem = allSystems.find(function(system) {
-            return system.id === sourceSystemId;
+    // Get API data for dependencies
+    fetch('{% url "systems:get_affected_systems" pk=system.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error("API Error:", data.error);
+                return;
+            }
+            
+            // Update summary statistics
+            var totalAffected = data.affected_systems.length;
+            var directlyAffected = data.affected_systems.filter(s => s.impact_level === 1).length;
+            var indirectlyAffected = totalAffected - directlyAffected;
+            var maxDepth = data.affected_systems.length > 0 ? Math.max(...data.affected_systems.map(s => s.impact_level)) : 0;
+            
+            document.getElementById('total-affected').textContent = totalAffected;
+            document.getElementById('direct-affected').textContent = directlyAffected;
+            document.getElementById('indirect-affected').textContent = indirectlyAffected;
+            document.getElementById('max-depth').textContent = maxDepth;
+            
+            // Populate affected systems table
+            populateAffectedSystemsTable(data.affected_systems);
+            
+            // Create visualization
+            createVisualization(data);
+        })
+        .catch(error => {
+            console.error("Error fetching affected systems:", error);
+            document.getElementById('impact-graph').innerHTML = 
+                '<div class="flex items-center justify-center h-full">' +
+                '<div class="text-center p-6 bg-red-50 rounded-lg">' +
+                '<h3 class="text-lg font-medium text-red-800">Error Loading Data</h3>' +
+                '<p class="mt-2 text-red-600">Could not load dependency data: ' + error.message + '</p>' +
+                '</div>' +
+                '</div>';
         });
+    
+    // Populate affected systems table
+    function populateAffectedSystemsTable(systems) {
+        var tableBody = document.getElementById('affected-systems-body');
         
-        if (!sourceSystem) {
-            console.error("Source system not found in the data");
-            document.getElementById('viz-loading').style.display = 'none';
+        if (systems.length === 0) {
+            tableBody.innerHTML = 
+                '<tr>' +
+                '<td colspan="4" class="text-center py-4 text-gray-500">' +
+                'No affected systems found. This system is not a dependency for any other system.' +
+                '</td>' +
+                '</tr>';
             return;
         }
         
-        // First, build a dependency graph to track affected systems
-        var dependencyGraph = buildDependencyGraph(allSystems, allLinks);
+        var tableHtml = '';
         
-        // Then, determine all affected systems, with their impact level
-        affectedSystemsData = determineAffectedSystems(dependencyGraph, sourceSystemId);
+        systems.forEach(function(system) {
+            var impactLevel = system.impact_level === 1 ? "Direct" : "Indirect (L" + system.impact_level + ")";
+            var impactClass = system.impact_level === 1 ? "bg-orange-100 text-orange-800" : "bg-yellow-100 text-yellow-800";
+            
+            tableHtml += 
+                '<tr>' +
+                '<td>' +
+                '<a href="' + systemDetailUrl.replace('0', system.id) + '" class="text-blue-600 hover:underline">' +
+                system.name +
+                '</a>' +
+                '</td>' +
+                '<td>' +
+                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" ' + 
+                'style="background-color: ' + (system.category && system.category.color ? system.category.color : '#f2f2f2') + 
+                '; color: ' + (system.category && system.category.text_color ? system.category.text_color : '#333333') + '">' +
+                (system.category ? system.category.name : 'Unknown') +
+                '</span>' +
+                '</td>' +
+                '<td>' + (system.vendor || "N/A") + '</td>' +
+                '<td>' +
+                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + impactClass + '">' +
+                impactLevel +
+                '</span>' +
+                '</td>' +
+                '</tr>';
+        });
         
-        // Build graph data structure for visualization
-        graphData = buildGraphData(allSystems, allLinks, affectedSystemsData, sourceSystemId);
-        
-        // Render the graph
-        renderGraph(graphData);
-        
-        // Populate impact summary
-        populateImpactSummary(affectedSystemsData);
-        
-        // Hide loading indicator
-        document.getElementById('viz-loading').style.display = 'none';
+        tableBody.innerHTML = tableHtml;
     }
     
-    function buildDependencyGraph(systems, links) {
-        // Create a graph representation to find affected systems
-        var graph = {};
+    // Create simple visualization using D3.js
+    function createVisualization(data) {
+        var container = document.getElementById('impact-graph');
+        var width = container.clientWidth;
+        var height = container.clientHeight;
         
-        // Initialize the graph with all systems
-        systems.forEach(function(system) {
-            graph[system.id] = {
+        // Prepare data for visualization
+        var nodes = [];
+        var links = [];
+        
+        // Add source system
+        nodes.push({
+            id: data.source_system.id,
+            name: data.source_system.name,
+            category: data.source_system.category,
+            vendor: data.source_system.vendor,
+            impact_level: 0,
+            isSource: true
+        });
+        
+        // Add affected systems
+        data.affected_systems.forEach(function(system) {
+            nodes.push({
                 id: system.id,
                 name: system.name,
                 category: system.category,
                 vendor: system.vendor,
-                status: system.status,
-                dependsOn: [],
-                dependents: []
-            };
-        });
-        
-        // Add dependency relationships
-        links.forEach(function(link) {
-            var sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-            var targetId = typeof link.target === 'object' ? link.target.id : link.target;
-            
-            // Only consider "depends_on" relationships
-            if (link.type === 'depends_on') {
-                // Target depends on source
-                // Target <- Source (target system depends on source system)
-                if (graph[targetId]) {
-                    graph[targetId].dependsOn.push(sourceId);
-                }
-                
-                // Source is a dependency for target
-                if (graph[sourceId]) {
-                    graph[sourceId].dependents.push(targetId);
-                }
-            }
-        });
-        
-        return graph;
-    }
-    
-    function determineAffectedSystems(graph, sourceId) {
-        // Track affected systems with their impact level (depth)
-        var affected = {};
-        
-        // Start with the source system
-        affected[sourceId] = {
-            id: sourceId,
-            name: graph[sourceId].name,
-            category: graph[sourceId].category,
-            vendor: graph[sourceId].vendor,
-            depth: 0, // Source system is at depth 0
-            path: [sourceId] // Path to this system from the source
-        };
-        
-        // Use breadth-first search to find all affected systems
-        function findDependents(systemId, currentDepth, currentPath) {
-            // Get direct dependents (systems that depend on this one)
-            var dependents = graph[systemId] ? (graph[systemId].dependents || []) : [];
-            
-            dependents.forEach(function(dependentId) {
-                // If this system is already affected with a shorter path, skip it
-                if (affected[dependentId] && affected[dependentId].depth <= currentDepth + 1) {
-                    return;
-                }
-                
-                // Add to affected systems
-                affected[dependentId] = {
-                    id: dependentId,
-                    name: graph[dependentId].name,
-                    category: graph[dependentId].category,
-                    vendor: graph[dependentId].vendor,
-                    depth: currentDepth + 1,
-                    path: currentPath.concat([dependentId])
-                };
-                
-                // Recursively find systems that depend on this dependent
-                findDependents(dependentId, currentDepth + 1, currentPath.concat([dependentId]));
+                impact_level: system.impact_level,
+                isSource: false
             });
-        }
-        
-        // Start the recursive search
-        findDependents(sourceId, 0, [sourceId]);
-        
-        // Convert to array and sort by depth and then by name
-        return Object.values(affected)
-            .filter(function(system) {
-                return system.id !== sourceId; // Remove source system
-            })
-            .sort(function(a, b) {
-                if (a.depth !== b.depth) return a.depth - b.depth;
-                return a.name.localeCompare(b.name);
-            });
-    }
-    
-    function buildGraphData(systems, links, affectedSystems, sourceId) {
-        // Create a set of affected system IDs for easy lookup
-        var affectedSystemIds = new Set([sourceId]);
-        affectedSystems.forEach(function(system) {
-            affectedSystemIds.add(system.id);
-        });
-        
-        // Create nodes with augmented information
-        var nodes = systems
-            .filter(function(system) {
-                // Include the source system and all affected systems
-                return system.id === sourceId || affectedSystemIds.has(system.id);
-            })
-            .map(function(system) {
-                // Find impact level if this is an affected system
-                var impactLevel = 0;
-                var impactColor = "#cbd5e1"; // Default: unaffected
-                
-                if (system.id === sourceId) {
-                    // Source system
-                    impactLevel = 0;
-                    impactColor = "#ef4444"; // Red
-                } else {
-                    var affectedSystem = affectedSystems.find(function(s) {
-                        return s.id === system.id;
+            
+            // Create links from impact paths
+            var path = system.impact_path;
+            if (path && path.length > 1) {
+                for (var i = 0; i < path.length - 1; i++) {
+                    links.push({
+                        source: path[i],
+                        target: path[i + 1]
                     });
-                    
-                    if (affectedSystem) {
-                        impactLevel = affectedSystem.depth;
-                        // Gradient colors for impact levels
-                        if (impactLevel === 1) {
-                            impactColor = "#f87171"; // Light red
-                        } else if (impactLevel === 2) {
-                            impactColor = "#fb923c"; // Light orange
-                        } else {
-                            impactColor = "#fdba74"; // Light yellow
-                        }
-                    }
                 }
-                
-                return {
-                    id: system.id,
-                    name: system.name,
-                    category: system.category,
-                    vendor: system.vendor || "N/A",
-                    status: system.status,
-                    isSource: system.id === sourceId,
-                    isAffected: affectedSystemIds.has(system.id),
-                    impactLevel: impactLevel,
-                    impactColor: impactColor
-                };
-            });
-        
-        // Create filtered links
-        var processedLinks = [];
-        var processedLinkPairs = new Set(); // To avoid duplicate links
-        
-        // First add direct links that show the impact paths
-        affectedSystems.forEach(function(system) {
-            // For each affected system, add links along its path
-            var path = system.path;
-            for (var i = 0; i < path.length - 1; i++) {
-                var sourceNodeId = path[i];
-                var targetNodeId = path[i + 1];
-                var linkKey = sourceNodeId + '-' + targetNodeId;
-                
-                // Skip if we've already added this link
-                if (processedLinkPairs.has(linkKey)) {
-                    continue;
-                }
-                
-                processedLinkPairs.add(linkKey);
-                
-                // Add the link
-                processedLinks.push({
-                    source: sourceNodeId,
-                    target: targetNodeId,
-                    isAffected: true
-                });
             }
         });
-        
-        return { 
-            nodes: nodes, 
-            links: processedLinks 
-        };
-    }
-    
-    function renderGraph(graphData) {
-        var container = document.getElementById('impact-graph');
-        var containerRect = container.getBoundingClientRect();
-        var width = containerRect.width;
-        var height = containerRect.height;
-        
-        // Clear any existing SVG
-        container.innerHTML = '';
         
         // Create SVG
         var svg = d3.select('#impact-graph')
@@ -1201,106 +979,69 @@ document.addEventListener('DOMContentLoaded', function() {
             
         svg.call(zoom);
         
-        // Create a group to contain all elements
+        // Create a group for all elements
         var g = svg.append('g');
         
-        // Create links
+        // Create links with curved paths
         var link = g.selectAll('.edge')
-            .data(graphData.links)
+            .data(links)
             .enter()
             .append('path')
-            .attr('class', function(d) { 
-                return d.isAffected ? 'edge affected' : 'edge';
-            })
+            .attr('class', 'edge affected')
             .attr('id', function(d) {
-                return 'edge-' + (d.source.id || d.source) + '-' + (d.target.id || d.target);
+                return 'edge-' + d.source + '-' + d.target;
             });
             
-        // Create arrow marker for links
-        svg.append('defs').selectAll('marker')
-            .data(['end'])
-            .enter()
-            .append('marker')
-            .attr('id', function(d) { return d; })
+        // Create arrow markers
+        svg.append('defs').append('marker')
+            .attr('id', 'arrow')
             .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 25)
+            .attr('refX', 28) // Adjusted for circular nodes
             .attr('refY', 0)
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
             .append('path')
-            .attr('class', 'edge-arrow')
-            .attr('d', 'M0,-5L10,0L0,5');
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', '#ef4444');
             
-        link.attr('marker-end', 'url(#end)');
+        link.attr('marker-end', 'url(#arrow)');
         
         // Create node groups
         var node = g.selectAll('.node')
-            .data(graphData.nodes)
+            .data(nodes)
             .enter()
             .append('g')
             .attr('class', function(d) {
                 var classes = 'node';
-                if (d.isSource) classes += ' source';
-                if (d.isAffected) classes += ' affected';
+                if (d.isSource) {
+                    classes += ' source';
+                } else if (d.impact_level === 1) {
+                    classes += ' level-1';
+                } else if (d.impact_level === 2) {
+                    classes += ' level-2';
+                } else if (d.impact_level > 2) {
+                    classes += ' level-3-plus';
+                } else {
+                    classes += ' unaffected';
+                }
                 return classes;
             })
-            .attr('id', function(d) { return 'node-' + d.id; })
-            .on('mouseover', showTooltip)
-            .on('mouseout', hideTooltip)
-            .on('click', function(event, d) {
-                // Toggle node selection
-                var isSelected = d3.select(this).classed('selected');
-                
-                // Deselect all nodes
-                node.classed('selected', false);
-                
-                // If not already selected, select this node
-                if (!isSelected) {
-                    d3.select(this).classed('selected', true);
-                }
-            })
-            .call(d3.drag()
-                .on('start', dragstarted)
-                .on('drag', dragged)
-                .on('end', dragended));
-                
-        // Add background rectangles for nodes
-        var backgroundWidth = 180;
-        var backgroundHeight = 40;
-        
-        node.append('rect')
-            .attr('class', 'node-bg')
-            .attr('width', backgroundWidth)
-            .attr('height', backgroundHeight)
-            .attr('x', -backgroundWidth/2)
-            .attr('y', -backgroundHeight/2);
+            .attr('id', function(d) { return 'node-' + d.id; });
             
-        // Add colored rectangles for system category/type
-        var typeRectWidth = 10;
-        
-        node.append('rect')
-            .attr('class', 'node-system')
-            .attr('width', typeRectWidth)
-            .attr('height', backgroundHeight)
-            .attr('x', -backgroundWidth/2)
-            .attr('y', -backgroundHeight/2)
-            .attr('style', function(d) {
-                // Get color based on impact level
-                var color = d.impactColor || '#cbd5e1';
-                return '--color: ' + color;
-            });
+        // Add circular nodes
+        var circleRadius = 25;
+        node.append('circle')
+            .attr('r', circleRadius);
             
-        // Add system names as text
+        // Add node labels
         node.append('text')
-            .attr('x', -backgroundWidth/2 + typeRectWidth + 10)
-            .attr('y', 0)
-            .attr('dy', '.3em')
+            .attr('dy', '.35em')
             .text(function(d) { return d.name; })
             .each(function(d) {
                 // Truncate text if too long
                 var textElement = d3.select(this);
-                var maxWidth = backgroundWidth - typeRectWidth - 20;
+                var maxWidth = 40;
                 var text = d.name;
                 
                 while (this.getComputedTextLength() > maxWidth && text.length > 3) {
@@ -1310,20 +1051,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
         // Create simulation
-        var simulation = d3.forceSimulation(graphData.nodes)
-            .force('link', d3.forceLink(graphData.links).id(function(d) { return d.id; }).distance(200))
+        var simulation = d3.forceSimulation(nodes)
+            .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(150))
             .force('charge', d3.forceManyBody().strength(-500))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(100))
+            .force('collision', d3.forceCollide().radius(50))
             .on('tick', ticked);
             
         // Simulation tick function
         function ticked() {
+            // Update links with curved paths
             link.attr('d', function(d) {
-                var sourceX = d.source.x;
-                var sourceY = d.source.y;
-                var targetX = d.target.x;
-                var targetY = d.target.y;
+                var sourceNode = nodes.find(n => n.id === d.source.id || n.id === d.source);
+                var targetNode = nodes.find(n => n.id === d.target.id || n.id === d.target);
+                
+                if (!sourceNode || !targetNode) return '';
+                
+                var sourceX = sourceNode.x;
+                var sourceY = sourceNode.y;
+                var targetX = targetNode.x;
+                var targetY = targetNode.y;
                 
                 // Calculate the total distance
                 var dx = targetX - sourceX;
@@ -1336,8 +1083,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Calculate offsets to account for node size
-                var offsetX = (dx * backgroundWidth/2) / dist;
-                var offsetY = (dy * backgroundHeight/2) / dist;
+                var offsetX = (dx * circleRadius) / dist;
+                var offsetY = (dy * circleRadius) / dist;
                 
                 // Start and end points with offsets
                 var startX = sourceX + offsetX;
@@ -1345,71 +1092,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 var endX = targetX - offsetX;
                 var endY = targetY - offsetY;
                 
-                return 'M' + startX + ',' + startY + 'L' + endX + ',' + endY;
+                // Calculate control points for a curved path
+                var curveFactor = Math.min(dist * 0.2, 40); // Scale curve based on distance
+                
+                // Calculate the midpoint
+                var mpx = (startX + endX) / 2;
+                var mpy = (startY + endY) / 2;
+                
+                // Calculate the control point offset perpendicular to the line
+                var cpx = mpx - dy * (curveFactor / dist);
+                var cpy = mpy + dx * (curveFactor / dist);
+                
+                // Create a quadratic bezier curve path
+                return 'M' + startX + ',' + startY + ' Q' + cpx + ',' + cpy + ' ' + endX + ',' + endY;
             });
             
+            // Update node positions
             node.attr('transform', function(d) {
                 return 'translate(' + d.x + ',' + d.y + ')';
             });
         }
         
-        // Drag functions
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-        
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-        
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            // Keep positions fixed for better UX
-            // Uncomment below to release positions after drag
-            // d.fx = null;
-            // d.fy = null;
-        }
-        
-        // Add tooltip functions
-        function showTooltip(event, d) {
-            // Create tooltip if it doesn't exist
-            var tooltip = d3.select('.tooltip');
-            if (tooltip.empty()) {
-                tooltip = d3.select('body').append('div')
-                    .attr('class', 'tooltip')
-                    .style('opacity', 0);
+        // Center the view on the source node
+        setTimeout(function() {
+            var sourceNode = nodes.find(n => n.isSource);
+            if (sourceNode && sourceNode.x && sourceNode.y) {
+                var transform = d3.zoomIdentity
+                    .translate(width / 2 - sourceNode.x, height / 2 - sourceNode.y);
+                
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, transform);
             }
+        }, 100);
+        
+        // Control buttons
+        document.getElementById('reset-zoom').addEventListener('click', function() {
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity);
+        });
+        
+        document.getElementById('optimize-layout').addEventListener('click', function() {
+            // Release fixed positions
+            nodes.forEach(function(node) {
+                node.fx = null;
+                node.fy = null;
+            });
             
-            // Set tooltip content
-            var html = '<div><strong>' + d.name + '</strong></div>';
-            if (d.category) {
-                html += '<div>Category: <span style="color: ' + d.category.text_color + ';">' + d.category.name + '</span></div>';
-            }
-            if (d.vendor && d.vendor !== 'N/A') {
-                html += '<div>Vendor: ' + d.vendor + '</div>';
-            }
-            if (d.impactLevel > 0) {
-                html += '<div>Impact Level: ' + d.impactLevel + '</div>';
-            }
+            // Apply stronger forces
+            simulation
+                .force('charge', d3.forceManyBody().strength(-1000))
+                .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(200))
+                .force('collision', d3.forceCollide().radius(60));
             
-            tooltip.html(html)
-                .style('left', (event.pageX) + 'px')
-                .style('top', (event.pageY - 28) + 'px')
-                .transition()
-                .duration(200)
-                .style('opacity', 0.9);
-        }
-
-        function hideTooltip() {
-            d3.select('.tooltip').transition()
-                .duration(500)
-                .style('opacity', 0);
-        }
+            // Restart with high alpha
+            simulation.alpha(1).restart();
+        });
         
-        // Set up zoom controls
         document.getElementById('zoom-in').addEventListener('click', function() {
             svg.transition().duration(300).call(zoom.scaleBy, 1.2);
         });
@@ -1418,22 +1158,14 @@ document.addEventListener('DOMContentLoaded', function() {
             svg.transition().duration(300).call(zoom.scaleBy, 0.8);
         });
         
-        document.getElementById('reset-zoom').addEventListener('click', function() {
-            svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
-        });
-        
-        // Depth control for visualization
+        // Depth filter
         document.getElementById('depth-control').addEventListener('change', function() {
             var depthLimit = parseInt(this.value);
-            filterByDepth(depthLimit);
-        });
-        
-        // Filter nodes by impact depth
-        function filterByDepth(depth) {
+            
             // If depth is 0 (all levels), show all nodes
-            if (depth === 0) {
-                node.style('display', 'block');
-                link.style('display', 'block');
+            if (depthLimit === 0) {
+                node.style('display', null);
+                link.style('display', null);
                 return;
             }
             
@@ -1442,120 +1174,161 @@ document.addEventListener('DOMContentLoaded', function() {
             link.style('display', 'none');
             
             // Always show source node
-            d3.select('#node-' + sourceSystemId).style('display', 'block');
+            d3.select('.node.source').style('display', null);
             
-            // Filter affected systems by depth
-            var filteredAffectedSystems = affectedSystemsData.filter(function(system) {
-                return system.depth <= depth;
+            // Show affected systems up to the specified depth
+            node.filter(function(d) {
+                return d.impact_level > 0 && d.impact_level <= depthLimit;
+            }).style('display', null);
+            
+            // Show corresponding links
+            var visibleNodeIds = new Set();
+            
+            // Add the source node and nodes within the depth limit
+            visibleNodeIds.add(sourceSystemId);
+            node.filter(function(d) {
+                return d.impact_level > 0 && d.impact_level <= depthLimit;
+            }).each(function(d) {
+                visibleNodeIds.add(d.id);
             });
             
-            // Show filtered affected systems
-            filteredAffectedSystems.forEach(function(system) {
-                // Show this system node
-                d3.select('#node-' + system.id).style('display', 'block');
-                
-                // Show path links to this system
-                var path = system.path;
-                for (var i = 0; i < path.length - 1; i++) {
-                    var sourceNodeId = path[i];
-                    var targetNodeId = path[i + 1];
-                    d3.select('#edge-' + sourceNodeId + '-' + targetNodeId).style('display', 'block');
-                }
-            });
-        }
-        
-        // Initial layout - center on source node and fit diagram
-        function centerDiagram() {
-            // Find the source node
-            var sourceNode = graphData.nodes.find(function(n) {
-                return n.id === sourceSystemId;
-            });
-            
-            if (sourceNode && sourceNode.x && sourceNode.y) {
-                // Calculate transform to center on source node
-                var tx = width / 2 - sourceNode.x;
-                var ty = height / 2 - sourceNode.y;
-                
-                // Apply transform with slight delay to allow simulation to start
-                setTimeout(function() {
-                    svg.transition()
-                        .duration(750)
-                        .call(zoom.transform, d3.zoomIdentity.translate(tx, ty));
-                }, 500);
-            }
-        }
-        
-        // Run the simulation for a bit to get a good layout
-        simulation.alpha(1).restart();
-        
-        // Center diagram after a short delay
-        setTimeout(centerDiagram, 100);
-    }
-    
-    function populateImpactSummary(affectedSystems) {
-        // Calculate statistics
-        var totalAffected = affectedSystems.length;
-        var directlyAffected = affectedSystems.filter(function(s) {
-            return s.depth === 1;
-        }).length;
-        var indirectlyAffected = totalAffected - directlyAffected;
-        var maxDepth = affectedSystems.length > 0 ? 
-            Math.max.apply(null, affectedSystems.map(function(s) { return s.depth; })) : 0;
-        
-        // Update statistics in the UI
-        document.getElementById('total-affected').textContent = totalAffected;
-        document.getElementById('direct-affected').textContent = directlyAffected;
-        document.getElementById('indirect-affected').textContent = indirectlyAffected;
-        document.getElementById('max-depth').textContent = maxDepth;
-        
-        // Populate affected systems table
-        var tableBody = document.getElementById('affected-systems-body');
-        
-        if (affectedSystems.length === 0) {
-            tableBody.innerHTML = 
-                '<tr>' +
-                '<td colspan="4" class="text-center py-4 text-gray-500">' +
-                'No affected systems found. This system is not a dependency for any other system.' +
-                '</td>' +
-                '</tr>';
-            return;
-        }
-        
-        var tableHtml = '';
-        
-        affectedSystems.forEach(function(system) {
-            var impactLevel = system.depth === 1 ? "Direct" : "Indirect (L" + system.depth + ")";
-            var impactClass = system.depth === 1 ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800";
-            
-            tableHtml += 
-                '<tr>' +
-                '<td>' +
-                '<a href="' + systemDetailUrl.replace('0', system.id) + '" class="text-blue-600 hover:underline">' +
-                system.name +
-                '</a>' +
-                '</td>' +
-                '<td>' +
-                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" ' + 
-                'style="background-color: ' + system.category.color + '; color: ' + system.category.text_color + '">' +
-                system.category.name +
-                '</span>' +
-                '</td>' +
-                '<td>' + (system.vendor || "N/A") + '</td>' +
-                '<td>' +
-                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + impactClass + '">' +
-                impactLevel +
-                '</span>' +
-                '</td>' +
-                '</tr>';
+            // Show links connecting visible nodes
+            link.filter(function(d) {
+                var sourceId = d.source.id || d.source;
+                var targetId = d.target.id || d.target;
+                return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
+            }).style('display', null);
         });
-        
-        tableBody.innerHTML = tableHtml;
     }
     
-    // Export report handler
-    document.getElementById('export-report').addEventListener('click', function(e) {
-        e.preventDefault();
-        alert("Export functionality temporarily disabled.");
+    // =============================
+    // Recovery Step Management
+    // =============================
+    
+    // Add step button
+    document.getElementById('add-step-btn').addEventListener('click', function() {
+        showStepForm();
+    });
+    
+    // Cancel step button
+    document.getElementById('cancel-step-btn').addEventListener('click', function() {
+        hideStepForm();
+    });
+    
+    // Show step form
+    function showStepForm() {
+        // Reset form
+        document.getElementById('recovery-step-form').reset();
+        document.getElementById('step_id').value = '';
+        
+        // Show form
+        document.getElementById('recovery-form-container').style.display = 'block';
+        document.getElementById('title').focus();
+    }
+    
+    // Hide step form
+    function hideStepForm() {
+        document.getElementById('recovery-form-container').style.display = 'none';
+    }
+    
+    // Edit step handlers
+    document.querySelectorAll('.edit-step').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const stepId = this.getAttribute('data-step-id');
+            editStep(stepId);
+        });
+    });
+    
+    // Delete step handlers
+    document.querySelectorAll('.delete-step').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const stepId = this.getAttribute('data-step-id');
+            confirmDeleteStep(stepId);
+        });
+    });
+    
+    // Move step handlers
+    document.querySelectorAll('.move-step').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const stepId = this.getAttribute('data-step-id');
+            const direction = this.getAttribute('data-direction');
+            moveStep(stepId, direction);
+        });
+    });
+    
+    // Edit step function
+    function editStep(stepId) {
+        // Fetch step data
+        fetch('{% url "systems:get_recovery_step" step_id=0 %}'.replace('0', stepId))
+            .then(response => response.json())
+            .then(data => {
+                // Fill form
+                document.getElementById('step_id').value = data.id;
+                document.getElementById('title').value = data.title;
+                document.getElementById('description').value = data.description;
+                document.getElementById('responsible_team').value = data.responsible_team;
+                document.getElementById('estimated_time').value = data.estimated_time;
+                
+                // Show form
+                showStepForm();
+            })
+            .catch(error => {
+                console.error('Error fetching step data:', error);
+                alert('Error loading step data. Please try again.');
+            });
+    }
+    
+    // Delete step confirmation
+    function confirmDeleteStep(stepId) {
+        // Update delete form action
+        const deleteForm = document.getElementById('delete-step-form');
+        deleteForm.action = '{% url "systems:delete_recovery_step" system_pk=system.pk step_id=0 %}'.replace('0', stepId);
+        
+        // Show modal
+        document.getElementById('delete-modal').classList.add('show');
+    }
+    
+    // Cancel delete handlers
+    document.getElementById('close-delete-modal').addEventListener('click', function() {
+        document.getElementById('delete-modal').classList.remove('show');
+    });
+    
+    document.getElementById('cancel-delete').addEventListener('click', function() {
+        document.getElementById('delete-modal').classList.remove('show');
+    });
+    
+    // Move step function
+    function moveStep(stepId, direction) {
+        // Send request to move step
+        fetch('{% url "systems:move_recovery_step" system.pk %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                step_id: stepId,
+                direction: direction
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload page to show updated order
+                window.location.reload();
+            } else {
+                alert('Error moving step: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error moving step:', error);
+            alert('Error moving step. Please try again.');
+        });
+    }
+    
+    // Basic PDF export
+    document.getElementById('export-report').addEventListener('click', function() {
+        alert('PDF export is not implemented in this simplified version.');
     });
 });
 </script>
