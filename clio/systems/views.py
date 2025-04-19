@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, transaction, connection
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.decorators.http import require_POST, require_http_methods
@@ -964,7 +964,7 @@ def delete_recovery_step(request, system_pk, step_id):
 @login_required
 @require_POST
 def move_recovery_step(request, system_pk):
-    """Move a recovery step up or down in order"""
+    """Move a recovery step up or down in order using raw SQL to avoid constraint issues"""
     try:
         data = json.loads(request.body)
         step_id = data.get('step_id')
@@ -975,27 +975,71 @@ def move_recovery_step(request, system_pk):
         
         system = get_object_or_404(System, pk=system_pk)
         step = get_object_or_404(DisasterRecoveryStep, pk=step_id, system=system)
+        current_order = step.order
         
-        if direction == 'up' and step.order > 1:
-            # Find the step above
-            step_above = DisasterRecoveryStep.objects.get(system=system, order=step.order-1)
-            
-            # Swap orders
-            step_above.order, step.order = step.order, step_above.order
-            step_above.save()
-            step.save()
-            
-        elif direction == 'down':
-            # Check if this is the last step
-            if DisasterRecoveryStep.objects.filter(system=system, order=step.order+1).exists():
-                # Find the step below
-                step_below = DisasterRecoveryStep.objects.get(system=system, order=step.order+1)
-                
-                # Swap orders
-                step_below.order, step.order = step.order, step_below.order
-                step_below.save()
-                step.save()
-                
+        # Using raw SQL with a single transaction to avoid constraint violations
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                if direction == 'up' and current_order > 1:
+                    # Find the step above
+                    cursor.execute(
+                        "SELECT id FROM systems_disasterrecoverystep WHERE system_id = %s AND `order` = %s",
+                        [system.id, current_order - 1]
+                    )
+                    result = cursor.fetchone()
+                    if not result:
+                        raise ValueError("No step found above this one")
+                    
+                    other_step_id = result[0]
+                    
+                    # Use a temporary high order number to avoid constraint issues
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [1000 + current_order, step.id]
+                    )
+                    
+                    # Move the other step down
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [current_order, other_step_id]
+                    )
+                    
+                    # Move the current step to its final position
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [current_order - 1, step.id]
+                    )
+                    
+                elif direction == 'down':
+                    # Find the step below
+                    cursor.execute(
+                        "SELECT id FROM systems_disasterrecoverystep WHERE system_id = %s AND `order` = %s",
+                        [system.id, current_order + 1]
+                    )
+                    result = cursor.fetchone()
+                    if not result:
+                        raise ValueError("No step found below this one")
+                    
+                    other_step_id = result[0]
+                    
+                    # Use a temporary high order number to avoid constraint issues
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [1000 + current_order, step.id]
+                    )
+                    
+                    # Move the other step up
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [current_order, other_step_id]
+                    )
+                    
+                    # Move the current step to its final position
+                    cursor.execute(
+                        "UPDATE systems_disasterrecoverystep SET `order` = %s WHERE id = %s",
+                        [current_order + 1, step.id]
+                    )
+        
         return JsonResponse({'success': True})
         
     except Exception as e:

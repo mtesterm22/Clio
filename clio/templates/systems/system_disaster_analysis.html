@@ -473,6 +473,51 @@
         gap: 0.5rem;
         margin-top: 1rem;
     }
+
+    .node-label-background {
+    fill: white;
+    fill-opacity: 0.85;
+    stroke: #ddd;
+    stroke-width: 0.5;
+    }
+
+    .node-label {
+        font-size: 12px;
+        text-anchor: middle;
+        pointer-events: none;
+        fill: #1e293b;
+        font-weight: 500;
+    }
+    
+    /* Export-related styles */
+    #exportMenu {
+        position: absolute;
+        top: 45px;
+        right: 20px;
+        background-color: white;
+        border-radius: 0.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 0.5rem 0;
+        display: none;
+        z-index: 1000;
+        min-width: 160px;
+    }
+    
+    .export-menu-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        color: #333;
+        font-size: 0.875rem;
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+    }
+    
+    .export-menu-item:hover {
+        background-color: #f5f5f5;
+    }
 </style>
 {% endblock %}
 
@@ -623,7 +668,11 @@
                 </button>
             </div>
         </div>
-        <div class="viz-container" id="impact-graph"></div>
+        <div class="viz-container" id="impact-graph" 
+     data-system-id="{{ system.id }}" 
+     data-system-name="{{ system.name }}" 
+     data-detail-url="{% url 'systems:detail' 0 %}">
+</div>
         
         <!-- Legend for visualization -->
         <div class="legend-container">
@@ -658,6 +707,12 @@
                 </svg>
                 Export Report
             </button>
+            <!-- Export Menu -->
+            <div id="exportMenu" class="export-menu">
+                <button class="export-menu-item" id="exportPDF">Export as PDF</button>
+                <button class="export-menu-item" id="exportCSV">Export as CSV</button>
+                <button class="export-menu-item" id="exportHTML">Export as HTML</button>
+            </div>
         </div>
         <div class="impact-summary-content">
             <div class="impact-stats">
@@ -834,12 +889,24 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Core variables
-    var sourceSystemId = {{ system.id }};
-    var sourceSystemName = "{{ system.name }}";
-    var systemDetailUrl = "{% url 'systems:detail' 0 %}";
+    var graphElement = document.getElementById('impact-graph');
+    var sourceSystemId = graphElement.getAttribute('data-system-id');
+    var sourceSystemName = graphElement.getAttribute('data-system-name');
+    
+    // Default URL pattern if attribute is missing
+    var systemDetailUrl = '/systems/{id}/';
+    
+    // Try to get the URL from the data attribute
+    if (graphElement.hasAttribute('data-detail-url')) {
+        systemDetailUrl = graphElement.getAttribute('data-detail-url');
+    }
+    
+    // Global references for the visualization
+    var svg, simulation, g, zoom, nodes, links;
+    var graphData = null;
     
     // Get API data for dependencies
-    fetch('{% url "systems:get_affected_systems" pk=system.pk %}')
+    fetch(`/systems/api/${sourceSystemId}/affected-systems/`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -847,16 +914,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Update summary statistics
-            var totalAffected = data.affected_systems.length;
-            var directlyAffected = data.affected_systems.filter(s => s.impact_level === 1).length;
-            var indirectlyAffected = totalAffected - directlyAffected;
-            var maxDepth = data.affected_systems.length > 0 ? Math.max(...data.affected_systems.map(s => s.impact_level)) : 0;
+            // Store the data for export
+            graphData = data;
             
-            document.getElementById('total-affected').textContent = totalAffected;
-            document.getElementById('direct-affected').textContent = directlyAffected;
-            document.getElementById('indirect-affected').textContent = indirectlyAffected;
-            document.getElementById('max-depth').textContent = maxDepth;
+            // Update summary statistics
+            updateStatistics(data);
             
             // Populate affected systems table
             populateAffectedSystemsTable(data.affected_systems);
@@ -874,6 +936,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 '</div>' +
                 '</div>';
         });
+    
+    // Update summary statistics
+    function updateStatistics(data) {
+        var totalAffected = data.affected_systems.length;
+        var directlyAffected = data.affected_systems.filter(s => s.impact_level === 1).length;
+        var indirectlyAffected = totalAffected - directlyAffected;
+        var maxDepth = data.affected_systems.length > 0 ? Math.max(...data.affected_systems.map(s => s.impact_level)) : 0;
+        
+        document.getElementById('total-affected').textContent = totalAffected;
+        document.getElementById('direct-affected').textContent = directlyAffected;
+        document.getElementById('indirect-affected').textContent = indirectlyAffected;
+        document.getElementById('max-depth').textContent = maxDepth;
+    }
     
     // Populate affected systems table
     function populateAffectedSystemsTable(systems) {
@@ -895,10 +970,18 @@ document.addEventListener('DOMContentLoaded', function() {
             var impactLevel = system.impact_level === 1 ? "Direct" : "Indirect (L" + system.impact_level + ")";
             var impactClass = system.impact_level === 1 ? "bg-orange-100 text-orange-800" : "bg-yellow-100 text-yellow-800";
             
+            // Construct detail URL correctly
+            var detailUrl = systemDetailUrl;
+            if (detailUrl.includes("{id}")) {
+                detailUrl = detailUrl.replace("{id}", system.id);
+            } else if (detailUrl.includes("0")) {
+                detailUrl = detailUrl.replace("0", system.id);
+            }
+            
             tableHtml += 
                 '<tr>' +
                 '<td>' +
-                '<a href="' + systemDetailUrl.replace('0', system.id) + '" class="text-blue-600 hover:underline">' +
+                '<a href="' + detailUrl + '" class="text-blue-600 hover:underline">' +
                 system.name +
                 '</a>' +
                 '</td>' +
@@ -928,8 +1011,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var height = container.clientHeight;
         
         // Prepare data for visualization
-        var nodes = [];
-        var links = [];
+        nodes = [];
+        links = [];
         
         // Add source system
         nodes.push({
@@ -965,13 +1048,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Create SVG
-        var svg = d3.select('#impact-graph')
+        svg = d3.select('#impact-graph')
             .append('svg')
             .attr('width', width)
             .attr('height', height);
             
         // Add zoom behavior
-        var zoom = d3.zoom()
+        zoom = d3.zoom()
             .scaleExtent([0.1, 3])
             .on('zoom', function(event) {
                 g.attr('transform', event.transform);
@@ -980,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', function() {
         svg.call(zoom);
         
         // Create a group for all elements
-        var g = svg.append('g');
+        g = svg.append('g');
         
         // Create links with curved paths
         var link = g.selectAll('.edge')
@@ -1033,25 +1116,34 @@ document.addEventListener('DOMContentLoaded', function() {
         var circleRadius = 25;
         node.append('circle')
             .attr('r', circleRadius);
+
+        // First, add label backgrounds
+        var labelBackground = node.append('rect')
+            .attr('class', 'node-label-background')
+            .attr('rx', 3)  // Rounded corners
+            .attr('ry', 3);
             
-        // Add node labels
-        node.append('text')
-            .attr('dy', '.35em')
+        // Then add node labels
+        var nodeLabels = node.append('text')
+            .attr('class', 'node-label')
+            .attr('dy', circleRadius + 20)  // Position below the circle
             .text(function(d) { return d.name; })
             .each(function(d) {
-                // Truncate text if too long
-                var textElement = d3.select(this);
-                var maxWidth = 40;
-                var text = d.name;
-                
-                while (this.getComputedTextLength() > maxWidth && text.length > 3) {
-                    text = text.slice(0, -1);
-                    textElement.text(text + '...');
-                }
+                // Store the text dimensions for background sizing
+                const bbox = this.getBBox();
+                d.labelWidth = bbox.width;
+                d.labelHeight = bbox.height;
             });
+
+        // Update label backgrounds based on text dimensions
+        labelBackground
+            .attr('width', function(d) { return d.labelWidth + 10; })
+            .attr('height', function(d) { return d.labelHeight + 5; })
+            .attr('x', function(d) { return -d.labelWidth / 2 - 5; })
+            .attr('y', function(d) { return circleRadius + 20 - d.labelHeight; });
             
         // Create simulation
-        var simulation = d3.forceSimulation(nodes)
+        simulation = d3.forceSimulation(nodes)
             .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(150))
             .force('charge', d3.forceManyBody().strength(-500))
             .force('center', d3.forceCenter(width / 2, height / 2))
@@ -1125,81 +1217,158 @@ document.addEventListener('DOMContentLoaded', function() {
                     .call(zoom.transform, transform);
             }
         }, 100);
-        
-        // Control buttons
-        document.getElementById('reset-zoom').addEventListener('click', function() {
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform, d3.zoomIdentity);
-        });
-        
-        document.getElementById('optimize-layout').addEventListener('click', function() {
-            // Release fixed positions
-            nodes.forEach(function(node) {
-                node.fx = null;
-                node.fy = null;
-            });
-            
-            // Apply stronger forces
-            simulation
-                .force('charge', d3.forceManyBody().strength(-1000))
-                .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(200))
-                .force('collision', d3.forceCollide().radius(60));
-            
-            // Restart with high alpha
-            simulation.alpha(1).restart();
-        });
-        
-        document.getElementById('zoom-in').addEventListener('click', function() {
-            svg.transition().duration(300).call(zoom.scaleBy, 1.2);
-        });
-        
-        document.getElementById('zoom-out').addEventListener('click', function() {
-            svg.transition().duration(300).call(zoom.scaleBy, 0.8);
-        });
-        
-        // Depth filter
-        document.getElementById('depth-control').addEventListener('change', function() {
-            var depthLimit = parseInt(this.value);
-            
-            // If depth is 0 (all levels), show all nodes
-            if (depthLimit === 0) {
-                node.style('display', null);
-                link.style('display', null);
-                return;
-            }
-            
-            // Hide all nodes and links first
-            node.style('display', 'none');
-            link.style('display', 'none');
-            
-            // Always show source node
-            d3.select('.node.source').style('display', null);
-            
-            // Show affected systems up to the specified depth
-            node.filter(function(d) {
-                return d.impact_level > 0 && d.impact_level <= depthLimit;
-            }).style('display', null);
-            
-            // Show corresponding links
-            var visibleNodeIds = new Set();
-            
-            // Add the source node and nodes within the depth limit
-            visibleNodeIds.add(sourceSystemId);
-            node.filter(function(d) {
-                return d.impact_level > 0 && d.impact_level <= depthLimit;
-            }).each(function(d) {
-                visibleNodeIds.add(d.id);
-            });
-            
-            // Show links connecting visible nodes
-            link.filter(function(d) {
-                var sourceId = d.source.id || d.source;
-                var targetId = d.target.id || d.target;
-                return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
-            }).style('display', null);
-        });
     }
+    
+    // Function to optimize layout - IMPROVED VERSION
+    function optimizeLayout() {
+        if (!simulation) return;
+        
+        // Get container dimensions
+        var container = document.getElementById('impact-graph');
+        var width = container.clientWidth;
+        var height = container.clientHeight;
+        
+        // Calculate appropriate spacing based on number of nodes
+        const nodeCount = nodes.length;
+        // Use much more of the available space
+        const totalArea = width * height * 0.8; // Use 80% of the total area
+        const areaPerNode = totalArea / nodeCount;
+        const optimalDistance = Math.sqrt(areaPerNode); // Distance between nodes
+        
+        // Release fixed positions
+        nodes.forEach(function(node) {
+            node.fx = null;
+            node.fy = null;
+        });
+        
+        // Apply stronger forces - adjusted based on node count
+        simulation
+            .force('charge', d3.forceManyBody().strength(-optimalDistance * 3))
+            .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(optimalDistance * 1.5))
+            .force('collision', d3.forceCollide().radius(optimalDistance * 0.3))
+            .force('center', d3.forceCenter(width / 2, height / 2));
+        
+        // Restart with high alpha
+        simulation.alpha(1).restart();
+        
+        // After simulation stabilizes a bit, fit view to show all nodes
+        setTimeout(function() {
+            fitView();
+        }, 2000);
+    }
+    
+    // Function to fit all nodes in view
+    function fitView() {
+        if (!svg || !zoom || !nodes) return;
+        
+        // Find the bounding box of all nodes
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        
+        nodes.forEach(function(node) {
+            if (node.x !== undefined && node.y !== undefined) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x);
+                maxY = Math.max(maxY, node.y);
+            }
+        });
+        
+        // Add padding
+        const padding = 50;
+        minX -= padding;
+        minY -= padding;
+        maxX += padding;
+        maxY += padding;
+        
+        // Calculate scale to fit all nodes
+        const container = document.getElementById('impact-graph');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        const dx = maxX - minX;
+        const dy = maxY - minY;
+        const scale = Math.min(width / dx, height / dy, 1.0); // Cap at 1.0 to avoid excessive zoom
+        
+        // Calculate center of the bounding box
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        
+        // Create transform
+        const transform = d3.zoomIdentity
+            .translate(width/2 - centerX * scale, height/2 - centerY * scale)
+            .scale(scale);
+            
+        // Apply transform with animation
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform, transform);
+    }
+    
+    // Control buttons
+    document.getElementById('reset-zoom').addEventListener('click', function() {
+        if (!svg || !zoom) return;
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform, d3.zoomIdentity);
+    });
+    
+    document.getElementById('optimize-layout').addEventListener('click', optimizeLayout);
+    
+    document.getElementById('zoom-in').addEventListener('click', function() {
+        if (!svg || !zoom) return;
+        svg.transition().duration(300).call(zoom.scaleBy, 1.2);
+    });
+    
+    document.getElementById('zoom-out').addEventListener('click', function() {
+        if (!svg || !zoom) return;
+        svg.transition().duration(300).call(zoom.scaleBy, 0.8);
+    });
+    
+    // Depth filter
+    document.getElementById('depth-control').addEventListener('change', function() {
+        if (!svg) return;
+        
+        var depthLimit = parseInt(this.value);
+        var nodeElements = d3.selectAll('.node');
+        var linkElements = d3.selectAll('.edge');
+        
+        // If depth is 0 (all levels), show all nodes
+        if (depthLimit === 0) {
+            nodeElements.style('display', null);
+            linkElements.style('display', null);
+            return;
+        }
+        
+        // Hide all nodes and links first
+        nodeElements.style('display', 'none');
+        linkElements.style('display', 'none');
+        
+        // Always show source node
+        d3.select('.node.source').style('display', null);
+        
+        // Show affected systems up to the specified depth
+        nodeElements.filter(function(d) {
+            return d.impact_level > 0 && d.impact_level <= depthLimit;
+        }).style('display', null);
+        
+        // Show corresponding links
+        var visibleNodeIds = new Set();
+        
+        // Add the source node and nodes within the depth limit
+        visibleNodeIds.add(parseInt(sourceSystemId));
+        nodeElements.filter(function(d) {
+            return d.impact_level > 0 && d.impact_level <= depthLimit;
+        }).each(function(d) {
+            visibleNodeIds.add(d.id);
+        });
+        
+        // Show links connecting visible nodes
+        linkElements.filter(function(d) {
+            var sourceId = d.source.id || d.source;
+            var targetId = d.target.id || d.target;
+            return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
+        }).style('display', null);
+    });
     
     // =============================
     // Recovery Step Management
@@ -1259,15 +1428,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Edit step function
     function editStep(stepId) {
         // Fetch step data
-        fetch('{% url "systems:get_recovery_step" step_id=0 %}'.replace('0', stepId))
+        fetch('/systems/recovery-step/' + stepId + '/')
             .then(response => response.json())
             .then(data => {
                 // Fill form
                 document.getElementById('step_id').value = data.id;
                 document.getElementById('title').value = data.title;
                 document.getElementById('description').value = data.description;
-                document.getElementById('responsible_team').value = data.responsible_team;
-                document.getElementById('estimated_time').value = data.estimated_time;
+                document.getElementById('responsible_team').value = data.responsible_team || '';
+                document.getElementById('estimated_time').value = data.estimated_time || '';
                 
                 // Show form
                 showStepForm();
@@ -1282,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function confirmDeleteStep(stepId) {
         // Update delete form action
         const deleteForm = document.getElementById('delete-step-form');
-        deleteForm.action = '{% url "systems:delete_recovery_step" system_pk=system.pk step_id=0 %}'.replace('0', stepId);
+        deleteForm.action = '/systems/' + sourceSystemId + '/recovery-step/' + stepId + '/delete/';
         
         // Show modal
         document.getElementById('delete-modal').classList.add('show');
@@ -1299,12 +1468,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Move step function
     function moveStep(stepId, direction) {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
         // Send request to move step
-        fetch('{% url "systems:move_recovery_step" system.pk %}', {
+        fetch('/systems/' + sourceSystemId + '/move-recovery-step/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 step_id: stepId,
@@ -1326,10 +1498,426 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Basic PDF export
-    document.getElementById('export-report').addEventListener('click', function() {
-        alert('PDF export is not implemented in this simplified version.');
+    // =============================
+    // Export Functionality
+    // =============================
+    
+    // Export menu toggle
+    document.getElementById('export-report').addEventListener('click', function(event) {
+        const exportMenu = document.getElementById('exportMenu');
+        exportMenu.style.display = exportMenu.style.display === 'block' ? 'none' : 'block';
+        
+        // Prevent event from bubbling up to document
+        event.stopPropagation();
     });
+    
+    // Hide export menu when clicking elsewhere
+    document.addEventListener('click', function(event) {
+        const exportMenu = document.getElementById('exportMenu');
+        const exportButton = document.getElementById('export-report');
+        
+        if (exportMenu.style.display === 'block' && !exportButton.contains(event.target) && !exportMenu.contains(event.target)) {
+            exportMenu.style.display = 'none';
+        }
+    });
+    
+    // Export as PDF
+    document.getElementById('exportPDF').addEventListener('click', function() {
+        exportAsPDF();
+    });
+    
+    // Export as CSV
+    document.getElementById('exportCSV').addEventListener('click', function() {
+        exportAsCSV();
+    });
+    
+    // Export as HTML
+    document.getElementById('exportHTML').addEventListener('click', function() {
+        exportAsHTML();
+    });
+    
+    // Export as PDF function
+    function exportAsPDF() {
+        const exportMenu = document.getElementById('exportMenu');
+        exportMenu.style.display = 'none';
+        
+        // Prepare the current date
+        const currentDate = new Date();
+        const dateString = currentDate.toLocaleDateString();
+        const timeString = currentDate.toLocaleTimeString();
+        
+        // Create PDF content
+        const title = `Disaster Recovery Analysis for ${sourceSystemName}`;
+        const subtitle = `Generated on ${dateString} at ${timeString}`;
+        
+        // Get system information from the page
+        const systemName = document.querySelector('.detail-item:nth-child(1)') 
+            ? document.querySelector('.detail-item:nth-child(1)').textContent.replace('System Name:', '').trim()
+            : sourceSystemName;
+            
+        const systemCategory = document.querySelector('.detail-item:nth-child(2)')
+            ? document.querySelector('.detail-item:nth-child(2)').textContent.replace('Category:', '').trim()
+            : '';
+            
+        const systemStatus = document.querySelector('.detail-item:nth-child(3)')
+            ? document.querySelector('.detail-item:nth-child(3)').textContent.replace('Status:', '').trim()
+            : '';
+            
+        const systemVendor = document.querySelector('.detail-item:nth-child(4)')
+            ? document.querySelector('.detail-item:nth-child(4)').textContent.replace('Vendor:', '').trim()
+            : '';
+        
+        let content = `
+            <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { text-align: center; }
+                        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .step-item { border: 1px solid #ddd; margin-bottom: 15px; padding: 10px; }
+                        .step-title { font-weight: bold; margin-bottom: 5px; }
+                        .step-metadata { color: #666; font-size: 0.9em; margin-bottom: 5px; }
+                        .step-description { margin-bottom: 5px; }
+                        @media print {
+                            body { margin: 0; }
+                            h1 { margin-top: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>${title}</h1>
+                    <p class="subtitle">${subtitle}</p>
+                    
+                    <h2>System Overview</h2>
+                    <table>
+                        <tr>
+                            <td style="width: 30%; font-weight: bold;">System Name:</td>
+                            <td>${systemName}</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 30%; font-weight: bold;">Category:</td>
+                            <td>${systemCategory}</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 30%; font-weight: bold;">Status:</td>
+                            <td>${systemStatus}</td>
+                        </tr>
+                        <tr>
+                            <td style="width: 30%; font-weight: bold;">Vendor:</td>
+                            <td>${systemVendor}</td>
+                        </tr>
+                    </table>
+                    
+                    <h2>Impact Summary</h2>
+                    <p>An outage of this system would impact:</p>
+                    <ul>
+                        <li><strong>${document.getElementById('total-affected').textContent}</strong> total systems</li>
+                        <li><strong>${document.getElementById('direct-affected').textContent}</strong> directly affected systems</li>
+                        <li><strong>${document.getElementById('indirect-affected').textContent}</strong> indirectly affected systems</li>
+                        <li><strong>${document.getElementById('max-depth').textContent}</strong> maximum impact depth</li>
+                    </ul>
+                    
+                    <h2>Affected Systems</h2>
+                    ${prepareAffectedSystemsTableForExport()}
+                    
+                    <h2>Disaster Recovery Steps</h2>
+                    ${prepareRecoveryStepsForExport()}
+                </body>
+            </html>
+        `;
+
+        // Create a new window with the content
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Please allow pop-ups for this site to use the export feature.');
+            return;
+        }
+        
+        printWindow.document.write(content);
+        printWindow.document.close();
+        
+        // Automatically print when loaded
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    }
+    
+    // Export as CSV function
+    function exportAsCSV() {
+        const exportMenu = document.getElementById('exportMenu');
+        exportMenu.style.display = 'none';
+        
+        // Prepare affected systems data
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Header
+        csvContent += "System Name,Category,Vendor,Impact Level\n";
+        
+        // Add rows
+        if (graphData && graphData.affected_systems) {
+            graphData.affected_systems.forEach(function(system) {
+                const impactLevel = system.impact_level === 1 ? "Direct" : `Indirect (L${system.impact_level})`;
+                const categoryName = system.category ? system.category.name : "Unknown";
+                const vendor = system.vendor || "N/A";
+                
+                // Escape fields that might contain commas
+                const escapedName = `"${system.name.replace(/"/g, '""')}"`;
+                const escapedCategory = `"${categoryName.replace(/"/g, '""')}"`;
+                const escapedVendor = `"${vendor.replace(/"/g, '""')}"`;
+                
+                csvContent += `${escapedName},${escapedCategory},${escapedVendor},${impactLevel}\n`;
+            });
+        }
+        
+        // Create download link
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${sourceSystemName}_disaster_impact.csv`);
+        document.body.appendChild(link);
+        
+        // Trigger download
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+    }
+    
+    // Export as HTML function
+    function exportAsHTML() {
+        const exportMenu = document.getElementById('exportMenu');
+        exportMenu.style.display = 'none';
+        
+        // Prepare the current date
+        const currentDate = new Date();
+        const dateString = currentDate.toLocaleDateString();
+        const timeString = currentDate.toLocaleTimeString();
+        
+        // Get system information
+        const systemName = document.querySelector('.detail-item:nth-child(1)') 
+            ? document.querySelector('.detail-item:nth-child(1)').textContent.replace('System Name:', '').trim()
+            : sourceSystemName;
+            
+        const systemCategory = document.querySelector('.detail-item:nth-child(2)')
+            ? document.querySelector('.detail-item:nth-child(2)').textContent.replace('Category:', '').trim()
+            : '';
+            
+        const systemStatus = document.querySelector('.detail-item:nth-child(3)')
+            ? document.querySelector('.detail-item:nth-child(3)').textContent.replace('Status:', '').trim()
+            : '';
+            
+        const systemVendor = document.querySelector('.detail-item:nth-child(4)')
+            ? document.querySelector('.detail-item:nth-child(4)').textContent.replace('Vendor:', '').trim()
+            : '';
+        
+        // Create HTML content
+        const title = `Disaster Recovery Analysis for ${sourceSystemName}`;
+        const subtitle = `Generated on ${dateString} at ${timeString}`;
+        
+        let content = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${title}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                    .container { max-width: 900px; margin: 0 auto; }
+                    h1, h2, h3 { color: #2c3e50; }
+                    h1 { text-align: center; }
+                    .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    tr:nth-child(even) { background-color: #f9f9f9; }
+                    .system-details { display: grid; grid-template-columns: 1fr 1fr; grid-gap: 20px; margin-bottom: 30px; }
+                    .detail-item { margin-bottom: 10px; }
+                    .detail-item strong { display: inline-block; width: 120px; }
+                    .stats-container { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
+                    .stat-card { flex: 1; min-width: 150px; background-color: #f8f9fa; padding: 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                    .stat-number { font-size: 28px; font-weight: bold; margin-bottom: 5px; color: #2980b9; }
+                    .stat-label { color: #7f8c8d; font-size: 14px; }
+                    .step-item { border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; overflow: hidden; }
+                    .step-header { display: flex; background-color: #f8f9fa; padding: 10px; }
+                    .step-order { width: 30px; height: 30px; background-color: #3498db; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
+                    .step-content { padding: 15px; }
+                    .step-title { font-weight: bold; margin-bottom: 5px; }
+                    .step-metadata { color: #7f8c8d; font-size: 0.9em; margin-bottom: 10px; }
+                    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; background-color: #e0f2fe; color: #0369a1; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>${title}</h1>
+                    <p class="subtitle">${subtitle}</p>
+                    
+                    <h2>System Overview</h2>
+                    <div class="system-details">
+                        <div class="detail-item"><strong>System Name:</strong> ${systemName}</div>
+                        <div class="detail-item"><strong>Category:</strong> ${systemCategory}</div>
+                        <div class="detail-item"><strong>Status:</strong> ${systemStatus}</div>
+                        <div class="detail-item"><strong>Vendor:</strong> ${systemVendor}</div>
+                    </div>
+                    
+                    <h2>Impact Summary</h2>
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-number">${document.getElementById('total-affected').textContent}</div>
+                            <div class="stat-label">Total Affected Systems</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${document.getElementById('direct-affected').textContent}</div>
+                            <div class="stat-label">Directly Affected</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${document.getElementById('indirect-affected').textContent}</div>
+                            <div class="stat-label">Indirectly Affected</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${document.getElementById('max-depth').textContent}</div>
+                            <div class="stat-label">Maximum Impact Depth</div>
+                        </div>
+                    </div>
+                    
+                    <h2>Affected Systems</h2>
+                    ${prepareAffectedSystemsTableForExport()}
+                    
+                    <h2>Disaster Recovery Steps</h2>
+                    ${prepareRecoveryStepsForExport()}
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Create a new blob with the HTML content
+        const blob = new Blob([content], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${sourceSystemName}_disaster_recovery_plan.html`);
+        document.body.appendChild(link);
+        
+        // Trigger download
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+    
+    // Helper function to prepare recovery steps for export
+    function prepareRecoveryStepsForExport() {
+        const stepsContainer = document.getElementById('recovery-steps-container');
+        
+        if (!stepsContainer || stepsContainer.children.length === 0) {
+            return '<p>No recovery steps defined.</p>';
+        }
+        
+        let stepsHtml = '';
+        
+        // Convert NodeList to Array and sort by order
+        const stepItems = Array.from(stepsContainer.getElementsByClassName('step-item'));
+        stepItems.sort((a, b) => {
+            return parseInt(a.getAttribute('data-order')) - parseInt(b.getAttribute('data-order'));
+        });
+        
+        // Process each step
+        stepItems.forEach(function(stepItem) {
+            const order = stepItem.querySelector('.step-order').textContent;
+            const title = stepItem.querySelector('.step-title').textContent;
+            const description = stepItem.querySelector('.step-description').textContent;
+            
+            // Get metadata if available
+            let estimatedTime = '';
+            let responsibleTeam = '';
+            
+            const metadataEl = stepItem.querySelector('.step-metadata');
+            if (metadataEl) {
+                const badgeEl = metadataEl.querySelector('.badge');
+                if (badgeEl) {
+                    estimatedTime = badgeEl.textContent.replace('Est. Time:', '').trim();
+                }
+                
+                const respText = metadataEl.textContent.match(/Resp:\s*(.*?)$/);
+                if (respText && respText[1]) {
+                    responsibleTeam = respText[1].trim();
+                }
+            }
+            
+            // Create HTML for the step
+            stepsHtml += `
+                <div class="step-item">
+                    <div class="step-header">
+                        <div class="step-order">${order}</div>
+                        <div class="step-title">${title}</div>
+                    </div>
+                    <div class="step-content">
+                        ${estimatedTime || responsibleTeam ? 
+                            `<div class="step-metadata">
+                                ${estimatedTime ? `<span class="badge">Est. Time: ${estimatedTime}</span>` : ''}
+                                ${responsibleTeam ? `<span style="margin-left: 10px;">Responsible: ${responsibleTeam}</span>` : ''}
+                            </div>` : ''
+                        }
+                        <div class="step-description">${description}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        return stepsHtml;
+    }
+    
+    // Helper function to prepare the affected systems table for export
+    function prepareAffectedSystemsTableForExport() {
+        if (!graphData || !graphData.affected_systems || graphData.affected_systems.length === 0) {
+            return '<p>No affected systems found.</p>';
+        }
+        
+        let tableHtml = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>System Name</th>
+                        <th>Category</th>
+                        <th>Vendor</th>
+                        <th>Impact Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        // Sort systems by impact level
+        const sortedSystems = [...graphData.affected_systems].sort((a, b) => a.impact_level - b.impact_level);
+        
+        sortedSystems.forEach(function(system) {
+            const impactLevel = system.impact_level === 1 ? "Direct" : `Indirect (L${system.impact_level})`;
+            const categoryName = system.category ? system.category.name : "Unknown";
+            const vendor = system.vendor || "N/A";
+            
+            tableHtml += `
+                <tr>
+                    <td>${system.name}</td>
+                    <td>${categoryName}</td>
+                    <td>${vendor}</td>
+                    <td>${impactLevel}</td>
+                </tr>
+            `;
+        });
+        
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+        
+        return tableHtml;
+    }
 });
 </script>
 {% endblock %}
